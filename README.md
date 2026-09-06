@@ -17,16 +17,14 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 
 ---
 
-## 👨‍💻 Profil Pengembang & Peneliti
+## 👨‍💻 Profil Pengembang (Developer)
 
-* **Nama Pengembang** : Rudi Putra
-* **NIM** : 25040030002
-* **Program Studi** : Pendidikan Guru Vokasi
-* **Fakultas** : Pasca Sarjana
-* **Institusi** : Universitas PGRI Sumatera Barat
-* **Produk** : E-Modul terintegrasi Chatbot berbasis Web
-* **Kontak Email** : [putrarudi238@gmail.com](mailto:putrarudi238@gmail.com)
-* **Lokasi Riset** : SMK Negeri 1 Kinali, Pasaman Barat
+* **Nama Pengembang** : Fikri Arrahman
+* **GitHub** : [@FIKRI-24](https://github.com/FIKRI-24)
+* **Kontak Email** : [irkif1011@gmail.com](mailto:irkif1011@gmail.com)
+* **Repositori** : [https://github.com/FIKRI-24/RAG_CHATBOT](https://github.com/FIKRI-24/RAG_CHATBOT)
+* **Peran** : Full-Stack Developer & AI Engineer (Pengembang & Arsitek Sistem E-Modul RAG)
+* **Keterangan Proyek** : Proyek pengembangan media pembelajaran digital berbasis Web dan AI RAG interaktif untuk riset pendidikan vokasi di SMK Negeri 1 Kinali.
 
 ---
 
@@ -67,7 +65,7 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 
 ### 7. Profil Pengguna & Profil Pengembang
 * Pengguna (Guru & Siswa) dapat mengunggah foto profil akun masing-masing dengan pratinjau langsung.
-* Halaman khusus **Profil Pengembang** (Rudi Putra) dengan proporsi pasfoto formal (3:4) dan form kelola pasfoto khusus akun Guru.
+* Halaman khusus **Profil Pengembang / Peneliti** pada web e-modul dengan pasfoto formal dan panel pembaruan khusus akun Guru.
 
 ---
 
@@ -159,5 +157,5 @@ Akses aplikasi melalui peramban: `http://127.0.0.1:8000`
 
 ## 📄 Lisensi
 
-Sistem ini dikembangkan untuk keperluan akademik dan penelitian pendidikan vokasi di bawah lisensi [MIT License](LICENSE).
-Hak Cipta © 2026 **Rudi Putra** — Universitas PGRI Sumatera Barat & SMK Negeri 1 Kinali.
+Sistem ini dikembangkan oleh **Fikri Arrahman** ([@FIKRI-24](https://github.com/FIKRI-24)) di bawah lisensi [MIT License](LICENSE).
+Hak Cipta © 2026 **Fikri Arrahman**. All rights reserved.
