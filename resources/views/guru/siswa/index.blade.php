@@ -10,10 +10,17 @@
                 <p class="text-xs text-slate-500 mt-1">Kelola akun siswa, buat akun baru, serta atur reset password login siswa.</p>
             </div>
             
-            <button onclick="openAddModal()" class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md hover:shadow-lg active:scale-95">
-                <i class="fa-solid fa-plus text-sm"></i>
-                <span>Tambah Siswa Baru</span>
-            </button>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <a href="{{ route('guru.siswa.export') }}" class="inline-flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md hover:shadow-lg active:scale-95 border border-emerald-600" title="Format Resmi Dinas (Times New Roman 12pt)">
+                    <i class="fa-solid fa-file-excel text-sm text-emerald-200"></i>
+                    <span>Ekspor Excel (.xlsx)</span>
+                </a>
+
+                <button onclick="openAddModal()" class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white px-4 py-2.5 rounded-xl font-semibold text-xs transition-all shadow-md hover:shadow-lg active:scale-95">
+                    <i class="fa-solid fa-plus text-sm"></i>
+                    <span>Tambah Siswa Baru</span>
+                </button>
+            </div>
         </div>
 
         <!-- Alert Notifications -->

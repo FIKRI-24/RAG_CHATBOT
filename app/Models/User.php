@@ -51,6 +51,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get chat histories for this student.
+     */
+    public function chatHistories()
+    {
+        return $this->hasMany(ChatHistory::class, 'siswa_id');
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

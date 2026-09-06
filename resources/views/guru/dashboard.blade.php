@@ -20,6 +20,11 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    <a href="{{ route('guru.siswa.export') }}" class="inline-flex items-center gap-2 bg-emerald-800/80 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all border border-emerald-400/40 backdrop-blur-xs shadow-sm hover:scale-105 active:scale-95" title="Ekspor Rekapitulasi Pembelajaran ke Excel (Times New Roman 12pt)">
+                        <i class="fa-solid fa-file-excel text-emerald-300"></i>
+                        <span>Ekspor Excel</span>
+                    </a>
+
                     <a href="{{ route('guru.modules.create') }}" class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-md transition-all hover:scale-105 active:scale-95 border border-emerald-400/30">
                         <i class="fa-solid fa-cloud-arrow-up"></i>
                         <span>Upload Modul Baru</span>

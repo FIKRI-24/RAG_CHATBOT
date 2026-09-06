@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ExportActivityService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -102,5 +103,13 @@ class SiswaController extends Controller
         $siswa->delete();
 
         return redirect()->route('guru.siswa.index')->with('success', 'Akun siswa berhasil dihapus.');
+    }
+
+    /**
+     * Ekspor data rekapitulasi aktivitas siswa ke Excel (.xlsx) dengan Kop Resmi & Times New Roman 12pt.
+     */
+    public function exportActivity(ExportActivityService $exportService)
+    {
+        return $exportService->export();
     }
 }

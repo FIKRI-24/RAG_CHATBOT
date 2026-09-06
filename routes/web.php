@@ -29,6 +29,7 @@ Route::middleware(['auth', 'role:guru'])->prefix('guru')->name('guru.')->group(f
 
     Route::post('/modules/{module}/reindex', [ModuleController::class, 'reindex'])->name('modules.reindex');
     Route::resource('modules', ModuleController::class);
+    Route::get('/siswa/export-activity', [SiswaController::class, 'exportActivity'])->name('siswa.export');
     Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show']);
 });
 
