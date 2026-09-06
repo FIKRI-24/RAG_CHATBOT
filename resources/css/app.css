@@ -1,0 +1,11 @@
+@import '@fortawesome/fontawesome-free/css/all.min.css';
+@import url('https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] {
+    display: none !important;
+}
+
