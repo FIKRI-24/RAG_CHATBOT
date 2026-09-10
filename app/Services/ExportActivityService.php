@@ -6,9 +6,12 @@ use App\Models\ChatHistory;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -22,7 +25,12 @@ class ExportActivityService
     {
         Carbon::setLocale('id');
 
-        $spreadsheet = new Spreadsheet();
+        $maxRows = max(1, (int) config('reports.max_export_rows', 20000));
+        if (ChatHistory::count() + User::where('role', 'siswa')->count() > $maxRows) {
+            throw ValidationException::withMessages(['export' => 'Laporan terlalu besar untuk satu berkas. Hubungi pengelola untuk ekspor bertahap atau penyesuaian batas laporan.']);
+        }
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->setValueBinder((new StringValueBinder)->setNumericConversion(false));
 
         // 1. Terapkan Font Global: Times New Roman 12pt
         $spreadsheet->getDefaultStyle()->getFont()->setName('Times New Roman');
@@ -30,28 +38,18 @@ class ExportActivityService
 
         // Ambil Data Guru & Waktu
         $guru = Auth::user();
-        $namaGuru = $guru ? $guru->name : 'Rudi Putra, S.Pd.';
-        $nipGuru = '19850412 201101 1 003';
-        $waktuCetak = Carbon::now()->translatedFormat('d F Y, H:i:s') . ' WIB';
-        $tanggalPengesahan = Carbon::now()->translatedFormat('d F Y');
+        $namaGuru = $guru?->name ?? '-';
+        $nipGuru = config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-';
+        $waktuCetak = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB';
+        $tanggalPengesahan = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y');
 
-        // Ambil Data Siswa beserta Relasi Chat
+        $totalSiswa = User::where('role', 'siswa')->count();
+        $siswaAktifCount = User::where('role', 'siswa')->whereHas('chatHistories', fn ($q) => $q->questions())->count();
+        $totalPertanyaanAll = ChatHistory::questions()->whereHas('siswa', fn ($q) => $q->where('role', 'siswa'))->count();
         $siswas = User::where('role', 'siswa')
-            ->with(['chatHistories.referensiChunk.module'])
-            ->orderBy('name', 'asc')
-            ->get();
-
-        $totalSiswa = $siswas->count();
-        $siswaAktifCount = 0;
-        $totalPertanyaanAll = 0;
-
-        foreach ($siswas as $s) {
-            $pertanyaanCount = $s->chatHistories->where('pertanyaan', '!=', '[LATIHAN_SOAL]')->count();
-            if ($pertanyaanCount > 0) {
-                $siswaAktifCount++;
-            }
-            $totalPertanyaanAll += $pertanyaanCount;
-        }
+            ->withCount(['chatHistories as questions_count' => fn ($q) => $q->questions(),
+                'chatHistories as quizzes_count' => fn ($q) => $q->quizzes()])
+            ->withMax('chatHistories', 'created_at')->orderBy('name')->orderBy('id')->lazy(100);
 
         $persenAktif = $totalSiswa > 0 ? round(($siswaAktifCount / $totalSiswa) * 100, 1) : 0;
         $rataRataTanya = $totalSiswa > 0 ? round($totalPertanyaanAll / $totalSiswa, 2) : 0;
@@ -97,14 +95,14 @@ class ExportActivityService
         $sheet1->setCellValue('A3', 'LAPORAN REKAPITULASI AKTIVITAS BELAJAR & INTERAKSI SISWA DENGAN E-MODUL RAG AI');
         $sheet1->getStyle('A3')->getFont()->setBold(true);
         $sheet1->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet1->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('52525B'));
+        $sheet1->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new Color('52525B'));
 
         // --- ROW 5 - 8: METADATA RESMI SEKOLAH & GURU ---
         $metadata = [
             ['Nama Sekolah', ': SMK Negeri 1 Kinali', 'Guru Pengampu', ": {$namaGuru} (Akun Login)"],
             ['NPSN / ID Sekolah', ': 10304384', 'NIP / ID Guru', ": {$nipGuru}"],
             ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Mata Pelajaran', ': Administrasi Infrastruktur & Jaringan Nirkabel'],
-            ['Waktu Cetak Laporan', ": {$waktuCetak}", 'Arsitektur AI', ': Google Gemini 2.5 Flash (Strict Grounded RAG)'],
+            ['Waktu Cetak Laporan', ": {$waktuCetak}", 'Arsitektur AI', ': '.config('gemini.model')],
         ];
 
         $r = 5;
@@ -178,25 +176,18 @@ class ExportActivityService
         $no = 1;
 
         foreach ($siswas as $siswa) {
-            $chats = $siswa->chatHistories;
-            $tanyaCount = $chats->where('pertanyaan', '!=', '[LATIHAN_SOAL]')->count();
-            $kuisCount = $chats->where('pertanyaan', '[LATIHAN_SOAL]')->count();
-
-            // Kumpulkan modul yang diakses
+            $tanyaCount = $siswa->questions_count;
+            $kuisCount = $siswa->quizzes_count;
             $modulList = [];
-            foreach ($chats as $c) {
-                if ($c->referensiChunk && $c->referensiChunk->module) {
-                    $kode = $c->referensiChunk->module->kb_nomor ?: $c->referensiChunk->module->judul;
-                    if (!in_array($kode, $modulList)) {
-                        $modulList[] = $kode;
-                    }
+            foreach ($siswa->chatHistories()->select(['id', 'siswa_id', 'referensi_chunk_id', 'sources'])
+                ->with('referensiChunk:id,module_id', 'referensiChunk.module:id,judul,mapel,kb_nomor')->lazyById(100) as $chat) {
+                foreach ($chat->sourceLabels() as $label) {
+                    $modulList[$label] = true;
                 }
             }
-            $modulText = count($modulList) > 0 ? implode(', ', $modulList) : '-';
-
-            // Waktu interaksi terakhir
-            $lastChat = $chats->sortByDesc('created_at')->first();
-            $aktifTerakhir = $lastChat ? $lastChat->created_at->translatedFormat('d/m/Y H:i') : 'Belum Pernah';
+            $modulText = $modulList ? implode(', ', array_keys($modulList)) : '-';
+            $aktifTerakhir = $siswa->chat_histories_max_created_at
+                ? Carbon::parse($siswa->chat_histories_max_created_at)->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i') : 'Belum Pernah';
 
             // Kategori partisipasi
             if ($tanyaCount >= 10) {
@@ -212,7 +203,7 @@ class ExportActivityService
             $sheet1->setCellValue("A{$rowIdx}", $no);
             $sheet1->setCellValue("B{$rowIdx}", $siswa->email);
             $sheet1->setCellValue("C{$rowIdx}", $siswa->name);
-            $sheet1->setCellValue("D{$rowIdx}", 'XII TKJ');
+            $sheet1->setCellValue("D{$rowIdx}", config('reports.student_classes', [])[$siswa->email] ?? '-');
             $sheet1->setCellValue("E{$rowIdx}", $modulText);
             $sheet1->setCellValue("F{$rowIdx}", "{$tanyaCount} kali");
             $sheet1->setCellValue("G{$rowIdx}", $kuisCount > 0 ? "{$kuisCount} kali" : 'Belum Ada');
@@ -246,7 +237,7 @@ class ExportActivityService
         $sheet1->getStyle("F{$sigRow}:I{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         $sigRow++;
-        $sheet1->mergeCells("F{$sigRow}:I{$sigRow}")->setCellValue("F{$sigRow}", "Guru Pengampu Mata Pelajaran TKJ,");
+        $sheet1->mergeCells("F{$sigRow}:I{$sigRow}")->setCellValue("F{$sigRow}", 'Guru Pengampu Mata Pelajaran TKJ,');
         $sheet1->getStyle("F{$sigRow}:I{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet1->getStyle("F{$sigRow}:I{$sigRow}")->getFont()->setBold(true);
 
@@ -302,25 +293,20 @@ class ExportActivityService
         $sheet2->getStyle('A3:G3')->applyFromArray($thinBorder);
 
         // Ambil data seluruh chat histories
-        $allChats = ChatHistory::with(['siswa', 'referensiChunk.module'])
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $allChats = ChatHistory::with(['siswa:id,name', 'referensiChunk:id,module_id', 'referensiChunk.module:id,judul,mapel,kb_nomor'])
+            ->orderBy('created_at', 'desc')->orderBy('id', 'desc')->lazy(100);
 
         $cRow = 4;
         $cNo = 1;
 
         foreach ($allChats as $chat) {
             $namaSiswa = $chat->siswa ? $chat->siswa->name : 'Siswa';
-            $waktu = $chat->created_at ? $chat->created_at->translatedFormat('d/m/Y H:i') : '-';
-            
-            $modulName = '-';
-            if ($chat->referensiChunk && $chat->referensiChunk->module) {
-                $modulName = $chat->referensiChunk->module->kb_nomor ?: $chat->referensiChunk->module->judul;
-            }
+            $waktu = $chat->created_at ? $chat->created_at->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i') : '-';
 
-            $isQuiz = ($chat->pertanyaan === '[LATIHAN_SOAL]');
+            $modulName = implode(', ', $chat->sourceLabels()) ?: '-';
+            $isQuiz = $chat->activity_type === 'Latihan Soal';
             $pertanyaanText = $isQuiz ? 'Permintaan Latihan Soal AI' : $chat->pertanyaan;
-            $tipeText = $isQuiz ? 'Latihan Soal' : 'Tanya Materi';
+            $tipeText = $chat->activity_type;
 
             $sheet2->setCellValue("A{$cRow}", $cNo);
             $sheet2->setCellValue("B{$cRow}", $waktu);
@@ -362,16 +348,20 @@ class ExportActivityService
         $spreadsheet->setActiveSheetIndex(0);
 
         // Stream File Download Response
-        $filename = 'REKAP_AKTIVITAS_SISWA_SMKN1_KINALI_' . date('Ymd_His') . '.xlsx';
+        $filename = 'REKAP_AKTIVITAS_SISWA_SMKN1_KINALI_'.Carbon::now(config('app.display_timezone'))->format('Ymd_His').'.xlsx';
 
         return new StreamedResponse(function () use ($spreadsheet) {
             $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
+            try {
+                $writer->save('php://output');
+            } finally {
+                $spreadsheet->disconnectWorksheets();
+            }
         }, 200, [
             'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
-            'Cache-Control' => 'max-age=0',
-            'Pragma' => 'public',
+            'Cache-Control' => 'private, no-store',
+            'Pragma' => 'no-cache',
         ]);
     }
 }

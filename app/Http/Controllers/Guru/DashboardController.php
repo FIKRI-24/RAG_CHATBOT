@@ -7,7 +7,8 @@ use App\Models\ChatHistory;
 use App\Models\Module;
 use App\Models\ModuleChunk;
 use App\Models\User;
-use Illuminate\Http\Request;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -18,15 +19,11 @@ class DashboardController extends Controller
     public function index(): View
     {
         $guruId = auth()->id();
-        $year = (int) date('Y');
+        $year = (int) now(config('app.display_timezone'))->year;
 
         // 1. KPI Metrik Utama
         $totalModul = Module::where('guru_id', $guruId)->count();
-        $totalModulAktif = Module::where('guru_id', $guruId)
-            ->where(function ($q) {
-                $q->whereNull('berlaku_sampai')->orWhere('berlaku_sampai', '>=', now());
-            })
-            ->count();
+        $totalModulAktif = Module::where('guru_id', $guruId)->available()->count();
 
         $totalChunk = ModuleChunk::whereHas('module', function ($q) use ($guruId) {
             $q->where('guru_id', $guruId);
@@ -34,8 +31,8 @@ class DashboardController extends Controller
 
         $totalSiswa = User::where('role', 'siswa')->count();
         $totalChat = ChatHistory::count();
-        $totalKuis = ChatHistory::where('pertanyaan', '[LATIHAN_SOAL]')->count();
-        $totalPertanyaanBiasa = $totalChat - $totalKuis;
+        $totalKuis = ChatHistory::quizzes()->count();
+        $totalPertanyaanBiasa = ChatHistory::questions()->count();
 
         // 2. Metrik Kesiapan & Partisipasi Nyata
         $modulCompleted = Module::where('guru_id', $guruId)->where('status_indexing', 'completed')->count();
@@ -48,28 +45,11 @@ class DashboardController extends Controller
         $activeAiModel = config('gemini.model', 'gemini-2.5-flash');
 
         // 3. Data Grafik Batang Bulanan (Jan - Des Tahun Ini)
-        $chatCountsRaw = ChatHistory::selectRaw("EXTRACT(MONTH FROM created_at) as month, count(*) as count")
-            ->whereYear('created_at', $year)
-            ->groupBy('month')
-            ->pluck('count', 'month')
-            ->toArray();
-
-        $moduleCountsRaw = Module::where('guru_id', $guruId)
-            ->selectRaw("EXTRACT(MONTH FROM created_at) as month, count(*) as count")
-            ->whereYear('created_at', $year)
-            ->groupBy('month')
-            ->pluck('count', 'month')
-            ->toArray();
-
-        $chartChats = [];
-        $chartModules = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $chartChats[] = (int) ($chatCountsRaw[$m] ?? 0);
-            $chartModules[] = (int) ($moduleCountsRaw[$m] ?? 0);
-        }
+        $chartChats = $this->monthlyCounts(ChatHistory::query(), $year);
+        $chartModules = $this->monthlyCounts(Module::where('guru_id', $guruId), $year);
 
         // 4. Live Feed: Aktivitas Tanya Jawab Siswa Terkini
-        $recentChats = ChatHistory::with(['siswa', 'referensiChunk.module'])
+        $recentChats = ChatHistory::with(['siswa', 'referensiChunk:id,module_id', 'referensiChunk.module:id,judul,mapel,kb_nomor'])
             ->latest()
             ->take(6)
             ->get();
@@ -100,5 +80,20 @@ class DashboardController extends Controller
             'recentChats',
             'latestModules'
         ));
+    }
+
+    private function monthlyCounts(Builder $query, int $year): array
+    {
+        $start = CarbonImmutable::create($year, 1, 1, 0, 0, 0, config('app.display_timezone'));
+        for ($month = 0; $month < 12; $month++) {
+            $query->selectRaw('COALESCE(SUM(CASE WHEN created_at >= ? AND created_at < ? THEN 1 ELSE 0 END), 0) AS month_'.$month, [
+                $start->addMonths($month)->utc()->format('Y-m-d H:i:s'),
+                $start->addMonths($month + 1)->utc()->format('Y-m-d H:i:s'),
+            ]);
+        }
+        $row = $query->where('created_at', '>=', $start->utc())
+            ->where('created_at', '<', $start->addYear()->utc())->first();
+
+        return array_map(fn ($month) => (int) $row->{'month_'.$month}, range(0, 11));
     }
 }

@@ -1,0 +1,28 @@
+[
+    {
+        "question": "Apa fungsi utama jaringan nirkabel?",
+        "mapel": "Teknik Komputer dan Jaringan",
+        "expected_terms": ["gelombang", "kabel"]
+    },
+    {
+        "question": "Apa kelebihan dan kelemahan jaringan nirkabel?",
+        "mapel": "Teknik Komputer dan Jaringan",
+        "expected_terms": ["Mobilitas", "Interferensi"]
+    },
+    {
+        "question": "Bagaimana cara kerjanya?",
+        "mapel": "Teknik Komputer dan Jaringan",
+        "history": [{"pertanyaan": "Apa itu jaringan nirkabel?", "jawaban": "Jaringan yang berkomunikasi tanpa kabel fisik."}],
+        "expected_terms": ["modulasi", "Demodulasi"]
+    },
+    {
+        "question": "Apa fungsi utama jaringan nirkabel?",
+        "mapel": "Mapel di luar korpus evaluasi",
+        "expect_empty": true
+    },
+    {
+        "question": "Bagaimana resep membuat rendang daging?",
+        "mapel": "Teknik Komputer dan Jaringan",
+        "expect_empty": true
+    }
+]

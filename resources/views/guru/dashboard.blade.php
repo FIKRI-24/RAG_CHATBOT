@@ -300,10 +300,10 @@
 
                                     <!-- Modul Reference Badge -->
                                     <div class="mt-1.5 flex items-center gap-2">
-                                        @if($chat->referensiChunk && $chat->referensiChunk->module)
+                                        @if($chat->sourceLabels())
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-emerald-50 text-[#008546] border border-emerald-200">
                                                 <i class="fa-solid fa-book-bookmark text-[9px]"></i>
-                                                <span>{{ $chat->referensiChunk->module->kb_nomor }}</span>
+                                                <span>{{ implode(', ', $chat->sourceLabels()) }}</span>
                                             </span>
                                         @else
                                             <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 text-slate-500">

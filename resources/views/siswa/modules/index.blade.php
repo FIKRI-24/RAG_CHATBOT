@@ -59,11 +59,6 @@
                 <span>Petunjuk Siswa</span>
             </a>
 
-            <a href="{{ route('pengembang') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-address-card text-slate-400 text-sm w-5 text-center"></i>
-                <span>Profil Pengembang</span>
-            </a>
-
             <div class="pt-4 border-t border-slate-100 mt-4">
                 <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block px-2 mb-2">Akun</span>
                 <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
@@ -118,6 +113,10 @@
 
         <!-- Body Content -->
         <div class="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
+            @if(session('error'))
+                <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
+            @endif
+
             
             <!-- Filters & Search Bar -->
             <div class="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">

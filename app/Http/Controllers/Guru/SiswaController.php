@@ -22,11 +22,11 @@ class SiswaController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
-        $siswas = $query->latest()->paginate(10);
+        $siswas = $query->latest()->paginate(10)->withQueryString();
         $totalSiswa = User::where('role', 'siswa')->count();
 
         return view('guru.siswa.index', compact('siswas', 'totalSiswa'));
@@ -64,7 +64,7 @@ class SiswaController extends Controller
      */
     public function update(Request $request, User $siswa)
     {
-        if (!$siswa->isSiswa()) {
+        if (! $siswa->isSiswa()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -96,7 +96,7 @@ class SiswaController extends Controller
      */
     public function destroy(User $siswa)
     {
-        if (!$siswa->isSiswa()) {
+        if (! $siswa->isSiswa()) {
             abort(403, 'Akses ditolak.');
         }
 

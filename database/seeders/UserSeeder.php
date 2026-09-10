@@ -2,34 +2,23 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class UserSeeder extends Seeder
 {
-    
     public function run(): void
     {
-        \App\Models\User::create([
-            'name' => 'Guru TKJ',
-            'email' => 'guru@tkj.com',
-            'password' => bcrypt('password'),
-            'role' => 'guru'
-        ]);
-
-        \App\Models\User::create([
-            'name' => 'Siswa TKJ',
-            'email' => 'siswa@tkj.com',
-            'password' => bcrypt('password'),
-            'role' => 'siswa'
-        ]);
-
-        \App\Models\User::create([
-            'name' => 'fikri',
-            'email' => 'fikri@gmail.com',
-            'password' => bcrypt ('password'),
-            'role' => 'siswa'
-        ]);
-        
+        if (! app()->environment(['local', 'testing'])) {
+            return; // Never create known demo credentials in production.
+        }
+        foreach ([
+            ['name' => 'Guru TKJ', 'email' => 'guru@tkj.com', 'role' => 'guru'],
+            ['name' => 'Siswa TKJ', 'email' => 'siswa@tkj.com', 'role' => 'siswa'],
+            ['name' => 'fikri', 'email' => 'fikri@gmail.com', 'role' => 'siswa'],
+        ] as $account) {
+            User::firstOrCreate(['email' => $account['email']],
+                $account + ['password' => bcrypt('password')]);
+        }
     }
 }

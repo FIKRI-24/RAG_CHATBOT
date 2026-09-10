@@ -237,7 +237,7 @@
                             <label for="berlaku_sampai" class="block text-xs font-bold text-slate-700 mb-1.5">
                                 Berlaku Sampai Tanggal
                             </label>
-                            <input type="date" id="berlaku_sampai" name="berlaku_sampai" value="{{ old('berlaku_sampai', now()->addMonths(6)->format('Y-m-d')) }}"
+                            <input type="date" id="berlaku_sampai" name="berlaku_sampai" value="{{ old('berlaku_sampai', now(config('app.display_timezone'))->addMonths(6)->format('Y-m-d')) }}"
                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
                             <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
                                 Setelah tanggal ini lewat, modul otomatis <strong>diarsipkan</strong> dari pencarian AI siswa, namun arsip berkas asli tetap aman.

@@ -2,207 +2,206 @@
 
 namespace App\Http\Controllers\Siswa;
 
+use App\Exceptions\RagException;
 use App\Http\Controllers\Controller;
 use App\Models\ChatHistory;
 use App\Models\Module;
 use App\Models\ModuleChunk;
 use App\Services\GeminiService;
+use App\Services\RetrievalService;
+use App\Services\VectorService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class ChatController extends Controller
 {
     public function index(Request $request)
     {
-        // Ambil riwayat chat pengguna saat ini
-        $chats = ChatHistory::where('siswa_id', auth()->id())->orderBy('created_at', 'asc')->get();
-        // Ambil daftar modul yang tersedia (aktif / belum kedaluwarsa)
-        $modules = Module::where('status_indexing', 'completed')
-            ->where(function($q) {
-                $q->whereNull('berlaku_sampai')->orWhere('berlaku_sampai', '>=', now());
-            })->get();
-        
+        $request->validate(['mapel' => 'nullable|string|max:255']);
+        $historyPages = ChatHistory::where('siswa_id', auth()->id())->latest('id')->cursorPaginate(30)->withQueryString();
+        $chats = $historyPages->getCollection()->reverse();
+        $modules = Module::available()->get();
         $mapels = $modules->pluck('mapel')->unique();
         $selectedMapel = $request->query('mapel', 'Semua');
+        $activeQuiz = ChatHistory::where('siswa_id', auth()->id())->where('kind', 'quiz')
+            ->where('quiz_status', 'pending')->where('mapel', $selectedMapel)
+            ->whereHas('referensiChunk.module', fn ($q) => $q->available())->latest('id')->first();
 
-        return view('siswa.dashboard', compact('chats', 'modules', 'mapels', 'selectedMapel'));
+        return view('siswa.dashboard', compact('chats', 'historyPages', 'modules', 'mapels', 'selectedMapel', 'activeQuiz'));
     }
 
-    public function ask(Request $request, GeminiService $gemini)
+    public function ask(Request $request, GeminiService $gemini, RetrievalService $retrieval)
     {
         $request->validate([
-            'pertanyaan' => 'required|string|max:1000',
-            'mapel' => 'nullable|string'
+            'pertanyaan' => 'nullable|string|max:1000',
+            'mapel' => 'nullable|string|max:255',
+            'action' => 'nullable|in:ask,quiz,quiz_answer,cancel_quiz',
+            'quiz_id' => 'nullable|integer|min:1',
         ]);
+        $question = trim((string) $request->input('pertanyaan', ''));
+        $mapel = $request->input('mapel') ?: 'Semua';
+        $action = $request->input('action', $question === '[LATIHAN_SOAL]' ? 'quiz' : 'ask');
+        if (in_array($action, ['ask', 'quiz_answer']) && $question === '') {
+            return $this->error('Pertanyaan atau jawaban wajib diisi.', 422);
+        }
+        if ($action === 'quiz_answer' && ! $request->filled('quiz_id')) {
+            return $this->error('Pilih kuis yang ingin dijawab.', 422);
+        }
 
-        $pertanyaan = $request->input('pertanyaan');
-        $mapel = $request->input('mapel');
-
+        $lock = Cache::lock('rag-chat:'.auth()->id(), 300);
+        if (! $lock->get()) {
+            return $this->error('Pertanyaan sebelumnya masih diproses. Tunggu hingga selesai.', 409);
+        }
+        $started = microtime(true);
         try {
-            // Cek apakah mode Kuis
-            if ($pertanyaan === '[LATIHAN_SOAL]') {
-                $query = ModuleChunk::query()->whereHas('module', function($q) {
-                    $q->where(function($sub) {
-                        $sub->whereNull('berlaku_sampai')->orWhere('berlaku_sampai', '>=', now());
-                    });
-                });
-                
-                if ($mapel && $mapel !== 'Semua') {
-                    $query->whereHas('module', function($q) use ($mapel) {
-                        $q->where('mapel', $mapel);
-                    });
-                }
-                $chunk = $query->inRandomOrder()->first();
+            if ($action === 'cancel_quiz') {
+                $this->cancelQuizzes();
 
-                if (!$chunk) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Belum ada materi untuk dijadikan soal.'
+                return response()->json(['success' => true, 'data' => ['quiz_id' => null]]);
+            }
+            if ($action === 'quiz') {
+                $chunk = $retrieval->eligible($mapel)->with('module')->inRandomOrder()->cursor()
+                    ->first(fn ($chunk) => VectorService::valid($chunk->embedding_vector));
+                if (! $chunk) {
+                    return $this->error('Belum ada materi yang siap untuk dijadikan soal.', 422);
+                }
+                $answer = $gemini->generateQuiz($chunk->chunk_text);
+                $chat = DB::transaction(function () use ($chunk, $answer, $mapel, $retrieval) {
+                    $chunk = $this->lockSource($chunk, $mapel, $retrieval);
+                    if (! $chunk) {
+                        return null;
+                    }
+                    $this->cancelQuizzes();
+
+                    return ChatHistory::create([
+                        'siswa_id' => auth()->id(), 'pertanyaan' => '[LATIHAN_SOAL]',
+                        'jawaban' => $answer, 'referensi_chunk_id' => $chunk->id,
+                        'kind' => 'quiz', 'quiz_status' => 'pending', 'mapel' => $mapel,
+                        'sources' => [$retrieval->source($chunk)],
                     ]);
-                }
-
-                $jawaban = $gemini->generateQuiz($chunk->chunk_text);
-                
-                $chat = ChatHistory::create([
-                    'siswa_id' => auth()->id(),
-                    'pertanyaan' => '[LATIHAN_SOAL]',
-                    'jawaban' => $jawaban,
-                    'referensi_chunk_id' => $chunk->id
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'pertanyaan' => 'Tolong berikan saya latihan soal.',
-                        'jawaban' => $chat->jawaban,
-                        'created_at' => $chat->created_at->format('H:i')
-                    ]
-                ]);
-            }
-
-            // Cek apakah chat sebelumnya adalah kuis (tunggu jawaban siswa)
-            $lastChat = ChatHistory::where('siswa_id', auth()->id())->orderBy('created_at', 'desc')->first();
-            if ($lastChat && $lastChat->pertanyaan === '[LATIHAN_SOAL]') {
-                // Evaluasi kuis
-                $chunk = ModuleChunk::find($lastChat->referensi_chunk_id);
-                $context = $chunk ? $chunk->chunk_text : '';
-
-                $jawaban = $gemini->gradeQuiz($lastChat->jawaban, $pertanyaan, $context);
-
-                $chat = ChatHistory::create([
-                    'siswa_id' => auth()->id(),
-                    'pertanyaan' => $pertanyaan,
-                    'jawaban' => $jawaban,
-                    'referensi_chunk_id' => $lastChat->referensi_chunk_id
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'pertanyaan' => $chat->pertanyaan,
-                        'jawaban' => $chat->jawaban,
-                        'created_at' => $chat->created_at->format('H:i')
-                    ]
-                ]);
-            }
-
-            // 1. Embed pertanyaan
-            $questionEmbedding = $gemini->embedText($pertanyaan);
-
-            // 2. Ambil semua chunk dari database, pastikan modul aktif
-            $query = ModuleChunk::query()->whereHas('module', function($q) {
-                $q->where(function($sub) {
-                    $sub->whereNull('berlaku_sampai')->orWhere('berlaku_sampai', '>=', now());
                 });
+
+                return $chat ? $this->reply($chat, $chat->id)
+                    : $this->error('Sumber kuis berubah saat diproses. Silakan mulai kuis baru.', 409);
+            }
+            if ($action === 'quiz_answer') {
+                return $this->grade($request->integer('quiz_id'), $question, $mapel, $gemini, $retrieval);
+            }
+
+            // Normal questions never implicitly become quiz answers.
+            $this->cancelQuizzes();
+            $sources = [];
+            $queryText = $question;
+            if ($retrieval->eligible($mapel)->exists()) {
+                $history = ChatHistory::where('siswa_id', auth()->id())->where('kind', 'answer')
+                    ->where('mapel', $mapel)->where('created_at', '>=', now()->subMinutes(30))
+                    ->latest('id')->limit(config('rag.history_turns', 3))->get()->reverse()
+                    ->map(fn ($chat) => ['pertanyaan' => $chat->retrieval_query ?: $chat->pertanyaan,
+                        'jawaban' => mb_substr($chat->jawaban, 0, 1500)])->values()->all();
+                $queryText = $gemini->rewriteQuestion($question, $history);
+                $matches = $retrieval->search($gemini->embedText($queryText), $mapel);
+                $sources = $retrieval->sources($matches, $mapel);
+            }
+            $answer = ! $sources
+                ? 'Materi untuk menjawab pertanyaan tersebut belum ditemukan dalam modul yang tersedia.'
+                : $gemini->generateAnswer($queryText, $retrieval->context($sources));
+            $chat = DB::transaction(function () use ($question, $answer, $sources, $mapel, $queryText) {
+                $reference = isset($sources[0]) ? ModuleChunk::whereKey($sources[0]['chunk_id'])->lockForUpdate()->first(['id']) : null;
+
+                return ChatHistory::create([
+                    'siswa_id' => auth()->id(), 'pertanyaan' => $question, 'jawaban' => $answer,
+                    'referensi_chunk_id' => $reference?->id,
+                    'mapel' => $mapel, 'kind' => 'answer', 'sources' => $sources, 'retrieval_query' => $queryText,
+                ]);
             });
-
-            if ($mapel && $mapel !== 'Semua') {
-                $query->whereHas('module', function($q) use ($mapel) {
-                    $q->where('mapel', $mapel);
-                });
-            }
-            $chunks = $query->get();
-
-            $bestChunks = [];
-            foreach ($chunks as $chunk) {
-                // Pastikan embedding_vector adalah array
-                $vector = is_string($chunk->embedding_vector) ? json_decode($chunk->embedding_vector, true) : $chunk->embedding_vector;
-                
-                if (!empty($vector) && is_array($vector)) {
-                    $similarity = $this->cosineSimilarity($questionEmbedding, $vector);
-                    $bestChunks[] = [
-                        'chunk' => $chunk,
-                        'similarity' => $similarity
-                    ];
-                }
-            }
-
-            // Urutkan berdasarkan similarity tertinggi
-            usort($bestChunks, function ($a, $b) {
-                return $b['similarity'] <=> $a['similarity'];
-            });
-
-            // Ambil top 3 chunk
-            $topK = array_slice($bestChunks, 0, 3);
-            $contextText = "";
-            $referensiChunkId = null;
-
-            if (count($topK) > 0 && $topK[0]['similarity'] > 0.3) {
-                // Gunakan top chunks sebagai konteks
-                foreach ($topK as $index => $item) {
-                    $contextText .= "--- Potongan " . ($index + 1) . " ---\n";
-                    $contextText .= $item['chunk']->chunk_text . "\n\n";
-                }
-                $referensiChunkId = $topK[0]['chunk']->id; // Simpan chunk paling relevan
-            }
-
-            // 3. Generate jawaban menggunakan Gemini
-            $jawaban = $gemini->generateAnswer($pertanyaan, $contextText);
-
-            // 4. Simpan ke database
-            $chat = ChatHistory::create([
-                'siswa_id' => auth()->id(),
-                'pertanyaan' => $pertanyaan,
-                'jawaban' => $jawaban,
-                'referensi_chunk_id' => $referensiChunkId
+            Log::info('RAG answer completed', [
+                'chat_id' => $chat->id, 'source_count' => count($sources),
+                'scores' => array_column($sources, 'similarity'),
+                'duration_ms' => (int) ((microtime(true) - $started) * 1000),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'pertanyaan' => $chat->pertanyaan,
-                    'jawaban' => $chat->jawaban,
-                    'created_at' => $chat->created_at->format('H:i')
-                ]
-            ]);
+            return $this->reply($chat);
+        } catch (Throwable $e) {
+            Log::warning('RAG chat failed', ['error_type' => get_class($e)]);
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Maaf, terjadi kesalahan saat memproses pertanyaan Anda: ' . $e->getMessage()
-            ], 500);
+            return $this->error($e instanceof RagException ? $e->getMessage() : 'Layanan AI belum dapat memproses permintaan. Silakan coba lagi; jika berulang, hubungi pengelola.', 503);
+        } finally {
+            $lock->release();
         }
     }
 
-    /**
-     * Hitung cosine similarity antara 2 vektor.
-     */
-    private function cosineSimilarity(array $vec1, array $vec2): float
+    private function grade(int $id, string $answer, string $mapel, GeminiService $gemini, RetrievalService $retrieval)
     {
-        $dotProduct = 0;
-        $normA = 0;
-        $normB = 0;
-        $length = min(count($vec1), count($vec2));
+        $quiz = ChatHistory::whereKey($id)->where('siswa_id', auth()->id())
+            ->where('kind', 'quiz')->where('quiz_status', 'pending')->where('mapel', $mapel)->first();
+        if (! $quiz) {
+            return $this->error('Kuis sudah selesai, dibatalkan, atau tidak sesuai mata pelajaran.', 409);
+        }
+        $chunk = $retrieval->eligible($mapel)->whereKey($quiz->referensi_chunk_id)->first();
+        if (! $chunk) {
+            $quiz->update(['quiz_status' => 'cancelled']);
 
-        for ($i = 0; $i < $length; $i++) {
-            $dotProduct += $vec1[$i] * $vec2[$i];
-            $normA += $vec1[$i] ** 2;
-            $normB += $vec2[$i] ** 2;
+            return $this->error('Sumber kuis sudah tidak tersedia. Silakan mulai kuis baru.', 409);
+        }
+        $feedback = $gemini->gradeQuiz($quiz->jawaban, $answer, $chunk->chunk_text);
+        $chat = DB::transaction(function () use ($quiz, $answer, $feedback, $mapel, $chunk, $retrieval) {
+            $chunk = $this->lockSource($chunk, $mapel, $retrieval);
+            $quiz = ChatHistory::whereKey($quiz->id)->where('quiz_status', 'pending')->lockForUpdate()->first();
+            if (! $quiz) {
+                return null;
+            }
+            if (! $chunk) {
+                $quiz->update(['quiz_status' => 'cancelled']);
+
+                return null;
+            }
+            $quiz->update(['quiz_status' => 'answered']);
+
+            return ChatHistory::create([
+                'siswa_id' => auth()->id(), 'pertanyaan' => $answer, 'jawaban' => $feedback,
+                'referensi_chunk_id' => $chunk->id, 'mapel' => $mapel,
+                'kind' => 'quiz_feedback', 'sources' => $quiz->sources,
+            ]);
+        });
+
+        return $chat ? $this->reply($chat) : $this->error('Kuis atau sumbernya berubah saat diproses. Silakan mulai kuis baru.', 409);
+    }
+
+    private function lockSource(ModuleChunk $chunk, string $mapel, RetrievalService $retrieval): ?ModuleChunk
+    {
+        // Same lock order as reindex: module, then chunk, then chat. No API call holds a DB lock.
+        $module = Module::available()->whereKey($chunk->module_id)->lockForUpdate()->first();
+        if (! $module) {
+            return null;
+        }
+        $current = $retrieval->eligible($mapel)->whereKey($chunk->id)->lockForUpdate()->first();
+        if (! $current || ! VectorService::valid($current->embedding_vector)) {
+            return null;
         }
 
-        if ($normA == 0 || $normB == 0) {
-            return 0;
-        }
+        return $current->setRelation('module', $module);
+    }
 
-        return $dotProduct / (sqrt($normA) * sqrt($normB));
+    private function cancelQuizzes(): void
+    {
+        ChatHistory::where('siswa_id', auth()->id())->where('kind', 'quiz')
+            ->where('quiz_status', 'pending')->update(['quiz_status' => 'cancelled']);
+    }
+
+    private function reply(ChatHistory $chat, ?int $quizId = null)
+    {
+        return response()->json(['success' => true, 'data' => [
+            'pertanyaan' => $chat->pertanyaan, 'jawaban' => $chat->jawaban,
+            'created_at' => $chat->created_at->timezone(config('app.display_timezone'))->format('H:i'),
+            'sources' => $chat->sources ?? [], 'quiz_id' => $quizId,
+        ]]);
+    }
+
+    private function error(string $message, int $status)
+    {
+        return response()->json(['success' => false, 'message' => $message], $status);
     }
 }

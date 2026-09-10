@@ -2,14 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Jobs\ProcessModuleJob;
 use App\Models\Module;
-use App\Models\ModuleChunk;
 use App\Models\User;
-use App\Services\ChunkingService;
-use App\Services\DocumentExtractorService;
-use App\Services\GeminiService;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class ModuleKb1Seeder extends Seeder
 {
@@ -19,19 +16,17 @@ class ModuleKb1Seeder extends Seeder
     public function run(): void
     {
         $guru = User::where('role', 'guru')->first();
-        if (!$guru) {
-            $guru = User::create([
-                'name' => 'Guru TKJ',
-                'email' => 'guru@tkj.com',
-                'password' => bcrypt('password'),
-                'role' => 'guru',
-            ]);
+        if (! $guru) {
+            $this->command?->warn('Modul contoh dilewati: buat akun guru terlebih dahulu.');
+
+            return;
         }
 
         $tpContent = "Setelah mempelajari KB 1 ini peserta didik dapat:\n1) Menjelaskan Pengertian Jaringan Nirkabel\n2) Menganalisis Prinsip Kerja Jaringan Nirkabel\n3) Mengidentifikasi Kelebihan dan kelemahan jaringan Nirkabel.";
 
-        $module = Module::updateOrCreate(
+        $module = Module::firstOrCreate(
             [
+                'guru_id' => $guru->id,
                 'kb_nomor' => 'KB 1',
                 'mapel' => 'Teknik Komputer dan Jaringan',
             ],
@@ -44,42 +39,14 @@ class ModuleKb1Seeder extends Seeder
                 'file_path' => 'modules/kb1_jaringan_nirkabel.pdf',
                 'video_url' => 'https://www.youtube.com/watch?v=uryCL0DSu9w',
                 'kuis_url' => 'https://gemini.google.com/share/d/1wd5jzitWbU2pycqTXLpeFVuE4B0NTMDR?usp=sharing',
-                'status_indexing' => 'completed',
+                'status_indexing' => 'pending',
+                'indexing_version' => (string) Str::uuid(),
+                'indexing_error' => null,
             ]
         );
 
-        // Hapus chunk lama jika ada
-        $module->chunks()->delete();
-
-        // Ekstraksi teks dari berkas PDF
-        $fullPath = storage_path('app/private/' . $module->file_path);
-        if (file_exists($fullPath)) {
-            $extractor = new DocumentExtractorService();
-            $text = $extractor->extract($fullPath);
-
-            $chunker = new ChunkingService();
-            $chunks = $chunker->chunk($text);
-
-            $gemini = new GeminiService();
-
-            foreach ($chunks as $chunkText) {
-                if (empty(trim($chunkText))) {
-                    continue;
-                }
-
-                try {
-                    $embedding = $gemini->embedText($chunkText);
-                } catch (\Throwable $e) {
-                    Log::warning("Gagal mendapatkan embedding Gemini untuk chunk KB 1: " . $e->getMessage());
-                    $embedding = null;
-                }
-
-                ModuleChunk::create([
-                    'module_id' => $module->id,
-                    'chunk_text' => $chunkText,
-                    'embedding_vector' => $embedding,
-                ]);
-            }
+        if ($module->wasRecentlyCreated) {
+            ProcessModuleJob::dispatch($module);
         }
     }
 }

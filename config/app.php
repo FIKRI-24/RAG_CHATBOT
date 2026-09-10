@@ -66,6 +66,8 @@ return [
     */
 
     'timezone' => 'UTC',
+    // Keep persisted timestamps in UTC; display and school calendar dates use WIB.
+    'display_timezone' => 'Asia/Jakarta',
 
     /*
     |--------------------------------------------------------------------------

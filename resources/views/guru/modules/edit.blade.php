@@ -1,4 +1,8 @@
 <x-premium-layout>
+            @if(session('error'))
+                <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
+            @endif
+
     <div class="space-y-6 max-w-7xl mx-auto pb-12">
         
         <!-- Header Section -->

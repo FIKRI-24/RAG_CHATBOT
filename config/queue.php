@@ -31,6 +31,16 @@ return [
 
     'connections' => [
 
+        // RAG stays asynchronous even when the application's default is sync.
+        'rag' => [
+            'driver' => 'database',
+            'connection' => env('DB_QUEUE_CONNECTION'),
+            'table' => 'jobs',
+            'queue' => 'rag',
+            'retry_after' => 360,
+            'after_commit' => true,
+        ],
+
         'sync' => [
             'driver' => 'sync',
         ],

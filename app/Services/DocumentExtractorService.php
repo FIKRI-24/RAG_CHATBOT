@@ -65,7 +65,7 @@ class DocumentExtractorService
 
         foreach ($phpWord->getSections() as $section) {
             foreach ($section->getElements() as $element) {
-                $text .= $this->extractTextFromElement($element);
+                $text .= $this->extractTextFromElement($element) . "\n\n";
             }
         }
 
@@ -94,7 +94,9 @@ class DocumentExtractorService
                     foreach ($cell->getElements() as $child) {
                         $text .= $this->extractTextFromElement($child);
                     }
+                    $text .= ' | ';
                 }
+                $text .= "\n";
             }
         } elseif (method_exists($element, 'getText')) {
             $val = $element->getText();

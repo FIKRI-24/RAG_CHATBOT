@@ -1,4 +1,7 @@
 # E-Modul Interaktif Terintegrasi AI Chatbot (RAG)
+
+Panduan indexing, worker, dan hasil pengujian terbaru: [Perbaikan dan evaluasi RAG](docs/RAG.md).
+
 ### Konsentrasi Keahlian Teknik Komputer dan Jaringan (TKJ) — SMK Negeri 1 Kinali
 
 [![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
@@ -90,7 +93,7 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 * PHP >= 8.2 (ekstensi: `pdo`, `pdo_pgsql`, `mbstring`, `zip`, `gd`, `fileinfo`, `curl`)
 * Composer >= 2.x
 * PostgreSQL >= 14
-* Node.js >= 20.x & NPM
+* Node.js 20.19+ atau 22.12+ & NPM
 
 ### 2. Kloning Repositori
 ```bash
@@ -103,6 +106,12 @@ cd RAG_CHATBOT
 composer install
 npm install
 ```
+
+Untuk Windows dengan Node lama, pasang runtime khusus proyek (Node sistem tidak diubah):
+```powershell
+powershell -File scripts/setup-node.ps1
+```
+`npm run build`, `npm run dev`, dan `npm run test:rag-ui` otomatis memakai runtime tersebut.
 
 ### 4. Konfigurasi Environment (`.env`)
 Salin file `.env.example` menjadi `.env`:
@@ -159,3 +168,9 @@ Akses aplikasi melalui peramban: `http://127.0.0.1:8000`
 
 Sistem ini dikembangkan oleh **Fikri Arrahman** ([@FIKRI-24](https://github.com/FIKRI-24)) di bawah lisensi [MIT License](LICENSE).
 Hak Cipta © 2026 **Fikri Arrahman**. All rights reserved.
+
+
+## Perbaikan audit fungsional
+
+Rincian perubahan, verifikasi, dan konfigurasi laporan ada di [docs/AUDIT-FIXES.md](docs/AUDIT-FIXES.md).
+`composer run dev` menjalankan server, antrean RAG, dan Vite. Pail tidak dijalankan otomatis karena memerlukan ekstensi PCNTL yang tidak tersedia di Windows.

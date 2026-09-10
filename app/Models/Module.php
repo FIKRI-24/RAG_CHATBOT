@@ -21,12 +21,27 @@ class Module extends Model
         'video_url',
         'kuis_url',
         'status_indexing',
+        'indexing_version',
+        'indexing_error',
         'berlaku_sampai',
     ];
 
     protected $casts = [
         'berlaku_sampai' => 'date',
     ];
+
+    public function scopeAvailable($query)
+    {
+        return $query->where('status_indexing', 'completed')->where(function ($query) {
+            $query->whereNull('berlaku_sampai')->orWhereDate('berlaku_sampai', '>=', today(config('app.display_timezone'))->toDateString());
+        });
+    }
+
+    public function isExpired(): bool
+    {
+        return $this->berlaku_sampai !== null
+            && $this->berlaku_sampai->toDateString() < today(config('app.display_timezone'))->toDateString();
+    }
 
     /**
      * Get the user (guru) that owns the module.

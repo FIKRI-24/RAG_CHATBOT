@@ -55,7 +55,7 @@
                     </div>
                     <div class="px-3.5 py-2 rounded-xl bg-white/10 border border-white/10 flex items-center gap-2">
                         <i class="fa-regular fa-calendar-check text-emerald-400"></i>
-                        <span>Terdaftar: {{ $user->created_at ? $user->created_at->translatedFormat('d M Y') : 'Aktif' }}</span>
+                        <span>Terdaftar: {{ $user->created_at ? $user->created_at->timezone(config('app.display_timezone'))->translatedFormat('d M Y') : 'Aktif' }}</span>
                     </div>
                 </div>
             </div>

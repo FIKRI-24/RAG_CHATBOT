@@ -2,94 +2,132 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\RagException;
+use App\Models\ChatHistory;
 use App\Models\Module;
-use App\Models\ModuleChunk;
 use App\Services\ChunkingService;
 use App\Services\DocumentExtractorService;
 use App\Services\GeminiService;
-use Exception;
+use App\Services\RetrievalService;
+use App\Services\VectorService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 class ProcessModuleJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $timeout = 300;
-    public $tries = 2;
-    public $deleteWhenMissingModels = true;
 
-    protected Module $module;
+    public $tries = 3;
 
-    /**
-     * Create a new job instance.
-     */
+    public $backoff = [15, 60];
+
+    public $failOnTimeout = true;
+
+    public int $moduleId;
+
+    public ?string $version;
+
+    public string $filePath;
+
     public function __construct(Module $module)
     {
-        $this->module = $module;
+        $this->moduleId = $module->id;
+        $this->version = $module->indexing_version;
+        $this->filePath = $module->file_path;
+        $this->onConnection('rag')->onQueue('rag')->afterCommit();
     }
 
-    /**
-     * Execute the job.
-     */
-    public function handle(
-        DocumentExtractorService $extractor,
-        ChunkingService $chunker,
-        GeminiService $gemini
-    ): void {
-        // Cek apakah modul masih ada atau telah dihapus sebelum job diproses
-        if (!$this->module || !$this->module->exists) {
+    private function current()
+    {
+        return Module::whereKey($this->moduleId)->where('indexing_version', $this->version)
+            ->where('file_path', $this->filePath)->where('status_indexing', '!=', 'completed');
+    }
+
+    public function handle(DocumentExtractorService $extractor, ChunkingService $chunker, GeminiService $gemini): void
+    {
+        if (! $this->current()->update(['status_indexing' => 'processing', 'indexing_error' => null])) {
             return;
         }
-
+        $staged = null;
         try {
-            $this->module->update(['status_indexing' => 'processing']);
-
-            // Get full file path
-            $fullPath = Storage::disk('local')->path($this->module->file_path);
-
-            // 1. Extract Text
-            $text = $extractor->extract($fullPath);
-
-            // 2. Chunk Text
-            $chunks = $chunker->chunk($text);
-
-            // 3 & 4. Embed & Save each chunk
-            foreach ($chunks as $chunkText) {
-                // Ensure text is not empty before sending to API
-                if (empty(trim($chunkText))) {
-                    continue;
+            $staged = tmpfile();
+            if ($staged === false) {
+                throw new RagException('Penyimpanan sementara indexing tidak tersedia. Periksa ruang penyimpanan server.');
+            }
+            $text = $extractor->extract(Storage::disk('local')->path($this->filePath));
+            $chunks = $chunker->chunk($text, config('rag.chunk_size'), config('rag.chunk_overlap'));
+            if (! $chunks) {
+                throw new RagException('Dokumen tidak memiliki teks terbaca. Gunakan PDF dengan lapisan teks atau DOCX; PDF scan perlu OCR terlebih dahulu.');
+            }
+            $dimensions = null;
+            foreach ($chunks as $index => $chunk) {
+                if (! $this->current()->exists()) {
+                    return;
                 }
-
-                $embedding = $gemini->embedText($chunkText);
-
-                ModuleChunk::create([
-                    'module_id' => $this->module->id,
-                    'chunk_text' => $chunkText,
-                    'embedding_vector' => $embedding,
-                ]);
+                $vector = $gemini->embedText($chunk);
+                if (! VectorService::valid($vector) || ($dimensions !== null && count($vector) !== $dimensions)) {
+                    throw new RagException('Embedding dokumen tidak valid atau dimensinya tidak konsisten.');
+                }
+                $dimensions = count($vector);
+                $row = ['chunk_text' => $chunk, 'embedding_vector' => $vector,
+                    'embedding_model' => GeminiService::EMBEDDING_MODEL,
+                    'embedding_dimensions' => $dimensions, 'chunk_index' => $index];
+                $encoded = json_encode($row, JSON_THROW_ON_ERROR)."\n";
+                if (fwrite($staged, $encoded) !== strlen($encoded)) {
+                    throw new RagException('Penyimpanan sementara indexing penuh. Indeks lama tetap tersimpan.');
+                }
             }
-
-            // Update status to completed jika modul masih ada
-            if ($this->module && $this->module->exists) {
-                $this->module->update(['status_indexing' => 'completed']);
-            }
-
-        } catch (\Throwable $e) {
-            if ($this->module && $this->module->exists) {
-                $this->module->update(['status_indexing' => 'failed']);
-            }
-            Log::error("Proses indexing gagal untuk modul ID " . ($this->module->id ?? 'unknown') . ": " . $e->getMessage(), [
-                'exception' => $e
-            ]);
-            
-            // Rethrow so the queue worker knows it failed
+            // Publish only a complete index. Stale/repeated jobs cannot replace it.
+            DB::transaction(function () use ($staged) {
+                $module = $this->current()->lockForUpdate()->first();
+                if (! $module) {
+                    return;
+                }
+                // Preserve the known reference of legacy chats before removing old IDs.
+                foreach ($module->chunks()->with('module')->lazyById(100) as $oldChunk) {
+                    ChatHistory::where('referensi_chunk_id', $oldChunk->id)->whereNull('sources')
+                        ->update(['sources' => json_encode([(new RetrievalService)->source($oldChunk)], JSON_UNESCAPED_UNICODE)]);
+                }
+                $module->chunks()->delete();
+                if (! rewind($staged)) {
+                    throw new RagException('Indeks sementara tidak dapat dibaca.');
+                }
+                while (($line = fgets($staged)) !== false) {
+                    $module->chunks()->create(json_decode($line, true, 512, JSON_THROW_ON_ERROR));
+                }
+                if (! feof($staged)) {
+                    throw new RagException('Pembacaan indeks sementara terhenti.');
+                }
+                $module->update(['status_indexing' => 'completed', 'indexing_error' => null]);
+            });
+        } catch (Throwable $e) {
+            $this->markFailed($e);
             throw $e;
+        } finally {
+            if (is_resource($staged)) {
+                fclose($staged);
+            }
         }
+    }
+
+    public function failed(?Throwable $exception): void
+    {
+        $this->markFailed($exception);
+    }
+
+    private function markFailed(?Throwable $exception): void
+    {
+        $message = $exception instanceof RagException ? $exception->getMessage() : 'Indexing gagal atau melewati batas waktu. Periksa koneksi API; untuk dokumen besar, pecah menjadi modul lebih kecil lalu jalankan indexing ulang.';
+        $this->current()->update(['status_indexing' => 'failed', 'indexing_error' => mb_substr($message, 0, 500)]);
+        Log::warning('RAG indexing failed', ['module_id' => $this->moduleId, 'error_type' => $exception ? get_class($exception) : 'timeout']);
     }
 }

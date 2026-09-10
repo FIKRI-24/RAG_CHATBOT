@@ -14,6 +14,9 @@ class ModuleChunk extends Model
         'module_id',
         'chunk_text',
         'embedding_vector',
+        'embedding_model',
+        'embedding_dimensions',
+        'chunk_index',
     ];
 
     protected $casts = [

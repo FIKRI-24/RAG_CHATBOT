@@ -1,4 +1,8 @@
 <x-premium-layout>
+            @if(session('error'))
+                <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
+            @endif
+
     <div class="h-full flex flex-col gap-6">
         
         <!-- Header Section -->
@@ -18,7 +22,7 @@
                 <a href="{{ route('guru.modules.edit', $module->id) }}" class="inline-flex items-center px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 text-sm font-semibold rounded-full shadow-sm transition-colors gap-2 border border-amber-200">
                     <i class="fa-solid fa-pen-to-square"></i> Edit Modul
                 </a>
-                @if($module->status_indexing === 'failed')
+                @if(in_array($module->status_indexing, ['failed', 'completed']))
                 <form action="{{ route('guru.modules.reindex', $module->id) }}" method="POST" class="inline">
                     @csrf
                     <button type="submit" class="inline-flex items-center px-4 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm font-semibold rounded-full shadow-sm transition-colors gap-2 border border-blue-200">
@@ -43,6 +47,9 @@
         <div class="flex-1 overflow-y-auto space-y-6">
             
             <!-- Alert Notifications -->
+            @if($module->indexing_error)
+                <div class="bg-amber-50 border border-amber-200 text-amber-900 p-4 rounded-xl" role="alert">{{ $module->indexing_error }}</div>
+            @endif
             @if(session('success'))
                 <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-semibold">
                     <div class="flex items-center gap-2">
@@ -108,18 +115,21 @@
 
                 <!-- Video & Kuis Quick Access -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                    <div class="p-4 rounded-2xl border border-slate-200 flex items-center justify-between {{ $module->video_url ? 'bg-rose-50/50' : 'bg-slate-50' }}">
+                    @php
+                        $isDriveUrl = $module->video_url && str_contains($module->video_url, 'drive.google.com');
+                    @endphp
+                    <div class="p-4 rounded-2xl border border-slate-200 flex items-center justify-between {{ $module->video_url ? ($isDriveUrl ? 'bg-amber-50/50' : 'bg-rose-50/50') : 'bg-slate-50' }}">
                         <div class="flex items-center gap-3">
-                            <div class="w-10 h-10 rounded-xl {{ $module->video_url ? 'bg-rose-500 text-white' : 'bg-slate-200 text-slate-400' }} flex items-center justify-center text-lg">
-                                <i class="fa-brands fa-youtube"></i>
+                            <div class="w-10 h-10 rounded-xl {{ $module->video_url ? ($isDriveUrl ? 'bg-amber-500 text-white' : 'bg-rose-500 text-white') : 'bg-slate-200 text-slate-400' }} flex items-center justify-center text-lg">
+                                <i class="{{ $isDriveUrl ? 'fa-brands fa-google-drive' : 'fa-brands fa-youtube' }}"></i>
                             </div>
                             <div>
                                 <h5 class="text-xs font-bold text-slate-800">Video Pembelajaran</h5>
-                                <p class="text-[11px] text-slate-500">{{ $module->video_url ? 'Tautan video tersedia' : 'Belum ditambahkan' }}</p>
+                                <p class="text-[11px] text-slate-500">{{ $module->video_url ? ($isDriveUrl ? 'Tautan video Google Drive' : 'Tautan video YouTube') : 'Belum ditambahkan' }}</p>
                             </div>
                         </div>
                         @if($module->video_url)
-                            <a href="{{ $module->video_url }}" target="_blank" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-xs">
+                            <a href="{{ $module->video_url }}" target="_blank" class="px-3 py-1.5 {{ $isDriveUrl ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700' }} text-white text-xs font-bold rounded-xl shadow-xs">
                                 Tonton Video <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1"></i>
                             </a>
                         @endif
@@ -142,6 +152,38 @@
                         @endif
                     </div>
                 </div>
+
+                @php
+                    $additionalVideos = [];
+                    if ($module->kb_nomor === 'KB 2') {
+                        $additionalVideos = [
+                            ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
+                            ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1ywwtzTI2AGoa6yyQUSyTVjvadWPt42FJ/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
+                        ];
+                    } elseif ($module->kb_nomor === 'KB 1') {
+                        $additionalVideos = [
+                            ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
+                            ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1xPFPM_se4Derv10odsUSzMqwYCtQSzyh/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
+                        ];
+                    }
+                @endphp
+
+                @if(!empty($additionalVideos))
+                    <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                        <span class="text-xs font-bold text-slate-700 block">Tautan Media & Video Tambahan:</span>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            @foreach($additionalVideos as $extra)
+                                <a href="{{ $extra['url'] }}" target="_blank" class="flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 transition-colors">
+                                    <span class="flex items-center gap-2">
+                                        <i class="{{ $extra['icon'] }} {{ $extra['color'] }}"></i>
+                                        <span>{{ $extra['title'] }}</span>
+                                    </span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-slate-400"></i>
+                                </a>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-8 mb-8">

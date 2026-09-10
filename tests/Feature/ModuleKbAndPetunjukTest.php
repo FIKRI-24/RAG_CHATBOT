@@ -188,12 +188,12 @@ class ModuleKbAndPetunjukTest extends TestCase
         Storage::disk('local')->assertMissing($path);
     }
 
-    public function test_authenticated_user_can_view_profil_pengembang(): void
+    public function test_only_guru_can_access_profil_pengembang_and_hidden_from_siswa(): void
     {
         $guru = User::factory()->create(['role' => 'guru']);
         $siswa = User::factory()->create(['role' => 'siswa']);
 
-        // Test Guru access
+        // Test Guru access (berhasil)
         $guruResponse = $this->actingAs($guru)->get(route('pengembang'));
         $guruResponse->assertStatus(200);
         $guruResponse->assertSee('Rudi Putra');
@@ -202,11 +202,121 @@ class ModuleKbAndPetunjukTest extends TestCase
         $guruResponse->assertSee('Universitas PGRI Sumatera Barat');
         $guruResponse->assertSee('putrarudi238@gmail.com');
 
-        // Test Siswa access
+        // Test Siswa access route langsung (ditolak 403)
         $siswaResponse = $this->actingAs($siswa)->get(route('pengembang'));
-        $siswaResponse->assertStatus(200);
-        $siswaResponse->assertSee('Rudi Putra');
-        $siswaResponse->assertSee('E-Modul terintegrasi Chatbot berbasis Web');
-        $siswaResponse->assertSee('putrarudi238@gmail.com');
+        $siswaResponse->assertStatus(403);
+
+        // Test Siswa login tidak melihat menu Profil Pengembang
+        $dashboardResponse = $this->actingAs($siswa)->get(route('siswa.dashboard'));
+        $dashboardResponse->assertStatus(200);
+        $dashboardResponse->assertDontSee('Profil Pengembang');
+
+        $modulesResponse = $this->actingAs($siswa)->get(route('siswa.modules.index'));
+        $modulesResponse->assertStatus(200);
+        $modulesResponse->assertDontSee('Profil Pengembang');
+
+        $petunjukResponse = $this->actingAs($siswa)->get(route('siswa.petunjuk'));
+        $petunjukResponse->assertStatus(200);
+        $petunjukResponse->assertDontSee('Profil Pengembang');
+    }
+
+    public function test_kb2_module_fields_and_display_with_multiple_videos(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+
+        $module = Module::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Jenis-Jenis Jaringan Nirkabel, Perangkat Jaringan Nirkabel, dan Standar Wi-Fi (IEEE 802.11)',
+            'mapel' => 'Teknik Komputer dan Jaringan',
+            'kb_nomor' => 'KB 2',
+            'tp' => "Setelah mempelajari KB 2 ini peserta didik dapat:\n1) Mengidentifikasi jenis-jenis Jaringan Nirkabel\n2) Mengidentifikasi Perangkat Jaringan Nirkabel\n3) Menganalisis Standar Wi-Fi (IEEE 802.11) jaringan Nirkabel.",
+            'file_path' => 'modules/kb2_jaringan_nirkabel.pdf',
+            'video_url' => 'https://www.youtube.com/watch?v=2YSkp6K9fc4',
+            'kuis_url' => 'https://gemini.google.com/share/d/1w4zIjpWucuxsPwligelL_DQP5xaaw8kT?usp=sharing',
+            'status_indexing' => 'completed',
+        ]);
+
+        // Siswa view catalog
+        $indexResponse = $this->actingAs($siswa)->get(route('siswa.modules.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('KB 2');
+        $indexResponse->assertSee('Jenis-Jenis Jaringan Nirkabel');
+
+        // Siswa view module show
+        $showResponse = $this->actingAs($siswa)->get(route('siswa.modules.show', $module->id));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('KB 2');
+        $showResponse->assertSee('Tujuan Pembelajaran (TP)');
+        $showResponse->assertSee('Mengidentifikasi jenis-jenis Jaringan Nirkabel');
+        $showResponse->assertSee('Video Pembelajaran Tambahan');
+        $showResponse->assertSee('Video Pembelajaran 2 (YouTube)');
+        $showResponse->assertSee('Video Alternatif (Google Drive)');
+        $showResponse->assertSee('https://gemini.google.com/share/d/1w4zIjpWucuxsPwligelL_DQP5xaaw8kT?usp=sharing', false);
+
+        // Guru view module show
+        $guruResponse = $this->actingAs($guru)->get(route('guru.modules.show', $module->id));
+        $guruResponse->assertStatus(200);
+        $guruResponse->assertSee('KB 2');
+        $guruResponse->assertSee('Tautan Media & Video Tambahan', false);
+    }
+
+    public function test_kb3_module_fields_and_drive_video_display(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+
+        $module = Module::create([
+            'guru_id' => $guru->id,
+            'judul' => 'Frekuensi Radio, Permasalahan dan Perbaikan Jaringan Nirkabel, serta Perawatan Jaringan Nirkabel',
+            'mapel' => 'Teknik Komputer dan Jaringan',
+            'kb_nomor' => 'KB 3',
+            'tp' => "Setelah mempelajari KB 3 ini peserta didik dapat:\n1) Mengidentifikasi Frekuensi Radio\n2) Mendiagnosa permasalahan serta melakukan perbaikan Jaringan Nirkabel\n3) Melakukan perawatan jaringan Nirkabel.",
+            'file_path' => 'modules/kb3_jaringan_nirkabel.pdf',
+            'video_url' => 'https://drive.google.com/file/d/1J0qNf2095lM5EmtxpvtfyTNaDuESY3r/view?usp=sharing',
+            'kuis_url' => 'https://gemini.google.com/share/d/1n1wK_nC_zKWzTYKQD3Vmzr87yeETZl4e?usp=sharing',
+            'status_indexing' => 'completed',
+        ]);
+
+        // Siswa view catalog
+        $indexResponse = $this->actingAs($siswa)->get(route('siswa.modules.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('KB 3');
+        $indexResponse->assertSee('Frekuensi Radio, Permasalahan');
+
+        // Siswa view module show
+        $showResponse = $this->actingAs($siswa)->get(route('siswa.modules.show', $module->id));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('KB 3');
+        $showResponse->assertSee('Tujuan Pembelajaran (TP)');
+        $showResponse->assertSee('Mendiagnosa permasalahan serta melakukan perbaikan');
+        $showResponse->assertSee('drive.google.com/file/d/1J0qNf2095lM5EmtxpvtfyTNaDuESY3r/preview', false);
+        $showResponse->assertSee('https://gemini.google.com/share/d/1n1wK_nC_zKWzTYKQD3Vmzr87yeETZl4e?usp=sharing', false);
+
+        // Guru view module show
+        $guruResponse = $this->actingAs($guru)->get(route('guru.modules.show', $module->id));
+        $guruResponse->assertStatus(200);
+        $guruResponse->assertSee('KB 3');
+        $guruResponse->assertSee('Tautan video Google Drive');
+    }
+
+    public function test_chatbot_ui_renders_enhanced_font_sizes_and_accessibility_controls(): void
+    {
+        $siswa = User::factory()->create(['role' => 'siswa']);
+
+        $response = $this->actingAs($siswa)->get(route('siswa.dashboard'));
+        $response->assertStatus(200);
+
+        // Assert accessibility font size switcher controls exist
+        $response->assertSee('Ukuran Teks:');
+        $response->assertSee('data-size="standard"', false);
+        $response->assertSee('data-size="large"', false);
+        $response->assertSee('data-size="xl"', false);
+
+        // Assert CSS variables for larger readable typography exist
+        $response->assertSee('--chat-base-size: 1.25rem', false);
+        $response->assertSee('chat-user-bubble', false);
+        $response->assertSee('font-size-large', false);
+        $response->assertSee('rag_chat_font_size', false);
     }
 }

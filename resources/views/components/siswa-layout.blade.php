@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="google" content="notranslate">
 
     <title>{{ config('app.name', 'TKJ AI') }} - Panel Siswa</title>
 
@@ -59,11 +60,6 @@
             <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold {{ request()->routeIs('siswa.petunjuk') ? 'bg-emerald-50 text-[#008546] border border-emerald-200/60 shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }} transition-colors">
                 <i class="fa-solid fa-circle-question {{ request()->routeIs('siswa.petunjuk') ? 'text-[#008546]' : 'text-slate-400' }} text-sm w-5 text-center"></i>
                 <span>Petunjuk Siswa</span>
-            </a>
-
-            <a href="{{ route('pengembang') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold {{ request()->routeIs('pengembang') ? 'bg-emerald-50 text-[#008546] border border-emerald-200/60 shadow-xs' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }} transition-colors">
-                <i class="fa-solid fa-address-card {{ request()->routeIs('pengembang') ? 'text-[#008546]' : 'text-slate-400' }} text-sm w-5 text-center"></i>
-                <span>Profil Pengembang</span>
             </a>
 
             <div class="pt-4 border-t border-slate-100 mt-4">

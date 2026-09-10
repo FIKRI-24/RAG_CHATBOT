@@ -111,7 +111,7 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($module->berlaku_sampai && \Carbon\Carbon::parse($module->berlaku_sampai)->isPast())
+                                    @if($module->isExpired())
                                         <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">Diarsipkan</span>
                                     @elseif($module->status_indexing === 'completed')
                                         <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-emerald-100 text-emerald-800">Aktif</span>

@@ -105,12 +105,12 @@
                                     {{ $siswa->email }}
                                 </td>
                                 <td class="py-4 px-6 text-slate-500">
-                                    {{ $siswa->created_at->format('d M Y, H:i') }}
+                                    {{ $siswa->created_at->timezone(config('app.display_timezone'))->format('d M Y, H:i') }}
                                 </td>
                                 <td class="py-4 px-6">
                                     <div class="flex items-center justify-center gap-2">
                                         <!-- Edit & Reset Password Button -->
-                                        <button onclick="openEditModal({{ json_encode($siswa) }})" class="p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008546] rounded-xl border border-slate-200 transition-colors" title="Edit & Reset Password">
+                                        <button onclick="openEditModal({{ json_encode(['name' => $siswa->name, 'email' => $siswa->email, 'update_url' => route('guru.siswa.update', $siswa)]) }})" class="p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008546] rounded-xl border border-slate-200 transition-colors" title="Edit & Reset Password">
                                             <i class="fa-solid fa-[#008546] fa-key text-xs"></i>
                                         </button>
                                         
@@ -244,7 +244,7 @@
             
             // Set dynamic action URL
             const form = document.getElementById('editForm');
-            form.action = `/guru/siswa/${siswa.id}`;
+            form.action = siswa.update_url;
 
             document.getElementById('editModal').classList.remove('hidden');
         }

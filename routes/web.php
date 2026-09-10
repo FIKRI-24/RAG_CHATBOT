@@ -60,15 +60,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-// Halaman Profil Pengembang (Guru & Siswa)
-Route::middleware('auth')->group(function () {
+// Halaman Profil Pengembang (Khusus Role Guru)
+Route::middleware(['auth', 'role:guru'])->group(function () {
     Route::get('/pengembang', [DeveloperProfileController::class, 'index'])->name('pengembang');
-    
-    // Khusus Guru: Upload & Hapus Foto Pengembang
-    Route::middleware('role:guru')->group(function () {
-        Route::post('/pengembang/foto', [DeveloperProfileController::class, 'updateFoto'])->name('pengembang.foto.update');
-        Route::delete('/pengembang/foto', [DeveloperProfileController::class, 'destroyFoto'])->name('pengembang.foto.destroy');
-    });
+    Route::post('/pengembang/foto', [DeveloperProfileController::class, 'updateFoto'])->name('pengembang.foto.update');
+    Route::delete('/pengembang/foto', [DeveloperProfileController::class, 'destroyFoto'])->name('pengembang.foto.destroy');
 });
 
 require __DIR__.'/auth.php';

@@ -3,11 +3,16 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessModuleJob;
+use App\Models\ChatHistory;
 use App\Models\Module;
+use App\Services\RetrievalService;
+use App\Services\StoredFileService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use App\Jobs\ProcessModuleJob; 
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class ModuleController extends Controller
@@ -15,7 +20,7 @@ class ModuleController extends Controller
     public function index(Request $request)
     {
         $query = Module::where('guru_id', Auth::id());
-        
+
         if ($request->filled('mapel')) {
             $query->where('mapel', $request->mapel);
         }
@@ -24,8 +29,8 @@ class ModuleController extends Controller
             $query->where('kb_nomor', $request->kb_nomor);
         }
 
-        $modules = $query->latest()->paginate(10);
-        
+        $modules = $query->latest()->paginate(10)->withQueryString();
+
         $mapelList = Module::where('guru_id', Auth::id())
             ->select('mapel')
             ->distinct()
@@ -46,8 +51,8 @@ class ModuleController extends Controller
             'mapel' => 'required|string|max:255',
             'kb_nomor' => 'required|string|in:KB 1,KB 2,KB 3',
             'tp' => 'nullable|string',
-            'video_url' => 'nullable|url|max:500',
-            'kuis_url' => 'nullable|url|max:500',
+            'video_url' => 'nullable|url:http,https|max:255',
+            'kuis_url' => 'nullable|url:http,https|max:255',
             'file' => 'required|file|mimes:pdf,docx|max:10240',
             'berlaku_sampai' => 'nullable|date',
         ], [
@@ -61,31 +66,41 @@ class ModuleController extends Controller
             'kuis_url.url' => 'Link kuis harus berupa format URL yang valid.',
         ]);
 
-        $filePath = $request->file('file')->store('modules', 'local');
+        $files = app(StoredFileService::class);
+        $filePath = $files->store($request->file('file'), 'modules', 'local', 'file');
 
-        $module = Module::create([
-            'guru_id' => Auth::id(),
-            'judul' => $request->judul,
-            'mapel' => $request->mapel,
-            'kb_nomor' => $request->kb_nomor,
-            'tp' => $request->tp,
-            'video_url' => $request->video_url,
-            'kuis_url' => $request->kuis_url,
-            'file_path' => $filePath,
-            'status_indexing' => 'pending',
-            'berlaku_sampai' => $request->berlaku_sampai,
-        ]);
+        try {
 
-        if (class_exists(ProcessModuleJob::class)) {
-            dispatch(new ProcessModuleJob($module));
+            $module = Module::create([
+                'guru_id' => Auth::id(),
+                'judul' => $request->judul,
+                'mapel' => $request->mapel,
+                'kb_nomor' => $request->kb_nomor,
+                'tp' => $request->tp,
+                'video_url' => $request->video_url,
+                'kuis_url' => $request->kuis_url,
+                'file_path' => $filePath,
+                'status_indexing' => 'pending',
+                'indexing_version' => (string) Str::uuid(),
+                'berlaku_sampai' => $request->berlaku_sampai,
+            ]);
+
+        } catch (\Throwable $e) {
+            $files->delete($filePath, 'local');
+            Log::warning('Module save failed', ['error_type' => get_class($e)]);
+
+            return back()->withInput()->withErrors(['file' => 'Modul belum dapat disimpan. Silakan coba lagi.']);
+        }
+        if (! $this->schedule($module)) {
+            return redirect()->route('guru.modules.index')->with('error', 'Modul tersimpan, tetapi antrean AI belum tersedia. Jalankan indexing ulang setelah antrean diperbaiki.');
         }
 
-        return redirect()->route('guru.modules.index')->with('success', 'Modul ' . $module->kb_nomor . ' berhasil diupload dan sedang diproses AI.');
+        return redirect()->route('guru.modules.index')->with('success', 'Modul '.$module->kb_nomor.' berhasil diupload dan sedang diproses AI.');
     }
 
     public function show(Module $module)
     {
-        if ($module->guru_id !== Auth::id()) {
+        if ((int) $module->guru_id !== (int) Auth::id()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -96,7 +111,7 @@ class ModuleController extends Controller
 
     public function edit(Module $module)
     {
-        if ($module->guru_id !== Auth::id()) {
+        if ((int) $module->guru_id !== (int) Auth::id()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -105,7 +120,7 @@ class ModuleController extends Controller
 
     public function update(Request $request, Module $module)
     {
-        if ($module->guru_id !== Auth::id()) {
+        if ((int) $module->guru_id !== (int) Auth::id()) {
             abort(403, 'Akses ditolak.');
         }
 
@@ -114,79 +129,83 @@ class ModuleController extends Controller
             'mapel' => 'required|string|max:255',
             'kb_nomor' => 'required|string|in:KB 1,KB 2,KB 3',
             'tp' => 'nullable|string',
-            'video_url' => 'nullable|url|max:500',
-            'kuis_url' => 'nullable|url|max:500',
+            'video_url' => 'nullable|url:http,https|max:255',
+            'kuis_url' => 'nullable|url:http,https|max:255',
             'file' => 'nullable|file|mimes:pdf,docx|max:10240',
             'berlaku_sampai' => 'nullable|date',
         ]);
 
-        $module->judul = $request->judul;
-        $module->mapel = $request->mapel;
-        $module->kb_nomor = $request->kb_nomor;
-        $module->tp = $request->tp;
-        $module->video_url = $request->video_url;
-        $module->kuis_url = $request->kuis_url;
-        $module->berlaku_sampai = $request->berlaku_sampai;
+        $files = app(StoredFileService::class);
+        $newPath = $request->hasFile('file')
+            ? $files->store($request->file('file'), 'modules', 'local', 'file') : null;
+        $oldPath = null;
+        try {
+            DB::transaction(function () use ($request, &$module, $newPath, &$oldPath) {
+                $module = Module::whereKey($module->id)->lockForUpdate()->firstOrFail();
+                $module->fill($request->only(['judul', 'mapel', 'kb_nomor', 'tp', 'video_url', 'kuis_url', 'berlaku_sampai']));
+                if ($newPath) {
+                    $oldPath = $module->file_path;
+                    $module->fill(['file_path' => $newPath, 'status_indexing' => 'pending',
+                        'indexing_version' => (string) Str::uuid(), 'indexing_error' => null]);
+                }
+                $module->save();
+            });
+        } catch (\Throwable $e) {
+            $files->delete($newPath, 'local');
+            Log::warning('Module update failed', ['error_type' => get_class($e)]);
 
-        if ($request->hasFile('file')) {
-            // Hapus file lama jika ada
-            if (Storage::disk('local')->exists($module->file_path)) {
-                Storage::disk('local')->delete($module->file_path);
-            }
-
-            // Simpan file baru
-            $newPath = $request->file('file')->store('modules', 'local');
-            $module->file_path = $newPath;
-            $module->status_indexing = 'pending';
-
-            // Hapus chunk lama
-            $module->chunks()->delete();
-
-            // Index ulang di antrian
-            if (class_exists(ProcessModuleJob::class)) {
-                dispatch(new ProcessModuleJob($module));
+            return back()->withInput()->withErrors(['file' => 'Perubahan belum dapat disimpan. Dokumen sebelumnya tetap tersedia.']);
+        }
+        if ($newPath) {
+            $files->delete($oldPath, 'local');
+            if (! $this->schedule($module)) {
+                return back()->with('error', 'Dokumen tersimpan, tetapi antrean AI belum tersedia. Silakan jalankan indexing ulang.');
             }
         }
-
-        $module->save();
 
         return redirect()->route('guru.modules.index')->with('success', 'Data modul berhasil diperbarui.');
     }
 
     public function destroy(Module $module)
     {
+        abort_unless((int) $module->guru_id === (int) Auth::id(), 403, 'Akses ditolak.');
+        $path = null;
         try {
-            if ($module->guru_id !== Auth::id()) {
-                abort(403, 'Akses ditolak.');
-            }
-
-            if (!empty($module->file_path) && Storage::disk('local')->exists($module->file_path)) {
-                Storage::disk('local')->delete($module->file_path);
-            }
-
-            // Hapus chunk terlebih dahulu jika ada
-            $module->chunks()->delete();
-
-            $module->delete();
-
-            return redirect()->route('guru.modules.index')->with('success', 'Modul berhasil dihapus.');
+            DB::transaction(function () use ($module, &$path) {
+                $current = Module::whereKey($module->id)->lockForUpdate()->firstOrFail();
+                $path = $current->file_path;
+                foreach ($current->chunks()->with('module')->lazyById(100) as $chunk) {
+                    ChatHistory::where('referensi_chunk_id', $chunk->id)->whereNull('sources')
+                        ->update(['sources' => json_encode([app(RetrievalService::class)->source($chunk)], JSON_UNESCAPED_UNICODE)]);
+                }
+                $current->delete();
+            });
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error("Gagal menghapus modul ID {$module->id}: " . $e->getMessage());
-            return redirect()->route('guru.modules.index')->with('error', 'Gagal menghapus modul: ' . $e->getMessage());
+            Log::warning('Module deletion failed', ['module_id' => $module->id, 'error_type' => get_class($e)]);
+
+            return back()->with('error', 'Modul belum dapat dihapus. Silakan coba lagi.');
         }
+        if (! app(StoredFileService::class)->delete($path, 'local')) {
+            return redirect()->route('guru.modules.index')->with('error', 'Modul telah ditarik. Berkas lama perlu dibersihkan oleh pengelola penyimpanan.');
+        }
+
+        return redirect()->route('guru.modules.index')->with('success', 'Modul berhasil dihapus.');
     }
 
     public function reindex(Module $module)
     {
-        if ($module->guru_id !== Auth::id()) {
+        if ((int) $module->guru_id !== (int) Auth::id()) {
             abort(403, 'Akses ditolak.');
         }
 
-        $module->chunks()->delete();
-        $module->update(['status_indexing' => 'pending']);
+        $module->update([
+            'status_indexing' => 'pending',
+            'indexing_version' => (string) Str::uuid(),
+            'indexing_error' => null,
+        ]);
 
-        if (class_exists(ProcessModuleJob::class)) {
-            dispatch(new ProcessModuleJob($module));
+        if (! $this->schedule($module)) {
+            return back()->with('error', 'Antrean AI belum tersedia. Silakan coba indexing ulang beberapa saat lagi.');
         }
 
         return redirect()->back()->with('success', 'Proses indexing ulang AI telah dijadwalkan.');
@@ -196,21 +215,42 @@ class ModuleController extends Controller
     {
         // Izinkan guru pemilik atau siswa yang aktif
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             abort(401);
         }
 
-        if ($user->isGuru() && $module->guru_id !== $user->id) {
+        if ($user->isGuru() && (int) $module->guru_id !== (int) $user->id) {
             abort(403, 'Akses ditolak.');
         }
 
-        if (!Storage::disk('local')->exists($module->file_path)) {
+        abort_unless($user->isGuru() || ($user->isSiswa() && Module::available()->whereKey($module->id)->exists()), 403, 'Modul belum tersedia atau sudah kedaluwarsa.');
+
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('local');
+
+        if (! $disk->exists($module->file_path)) {
             return redirect()->back()->with('error', 'File materi tidak ditemukan di penyimpanan server.');
         }
 
         $extension = pathinfo($module->file_path, PATHINFO_EXTENSION);
-        $cleanName = Str::slug($module->mapel . '-' . $module->kb_nomor . '-' . $module->judul) . '.' . $extension;
+        $cleanName = Str::slug($module->mapel.'-'.$module->kb_nomor.'-'.$module->judul).'.'.$extension;
 
-        return Storage::disk('local')->download($module->file_path, $cleanName);
+        return $disk->download($module->file_path, $cleanName);
+    }
+
+    private function schedule(Module $module): bool
+    {
+        try {
+            ProcessModuleJob::dispatch($module);
+
+            return true;
+        } catch (\Throwable $e) {
+            Module::whereKey($module->id)->where('indexing_version', $module->indexing_version)
+                ->where('status_indexing', 'pending')->update(['status_indexing' => 'failed',
+                    'indexing_error' => 'Antrean AI belum tersedia. Silakan jalankan indexing ulang.']);
+            Log::warning('Module dispatch failed', ['module_id' => $module->id, 'error_type' => get_class($e)]);
+
+            return false;
+        }
     }
 }

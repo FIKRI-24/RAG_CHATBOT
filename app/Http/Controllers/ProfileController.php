@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
+use App\Models\User;
+use App\Services\StoredFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Redirect;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -30,35 +33,30 @@ class ProfileController extends Controller
         $user = $request->user();
         $validated = $request->validated();
 
-        // Handle avatar removal request
-        if ($request->boolean('remove_avatar')) {
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-            $user->avatar = null;
+        $files = app(StoredFileService::class);
+        $path = $request->hasFile('avatar')
+            ? $files->store($request->file('avatar'), 'avatars', 'public', 'avatar') : null;
+        $oldPath = null;
+        try {
+            DB::transaction(function () use ($request, $validated, $path, &$oldPath) {
+                $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
+                $user->fill(['name' => $validated['name'], 'email' => $validated['email']]);
+                if ($path || $request->boolean('remove_avatar')) {
+                    $oldPath = $user->avatar;
+                    $user->avatar = $path;
+                }
+                if ($user->isDirty('email')) {
+                    $user->email_verified_at = null;
+                }
+                $user->save();
+            });
+        } catch (\Throwable $e) {
+            $files->delete($path, 'public');
+            Log::warning('Profile update failed', ['error_type' => get_class($e)]);
+
+            return back()->withErrors(['avatar' => 'Profil belum dapat disimpan. Foto sebelumnya tetap tersedia.']);
         }
-
-        // Handle avatar file upload
-        if ($request->hasFile('avatar')) {
-            // Delete previous avatar file if exists
-            if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
-                Storage::disk('public')->delete($user->avatar);
-            }
-
-            $path = $request->file('avatar')->store('avatars', 'public');
-            $user->avatar = $path;
-        }
-
-        $user->fill([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-        ]);
-
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
-        }
-
-        $user->save();
+        $files->delete($oldPath, 'public');
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }

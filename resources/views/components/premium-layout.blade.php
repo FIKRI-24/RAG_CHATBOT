@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="id">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="google" content="notranslate">
 
     <title>{{ config('app.name', 'TKJ AI') }} - Panel Guru</title>
 
@@ -66,7 +67,7 @@
         <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
             <a href="{{ route('guru.dashboard') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.dashboard') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fa-solid fa-chart-pie text-sm w-5 text-center"></i>
-                <span>Dashboard</span>
+                <span class="notranslate" translate="no">Dashboard</span>
             </a>
 
             <a href="{{ route('guru.modules.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.modules.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">

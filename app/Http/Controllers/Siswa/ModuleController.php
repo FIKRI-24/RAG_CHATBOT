@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\Siswa;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-
 use App\Models\Module;
+use Illuminate\Http\Request;
 
 class ModuleController extends Controller
 {
@@ -14,10 +13,7 @@ class ModuleController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Module::where('status_indexing', 'completed')
-            ->where(function($q) {
-                $q->whereNull('berlaku_sampai')->orWhere('berlaku_sampai', '>=', now());
-            });
+        $query = Module::available();
 
         if ($request->filled('mapel') && $request->mapel !== 'Semua') {
             $query->where('mapel', $request->mapel);
@@ -29,16 +25,16 @@ class ModuleController extends Controller
 
         if ($request->filled('search')) {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('judul', 'like', "%{$search}%")
-                  ->orWhere('tp', 'like', "%{$search}%")
-                  ->orWhere('mapel', 'like', "%{$search}%");
+                    ->orWhere('tp', 'like', "%{$search}%")
+                    ->orWhere('mapel', 'like', "%{$search}%");
             });
         }
 
-        $modules = $query->orderBy('mapel')->orderBy('kb_nomor')->paginate(9);
+        $modules = $query->orderBy('mapel')->orderBy('kb_nomor')->paginate(9)->withQueryString();
 
-        $mapelList = Module::where('status_indexing', 'completed')
+        $mapelList = Module::available()
             ->select('mapel')
             ->distinct()
             ->pluck('mapel');
@@ -51,8 +47,8 @@ class ModuleController extends Controller
      */
     public function show(Module $module)
     {
-        if ($module->berlaku_sampai && \Carbon\Carbon::parse($module->berlaku_sampai)->isPast()) {
-            return redirect()->route('siswa.modules.index')->with('error', 'Materi modul ini sudah melewati masa berlaku (diarsipkan).');
+        if (! Module::available()->whereKey($module->id)->exists()) {
+            return redirect()->route('siswa.modules.index')->with('error', 'Materi modul ini belum tersedia atau sudah melewati masa berlaku.');
         }
 
         return view('siswa.modules.show', compact('module'));
