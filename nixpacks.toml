@@ -1,0 +1,34 @@
+# Nixpacks Configuration for TKJ AI Assistant (RAG Chatbot) on Railway
+providers = ["php", "node"]
+
+[variables]
+NIXPACKS_PHP_ROOT_DIR = "/public"
+
+[phases.setup]
+nixPkgs = [
+    'php82',
+    'php82Extensions.pdo_pgsql',
+    'php82Extensions.pgsql',
+    'php82Extensions.gd',
+    'php82Extensions.mbstring',
+    'php82Extensions.bcmath',
+    'php82Extensions.zip',
+    'php82Extensions.intl',
+    'php82Packages.composer',
+    'nodejs_20'
+]
+
+[phases.install]
+cmds = [
+    'npm ci || npm install',
+    'composer install --no-dev --optimize-autoloader --no-interaction'
+]
+
+[phases.build]
+cmds = [
+    'npm run build',
+    'php artisan storage:link'
+]
+
+[start]
+cmd = 'php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && (php artisan queue:work --queue=rag,default --tries=3 --timeout=300 &) && php artisan serve --host=0.0.0.0 --port=$PORT'
