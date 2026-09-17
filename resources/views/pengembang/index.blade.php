@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <x-premium-layout>
     <div class="space-y-8 max-w-6xl mx-auto pb-12">
 

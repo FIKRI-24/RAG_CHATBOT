@@ -17,6 +17,8 @@ const tasks = {
     build: [resolve(root, 'node_modules/vite/bin/vite.js'), 'build'],
     dev: [resolve(root, 'node_modules/vite/bin/vite.js')],
     test: ['--test', resolve(root, 'tests/js/rag-markdown.test.mjs')],
+    e2e: [resolve(root, 'scripts/test-e2e.mjs')],
+    load: [resolve(root, 'scripts/test-e2e.mjs'), '--load'],
 };
 if (!Object.hasOwn(tasks, action)) {
     console.error('Gunakan build, dev, atau test.');

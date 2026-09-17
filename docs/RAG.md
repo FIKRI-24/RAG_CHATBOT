@@ -1,6 +1,6 @@
 # Perbaikan dan evaluasi RAG
 
-Perubahan dibatasi pada indexing dokumen, retrieval/generation, kuis, rendering jawaban, dan pengujian RAG. Halaman autentikasi tidak diubah.
+Dokumen ini mencatat perbaikan RAG sebelumnya. Penerapan lanjutan 13 September 2026 juga mencakup autentikasi, kebijakan akun, scope modul, rubrik kuis, tinjauan guru, pengujian browser, monitoring dan backup. Lihat [laporan implementasi](AUDIT_IMPLEMENTATION.md) dan [panduan operasional terbaru](OPERATIONS.md).
 
 ## Menjalankan
 
@@ -43,7 +43,7 @@ Evaluasi nyata berikut menggunakan API Gemini dan indeks database saat ini, teta
 php artisan rag:evaluate tests/Fixtures/rag-evaluation.json --generate
 ```
 
-Tanpa `--generate`, hanya retrieval yang dievaluasi. Fixture contoh mengikuti modul KB 1 jaringan nirkabel yang tersedia saat perbaikan. Sesuaikan mapel dan `expected_terms` untuk korpus lain. `expect_empty` memeriksa penolakan retrieval. `retrieval_pass` memeriksa kelengkapan kata kunci/ketiadaan konteks, **bukan** pembuktian otomatis akurasi atau grounding jawaban LLM; periksa jawaban dan sumber secara manual.
+Tanpa `--generate`, hanya retrieval yang dievaluasi. Fixture terbaru memuat 15 kasus KB 1/KB 2, parafrasa, pergantian topik dan penolakan di luar korpus. Sesuaikan mapel dan `expected_terms` untuk korpus lain. `expect_empty` memeriksa penolakan retrieval. `retrieval_pass` memeriksa kelengkapan kata kunci/ketiadaan konteks, **bukan** pembuktian otomatis akurasi atau grounding jawaban LLM; periksa jawaban dan sumber secara manual.
 
 ## Hasil lokal 7 September 2026
 

@@ -13,6 +13,12 @@ class ModuleController extends Controller
      */
     public function index(Request $request)
     {
+        $request->validate([
+            'search' => 'nullable|string|max:255',
+            'mapel' => 'nullable|string|max:255',
+            'kb_nomor' => 'nullable|string|max:255',
+        ]);
+
         $query = Module::available();
 
         if ($request->filled('mapel') && $request->mapel !== 'Semua') {
@@ -50,6 +56,8 @@ class ModuleController extends Controller
         if (! Module::available()->whereKey($module->id)->exists()) {
             return redirect()->route('siswa.modules.index')->with('error', 'Materi modul ini belum tersedia atau sudah melewati masa berlaku.');
         }
+
+        $module->load(['quiz' => fn ($query) => $query->select('id', 'module_id', 'title', 'is_published')]);
 
         return view('siswa.modules.show', compact('module'));
     }

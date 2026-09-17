@@ -2,16 +2,19 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Str;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable;
+
+    protected $attributes = ['is_active' => true, 'auth_version' => 1];
 
     /**
      * The attributes that are mass assignable.
@@ -24,14 +27,34 @@ class User extends Authenticatable
         'password',
         'role',
         'avatar',
+        'is_active',
+        'class_name',
+        'student_number',
+        'teacher_number',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function (User $user) {
+            if ($user->isDirty('email')) {
+                $user->email = Str::lower(trim($user->email));
+                if ($user->exists) {
+                    $user->email_verified_at = null;
+                }
+            }
+            if ($user->exists && ($user->isDirty('password') || $user->isDirty('is_active'))) {
+                $user->auth_version = (int) $user->getOriginal('auth_version') + 1;
+                $user->remember_token = Str::random(60);
+            }
+        });
+    }
 
     /**
      * Get avatar public URL attribute.
      */
     public function getAvatarUrlAttribute(): ?string
     {
-        return $this->avatar ? asset('storage/' . $this->avatar) : null;
+        return $this->avatar ? asset('storage/'.$this->avatar) : null;
     }
 
     /**
@@ -78,6 +101,8 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
+            'auth_version' => 'integer',
         ];
     }
 }

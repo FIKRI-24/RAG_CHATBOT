@@ -114,6 +114,7 @@
                 </dl>
 
                 <!-- Video & Kuis Quick Access -->
+                <a href="{{ route('guru.modules.quiz.edit', $module) }}" class="inline-flex px-4 py-3 rounded-xl bg-purple-50 text-purple-700 font-semibold text-sm">Buat / Kelola Kuis Objektif →</a>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                     @php
                         $isDriveUrl = $module->video_url && str_contains($module->video_url, 'drive.google.com');
@@ -129,7 +130,7 @@
                             </div>
                         </div>
                         @if($module->video_url)
-                            <a href="{{ $module->video_url }}" target="_blank" class="px-3 py-1.5 {{ $isDriveUrl ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700' }} text-white text-xs font-bold rounded-xl shadow-xs">
+                            <a href="{{ $module->video_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 {{ $isDriveUrl ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700' }} text-white text-xs font-bold rounded-xl shadow-xs">
                                 Tonton Video <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1"></i>
                             </a>
                         @endif
@@ -141,39 +142,26 @@
                                 <i class="fa-solid fa-pen-to-square"></i>
                             </div>
                             <div>
-                                <h5 class="text-xs font-bold text-slate-800">Kuis Evaluasi KB</h5>
+                                <h5 class="text-xs font-bold text-slate-800">Link Kuis Eksternal</h5>
                                 <p class="text-[11px] text-slate-500">{{ $module->kuis_url ? 'Tautan kuis aktif' : 'Belum ditambahkan' }}</p>
                             </div>
                         </div>
                         @if($module->kuis_url)
-                            <a href="{{ $module->kuis_url }}" target="_blank" class="px-3 py-1.5 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-bold rounded-xl shadow-xs">
+                            <a href="{{ $module->kuis_url }}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-bold rounded-xl shadow-xs">
                                 Buka Kuis <i class="fa-solid fa-arrow-up-right-from-square text-[10px] ml-1"></i>
                             </a>
                         @endif
                     </div>
                 </div>
 
-                @php
-                    $additionalVideos = [];
-                    if ($module->kb_nomor === 'KB 2') {
-                        $additionalVideos = [
-                            ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
-                            ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1ywwtzTI2AGoa6yyQUSyTVjvadWPt42FJ/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
-                        ];
-                    } elseif ($module->kb_nomor === 'KB 1') {
-                        $additionalVideos = [
-                            ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
-                            ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1xPFPM_se4Derv10odsUSzMqwYCtQSzyh/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
-                        ];
-                    }
-                @endphp
+                @php $additionalVideos = $module->additionalVideos(); @endphp
 
                 @if(!empty($additionalVideos))
                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
                         <span class="text-xs font-bold text-slate-700 block">Tautan Media & Video Tambahan:</span>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             @foreach($additionalVideos as $extra)
-                                <a href="{{ $extra['url'] }}" target="_blank" class="flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 transition-colors">
+                                <a href="{{ $extra['url'] }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-2.5 bg-white hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 transition-colors">
                                     <span class="flex items-center gap-2">
                                         <i class="{{ $extra['icon'] }} {{ $extra['color'] }}"></i>
                                         <span>{{ $extra['title'] }}</span>
@@ -187,28 +175,21 @@
             </div>
 
             <div class="bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-8 mb-8">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Chunks Terindeks ({{ $module->chunks->count() }})</h3>
-                
-                @if($module->chunks->count() > 0)
-                    <div class="space-y-4">
-                        @foreach($module->chunks as $index => $chunk)
-                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                                <div class="text-xs text-gray-500 mb-2">Chunk #{{ $index + 1 }}</div>
-                                <div class="text-sm text-gray-800">{{ Str::limit($chunk->chunk_text, 200) }}</div>
-                            </div>
-                        @endforeach
-                    </div>
-                    @if($module->status_indexing === 'processing' || $module->status_indexing === 'pending')
-                        <div class="flex items-center gap-3 text-sm text-blue-600 bg-blue-50 p-4 rounded-xl">
-                            <i class="fa-solid fa-circle-notch fa-spin"></i> Sedang memproses mengekstrak teks...
-                        </div>
-                    @elseif($module->status_indexing === 'failed')
-                        <div class="flex items-center gap-3 text-sm text-red-600 bg-red-50 p-4 rounded-xl">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Terjadi kesalahan saat memproses modul ini.
-                        </div>
-                    @else
-                        <div class="text-sm text-gray-500 text-center py-8">Tidak ada chunk yang ditemukan.</div>
-                    @endif
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Pratinjau teks hasil ekstraksi ({{ $chunkCount }} chunk)</h3>
+                <p class="text-sm text-slate-500 mb-3">Periksa teks, urutan, dan kelengkapan materi sebelum digunakan siswa. PDF scan memerlukan OCR terlebih dahulu.</p>
+                @forelse($chunks as $chunk)
+                    <details class="bg-gray-50 p-4 rounded-lg border mb-3">
+                        <summary>Chunk #{{ ($chunk->chunk_index ?? 0) + 1 }} ? {{ $chunk->embedding_model ?: 'Indeks lama' }} ? {{ $chunk->embedding_dimensions ?? '?' }} dimensi</summary>
+                        <pre class="whitespace-pre-wrap text-sm mt-3 font-sans">{{ $chunk->chunk_text }}</pre>
+                    </details>
+                @empty
+                    <p class="text-sm text-gray-500 py-4">Tidak ada chunk yang ditemukan.</p>
+                @endforelse
+                {{ $chunks->links() }}
+                @if(in_array($module->status_indexing, ['pending', 'processing']))
+                    <p class="text-sm text-blue-600">Ekstraksi masih menunggu atau sedang diproses worker RAG.</p>
+                @elseif($module->status_indexing === 'failed')
+                    <p class="text-sm text-red-600">Pemrosesan gagal. Periksa pesan kesalahan lalu coba indeks ulang.</p>
                 @endif
             </div>
 

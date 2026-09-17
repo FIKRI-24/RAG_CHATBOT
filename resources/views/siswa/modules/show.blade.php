@@ -107,7 +107,7 @@
             </div>
 
             <!-- Jump to AI Chatbot with this subject -->
-            <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60 hover:bg-[#008546] hover:text-white transition-all shadow-xs">
+            <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}&amp;module_id={{ $module->id }}" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60 hover:bg-[#008546] hover:text-white transition-all shadow-xs">
                 <i class="fa-solid fa-robot"></i>
                 <span>Tanya AI Soal Materi Ini</span>
             </a>
@@ -216,32 +216,28 @@
 
                     <div class="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-200">
                         <span class="text-xs text-slate-600 truncate flex-1 mr-3">{{ $module->video_url }}</span>
-                        <a href="{{ $module->video_url }}" target="_blank" class="inline-flex items-center gap-1.5 px-4 py-2 {{ $driveId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700' }} text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex-shrink-0">
+                        <a href="{{ $module->video_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 px-4 py-2 {{ $driveId ? 'bg-amber-600 hover:bg-amber-700' : 'bg-rose-600 hover:bg-rose-700' }} text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex-shrink-0">
                             Buka di Tab Baru <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                         </a>
                     </div>
 
-                    @php
-                        $additionalVideos = [];
-                        if ($module->mapel === 'Teknik Komputer dan Jaringan' && $module->file_path === 'modules/kb2_jaringan_nirkabel.pdf') {
-                            $additionalVideos = [
-                                ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
-                                ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1ywwtzTI2AGoa6yyQUSyTVjvadWPt42FJ/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
-                            ];
-                        } elseif ($module->mapel === 'Teknik Komputer dan Jaringan' && $module->file_path === 'modules/kb1_jaringan_nirkabel.pdf') {
-                            $additionalVideos = [
-                                ['title' => 'Video Pembelajaran 2 (YouTube)', 'url' => 'https://www.youtube.com/watch?v=hhks5xSpM-0', 'icon' => 'fa-brands fa-youtube', 'color' => 'text-rose-500'],
-                                ['title' => 'Video Alternatif (Google Drive)', 'url' => 'https://drive.google.com/file/d/1xPFPM_se4Derv10odsUSzMqwYCtQSzyh/view?usp=sharing', 'icon' => 'fa-brands fa-google-drive', 'color' => 'text-amber-500'],
-                            ];
-                        }
-                    @endphp
+
+                @else
+                    <div class="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
+                        <i class="fa-brands fa-youtube text-2xl mb-1 text-slate-300 block"></i>
+                        Belum ada video pembelajaran yang disematkan untuk KB ini.
+                    </div>
+                @endif
+            </div>
+
+                    @php $additionalVideos = $module->additionalVideos(); @endphp
 
                     @if(!empty($additionalVideos))
                         <div class="pt-2 border-t border-slate-100">
                             <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Video Pembelajaran Tambahan:</span>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 @foreach($additionalVideos as $extra)
-                                    <a href="{{ $extra['url'] }}" target="_blank" class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 transition-all hover:scale-[1.01] shadow-2xs">
+                                    <a href="{{ $extra['url'] }}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-700 transition-all hover:scale-[1.01] shadow-2xs">
                                         <span class="flex items-center gap-2.5">
                                             <i class="{{ $extra['icon'] }} {{ $extra['color'] }} text-base"></i>
                                             <span>{{ $extra['title'] }}</span>
@@ -252,13 +248,6 @@
                             </div>
                         </div>
                     @endif
-                @else
-                    <div class="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
-                        <i class="fa-brands fa-youtube text-2xl mb-1 text-slate-300 block"></i>
-                        Belum ada video pembelajaran yang disematkan untuk KB ini.
-                    </div>
-                @endif
-            </div>
 
             <!-- 4. LINK KUIS EVALUASI CARD -->
             <div class="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-4">
@@ -271,6 +260,13 @@
                     </h3>
                 </div>
 
+                @if($module->quiz?->is_published)
+                    <div class="p-5 bg-purple-50 rounded-2xl border border-purple-100 space-y-3">
+                        <h4 class="font-bold text-sm text-slate-900">{{ $module->quiz->title }}</h4>
+                        <p class="text-xs text-slate-600">Kuis pilihan ganda dari guru. Kerjakan di aplikasi dan lihat nilai otomatis.</p>
+                        <a href="{{ route('siswa.modules.quiz.show', $module) }}" class="inline-flex px-6 py-3 bg-[#008546] hover:bg-emerald-800 text-white text-sm font-bold rounded-xl">Kerjakan Kuis Objektif</a>
+                    </div>
+                @endif
                 @if($module->kuis_url)
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-purple-50/50 rounded-2xl border border-purple-100">
                         <div>
@@ -278,15 +274,15 @@
                             <p class="text-xs text-slate-500 mt-0.5">Kerjakan kuis evaluasi materi {{ $module->kb_nomor }} untuk membuktikan pemahaman materi.</p>
                         </div>
 
-                        <a href="{{ $module->kuis_url }}" target="_blank" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex-shrink-0">
+                        <a href="{{ $module->kuis_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-bold rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95 flex-shrink-0">
                             <span>Mulai Kerjakan Kuis</span>
                             <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                         </a>
                     </div>
-                @else
+                @elseif(! $module->quiz?->is_published)
                     <div class="p-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
                         <i class="fa-solid fa-pen-to-square text-2xl mb-1 text-slate-300 block"></i>
-                        Belum ada link kuis eksternal untuk KB ini. Anda tetap dapat menggunakan fitur <strong>Latihan Soal AI</strong> di ruang tanya jawab!
+                        Belum ada kuis yang tersedia untuk KB ini. Anda tetap dapat menggunakan fitur <strong>Latihan Soal AI</strong> di ruang tanya jawab!
                     </div>
                 @endif
             </div>
@@ -297,7 +293,7 @@
                     <i class="fa-solid fa-arrow-left"></i> Kembali ke Katalog E-Modul
                 </a>
 
-                <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}" class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all">
+                <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}&amp;module_id={{ $module->id }}" class="inline-flex items-center gap-2 px-5 py-3 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl shadow-md transition-all">
                     <i class="fa-solid fa-robot text-emerald-400"></i>
                     <span>Tanya AI Mengenai Materi Ini</span>
                 </a>

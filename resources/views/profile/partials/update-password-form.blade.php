@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <section>
     <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
         <div class="flex items-center gap-3">
@@ -48,7 +51,7 @@
                     <i :class="show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
                 </button>
             </div>
-            <x-input-error :messages="$errors->updatePassword->get('current_password')" class="mt-2" />
+            <x-input-error :messages="$errors->getBag('updatePassword')->get('current_password')" class="mt-2" />
         </div>
 
         <!-- Kata Sandi Baru -->
@@ -77,7 +80,7 @@
                     <i :class="show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
                 </button>
             </div>
-            <x-input-error :messages="$errors->updatePassword->get('password')" class="mt-2" />
+            <x-input-error :messages="$errors->getBag('updatePassword')->get('password')" class="mt-2" />
         </div>
 
         <!-- Konfirmasi Kata Sandi Baru -->
@@ -106,7 +109,7 @@
                     <i :class="show ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'" class="text-sm"></i>
                 </button>
             </div>
-            <x-input-error :messages="$errors->updatePassword->get('password_confirmation')" class="mt-2" />
+            <x-input-error :messages="$errors->getBag('updatePassword')->get('password_confirmation')" class="mt-2" />
         </div>
 
         <!-- Tips Sandi Aman -->

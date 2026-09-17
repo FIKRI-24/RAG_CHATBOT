@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\AccountService;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
@@ -31,10 +33,13 @@ class NewPasswordController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        if (is_string($request->input('email'))) {
+            $request->merge(['email' => Str::lower(trim($request->input('email')))]);
+        }
         $request->validate([
-            'token' => ['required'],
-            'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'token' => ['required', 'string', 'max:255'],
+            'email' => ['bail', 'required', 'string', 'email', 'max:255'],
+            'password' => ['required', 'confirmed', 'max:1024', Rules\Password::defaults()],
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we
@@ -43,12 +48,16 @@ class NewPasswordController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function (User $user) use ($request) {
-                $user->forceFill([
-                    'password' => Hash::make($request->password),
-                    'remember_token' => Str::random(60),
-                ])->save();
+                DB::transaction(function () use ($user, $request) {
+                    $user = User::whereKey($user->id)->lockForUpdate()->firstOrFail();
+                    $user->forceFill([
+                        'password' => Hash::make($request->password),
+                        'remember_token' => Str::random(60),
+                    ])->save();
 
-                event(new PasswordReset($user));
+                    event(new PasswordReset($user));
+                    app(AccountService::class)->revokeSessions($user);
+                });
             }
         );
 

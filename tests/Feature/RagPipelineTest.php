@@ -133,6 +133,7 @@ class RagPipelineTest extends TestCase
             ChatHistory::create(['siswa_id' => $id, 'mapel' => $mapel, 'kind' => 'answer', 'pertanyaan' => $question, 'jawaban' => 'jawaban']);
         }
         $mock = Mockery::mock(GeminiService::class);
+        $mock->shouldReceive('startBudget')->andReturnNull();
         $mock->shouldReceive('rewriteQuestion')->once()->with('Contohnya?', Mockery::on(fn ($history) => count($history) === 1 && $history[0]['pertanyaan'] === 'Apa itu VLAN?'))->andReturn('Apa contoh VLAN?');
         $mock->shouldReceive('embedText')->with('Apa contoh VLAN?')->once()->andReturn([1, 0]);
         $mock->shouldReceive('generateAnswer')->once()->with('Apa contoh VLAN?', Mockery::type('string'))->andReturn('Contoh berdasarkan modul [1].');
@@ -146,8 +147,9 @@ class RagPipelineTest extends TestCase
         $student = $this->student();
         $this->chunk($this->module());
         $mock = Mockery::mock(GeminiService::class);
-        $mock->shouldReceive('generateQuiz')->once()->andReturn('Apa fungsi VLAN?');
-        $mock->shouldReceive('gradeQuiz')->once()->andReturn('Benar.');
+        $mock->shouldReceive('startBudget')->andReturnNull();
+        $mock->shouldReceive('structuredQuiz')->once()->andReturn(['question' => 'Apa fungsi VLAN?', 'answer_key' => 'Memisahkan jaringan', 'rubric' => ['Pemisahan logis']]);
+        $mock->shouldReceive('assessQuiz')->once()->andReturn(['score' => 100, 'feedback' => 'Benar.', 'criteria' => ['Sesuai rubrik']]);
         $this->app->instance(GeminiService::class, $mock);
         $id = $this->postJson(route('siswa.chat.ask'), ['action' => 'quiz', 'mapel' => 'Jaringan'])->assertOk()->json('data.quiz_id');
         $payload = ['action' => 'quiz_answer', 'quiz_id' => $id, 'pertanyaan' => 'Memisahkan jaringan', 'mapel' => 'Jaringan'];
@@ -190,6 +192,7 @@ class RagPipelineTest extends TestCase
         $extractor = Mockery::mock(DocumentExtractorService::class);
         $extractor->shouldReceive('extract')->andReturn(str_repeat('materi ', 150));
         $gemini = Mockery::mock(GeminiService::class);
+        $gemini->shouldReceive('startBudget')->andReturnNull();
         $gemini->shouldReceive('embedText')->once()->andReturn([1, 0]);
         $gemini->shouldReceive('embedText')->once()->andThrow(new RuntimeException('API unavailable'));
         $job = new ProcessModuleJob($module);
@@ -201,6 +204,7 @@ class RagPipelineTest extends TestCase
             $this->assertSame([$old->id], $module->chunks()->pluck('id')->all());
         }
         $healthy = Mockery::mock(GeminiService::class);
+        $healthy->shouldReceive('startBudget')->andReturnNull();
         $healthy->shouldReceive('embedText')->andReturn([1, 0]);
         $job->handle($extractor, new ChunkingService, $healthy);
         $ids = $module->chunks()->pluck('id')->all();
@@ -234,6 +238,7 @@ class RagPipelineTest extends TestCase
         $extractor = Mockery::mock(DocumentExtractorService::class);
         $extractor->shouldReceive('extract')->andReturn('new content');
         $gemini = Mockery::mock(GeminiService::class);
+        $gemini->shouldReceive('startBudget')->andReturnNull();
         $gemini->shouldReceive('embedText')->once()->andReturnUsing(function () use ($module) {
             $module->refresh()->update(['indexing_version' => (string) Str::uuid(), 'status_indexing' => 'pending']);
 

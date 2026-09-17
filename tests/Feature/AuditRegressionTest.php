@@ -169,7 +169,7 @@ class AuditRegressionTest extends TestCase
         $chat->save();
         $this->actingAs($module->guru)->get(route('guru.dashboard'))->assertOk()
             ->assertViewHas('totalPertanyaanBiasa', 1)->assertViewHas('totalKuis', 1)
-            ->assertViewHas('chartChats', fn ($counts) => $counts[7] === 0 && $counts[8] === 3);
+            ->assertViewHas('chartChats', fn ($counts) => $counts[7] === 0 && $counts[8] === 1);
     }
 
     public function test_export_keeps_formulas_as_text_and_uses_snapshots_and_wib(): void
@@ -218,10 +218,11 @@ class AuditRegressionTest extends TestCase
     {
         $chunk = $this->chunk($this->module());
         $mock = Mockery::mock(GeminiService::class);
-        $mock->shouldReceive('generateQuiz')->once()->andReturnUsing(function () use ($chunk) {
+        $mock->shouldReceive('startBudget')->andReturnNull();
+        $mock->shouldReceive('structuredQuiz')->once()->andReturnUsing(function () use ($chunk) {
             $chunk->delete();
 
-            return 'Question';
+            return ['question' => 'Question', 'answer_key' => 'Key', 'rubric' => ['Criterion']];
         });
         $this->app->instance(GeminiService::class, $mock);
         $this->actingAs(User::factory()->create(['role' => 'siswa']))
@@ -236,12 +237,13 @@ class AuditRegressionTest extends TestCase
         $student = User::factory()->create(['role' => 'siswa']);
         $quiz = ChatHistory::create(['siswa_id' => $student->id, 'pertanyaan' => '[LATIHAN_SOAL]',
             'jawaban' => 'Question', 'kind' => 'quiz', 'quiz_status' => 'pending', 'mapel' => 'Semua',
-            'referensi_chunk_id' => $chunk->id]);
+            'referensi_chunk_id' => $chunk->id, 'quiz_payload' => ['question' => 'Question', 'answer_key' => 'Key', 'rubric' => ['Criterion']]]);
         $mock = Mockery::mock(GeminiService::class);
-        $mock->shouldReceive('gradeQuiz')->once()->andReturnUsing(function () use ($module) {
+        $mock->shouldReceive('startBudget')->andReturnNull();
+        $mock->shouldReceive('assessQuiz')->once()->andReturnUsing(function () use ($module) {
             $module->update(['status_indexing' => 'pending']);
 
-            return 'Correct';
+            return ['score' => 100, 'feedback' => 'Correct', 'criteria' => ['Criterion']];
         });
         $this->app->instance(GeminiService::class, $mock);
         $this->actingAs($student)->postJson(route('siswa.chat.ask'), [

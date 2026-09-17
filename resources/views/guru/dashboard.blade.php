@@ -15,7 +15,7 @@
                         Selamat Datang, <span class="text-emerald-300">{{ auth()->user()->name }}</span>! 👋
                     </h1>
                     <p class="text-slate-300 text-xs sm:text-sm mt-2 max-w-2xl leading-relaxed">
-                        Pantau interaksi belajar siswa secara <strong>real-time</strong>, kelola materi kurikulum Kegiatan Belajar (KB), dan awasi performa indeks pengetahuan kecerdasan buatan.
+                        Pantau interaksi belajar siswa berdasarkan data saat halaman dimuat, kelola materi kurikulum Kegiatan Belajar (KB), dan awasi performa indeks pengetahuan kecerdasan buatan.
                     </p>
                 </div>
 
@@ -101,7 +101,7 @@
                         <i class="fa-solid fa-comments"></i>
                     </div>
                     <span class="text-[10px] bg-emerald-50 text-[#008546] font-bold px-2 py-0.5 rounded-full border border-emerald-200">
-                        Real-Time
+                        Saat dimuat
                     </span>
                 </div>
                 <h3 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tanya Jawab AI Siswa</h3>
@@ -150,7 +150,7 @@
                             <span>Modul Terbit</span>
                         </span>
                     </div>
-                    <span class="text-[11px] text-slate-400">Diperbarui secara real-time</span>
+                    <span class="text-[11px] text-slate-400">Diperbarui saat halaman dimuat</span>
                 </div>
             </div>
 

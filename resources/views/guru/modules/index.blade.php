@@ -125,6 +125,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center gap-1.5">
+                                        <a href="{{ route('guru.modules.quiz.edit', $module) }}" class="inline-flex items-center px-3 h-8 rounded-xl bg-purple-50 text-purple-700 hover:bg-purple-100 text-xs font-semibold" title="Buat dan kelola kuis pilihan ganda">Kelola Kuis</a>
                                         <!-- Detail -->
                                         <a href="{{ route('guru.modules.show', $module->id) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors" title="Lihat Detail">
                                             <i class="fa-solid fa-eye text-xs"></i>

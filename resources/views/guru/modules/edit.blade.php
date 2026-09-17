@@ -1,3 +1,7 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+    /** @var \App\Models\Module $module */
+@endphp
 <x-premium-layout>
             @if(session('error'))
                 <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
@@ -158,11 +162,12 @@
                             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
                                 <label for="kuis_url" class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-pen-to-square text-[#008546] text-sm"></i>
-                                    <span>Link Kuis / Evaluasi</span>
+                                    <span>Link Kuis Eksternal (Opsional)</span>
                                 </label>
                                 <input type="url" id="kuis_url" name="kuis_url" value="{{ old('kuis_url', $module->kuis_url) }}" placeholder="https://forms.gle/... atau Quizizz"
                                        class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl py-2 px-3 outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all">
                                 <x-input-error class="mt-1" :messages="$errors->get('kuis_url')" />
+                                <a href="{{ route('guru.modules.quiz.edit', $module) }}" class="inline-flex mt-3 text-sm font-semibold text-purple-700">Buat / Kelola Kuis Objektif di Aplikasi →</a>
                             </div>
                         </div>
                     </div>
@@ -269,6 +274,7 @@
                 </div>
 
             </div>
+            @include('guru.modules.media-fields')
         </form>
 
     </div>

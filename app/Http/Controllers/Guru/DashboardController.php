@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ChatHistory;
 use App\Models\Module;
 use App\Models\ModuleChunk;
-use App\Models\User;
+use App\Services\LearningMetricsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\View\View;
@@ -29,23 +29,24 @@ class DashboardController extends Controller
             $q->where('guru_id', $guruId);
         })->count();
 
-        $totalSiswa = User::where('role', 'siswa')->count();
-        $totalChat = ChatHistory::count();
-        $totalKuis = ChatHistory::quizzes()->count();
-        $totalPertanyaanBiasa = ChatHistory::questions()->count();
+        $metrics = app(LearningMetricsService::class)->summary();
+        $totalSiswa = $metrics['students'];
+        $totalChat = $metrics['interactions'];
+        $totalKuis = $metrics['quizzes'];
+        $totalPertanyaanBiasa = $metrics['questions'];
 
         // 2. Metrik Kesiapan & Partisipasi Nyata
         $modulCompleted = Module::where('guru_id', $guruId)->where('status_indexing', 'completed')->count();
         $modulSiapPersen = $totalModul > 0 ? (int) round(($modulCompleted / $totalModul) * 100) : 100;
 
-        $siswaAktifCount = ChatHistory::distinct('siswa_id')->count('siswa_id');
-        $siswaAktifPersen = $totalSiswa > 0 ? (int) round(($siswaAktifCount / $totalSiswa) * 100) : 0;
-        $avgChatPerSiswa = $totalSiswa > 0 ? round($totalChat / $totalSiswa, 1) : 0;
+        $siswaAktifCount = $metrics['active_students'];
+        $siswaAktifPersen = $metrics['active_percent'];
+        $avgChatPerSiswa = $metrics['questions_per_student'];
 
         $activeAiModel = config('gemini.model', 'gemini-2.5-flash');
 
         // 3. Data Grafik Batang Bulanan (Jan - Des Tahun Ini)
-        $chartChats = $this->monthlyCounts(ChatHistory::query(), $year);
+        $chartChats = $this->monthlyCounts(ChatHistory::questions(), $year);
         $chartModules = $this->monthlyCounts(Module::where('guru_id', $guruId), $year);
 
         // 4. Live Feed: Aktivitas Tanya Jawab Siswa Terkini

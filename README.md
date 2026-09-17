@@ -1,10 +1,12 @@
 # E-Modul Interaktif Terintegrasi AI Chatbot (RAG)
 
-Panduan indexing, worker, dan hasil pengujian terbaru: [Perbaikan dan evaluasi RAG](docs/RAG.md).
+Laporan penerapan empat tahap: [Audit dan hasil implementasi](docs/AUDIT_IMPLEMENTATION.md). Panduan lokal, backup, pengujian, dan persiapan hosting: [Operasional](docs/OPERATIONS.md).
+
+Panduan indexing, worker, dan hasil pengujian RAG sebelumnya: [Perbaikan dan evaluasi RAG](docs/RAG.md).
 
 ### Konsentrasi Keahlian Teknik Komputer dan Jaringan (TKJ) — SMK Negeri 1 Kinali
 
-[![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+[![Laravel](https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-5432-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-2.5_Flash-4285F4?style=for-the-badge&logo=google&logoColor=white)](https://ai.google.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
@@ -16,7 +18,7 @@ Panduan indexing, worker, dan hasil pengujian terbaru: [Perbaikan dan evaluasi R
 
 Sistem Pembelajaran Digital **E-Modul Terintegrasi AI Chatbot berbasis Web** ini dikembangkan sebagai karya inovasi media pembelajaran vokasi untuk mendukung pemahaman peserta didik pada mata pelajaran **Teknik Komputer dan Jaringan (TKJ)** di **SMK Negeri 1 Kinali**.
 
-Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas yang didukung oleh **Google Gemini API**. AI bertindak sebagai asisten pemandu modul yang hanya menjawab pertanyaan berdasarkan isi dokumen materi resmi yang diunggah oleh guru (*Strict Grounding*), sehingga mencegah informasi keliru atau halusinasi AI di luar kurikulum sekolah.
+Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas yang didukung oleh **Google Gemini API**. AI bertindak sebagai asisten pemandu modul yang hanya menjawab pertanyaan berdasarkan isi dokumen materi resmi yang diunggah oleh guru (*Strict Grounding*), untuk membatasi jawaban pada bukti modul. Jawaban dan nilai AI tetap perlu ditinjau guru.
 
 ---
 
@@ -34,7 +36,7 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 ## ✨ Fitur-Fitur Utama
 
 ### 1. Manajemen Akun & Hak Akses Bertingkat (Role-Based)
-* **Role Guru:** Akses penuh untuk mengunggah materi, memantau indeks vektor AI, mengelola akun siswa, mengunggah foto profil pengembang, dan memantau analitik real-time.
+* **Role Guru:** Akses penuh untuk mengunggah materi, memantau indeks vektor AI, mengelola akun siswa, mengunggah foto profil pengembang, dan memantau analitik aktivitas belajar.
 * **Role Siswa:** Akses katalog e-modul terstruktur, unduh dokumen asli, menonton video praktikum, mengerjakan kuis, dan berdiskusi interaktif dengan Chatbot AI.
 
 ### 2. Kurikulum Terstruktur per Kegiatan Belajar (KB)
@@ -48,19 +50,19 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 * Unggah berkas dokumen modul dalam format **PDF** atau **Word (.docx)**.
 * Sistem mengekstrak teks secara otomatis (`smalot/pdfparser` & `phpoffice/phpword`).
 * Melakukan segmentasi teks (*smart chunking*) dengan overlap untuk menjaga keutuhan konteks materi.
-* Menghasilkan vektor representasi semantik (*embedding vector*) menggunakan **Gemini Embedding (`text-embedding-004`)**.
+* Menghasilkan vektor representasi semantik (*embedding vector*) menggunakan **Gemini Embedding (`gemini-embedding-001`)**.
 
 ### 4. AI Chatbot dengan Strict RAG Grounding (Anti-Halusinasi)
 * Siswa dapat bertanya materi dengan bahasa alami (*natural language*).
 * Sistem melakukan pencarian kemiripan kosinus (*Cosine Similarity*) untuk mengambil potongan materi yang paling relevan (*Top-K retrieval*).
-* Model LLM (**Gemini 2.5 Flash / 2.0 Flash Lite**) menyusun jawaban **hanya dari konteks modul resmi**. Jika jawaban tidak tercantum di modul, AI secara santun memberitahu bahwa materi belum tersedia di modul.
+* Model LLM (**Gemini 2.5 Flash**) menyusun jawaban **hanya dari konteks modul resmi**. Jika jawaban tidak tercantum di modul, AI secara santun memberitahu bahwa materi belum tersedia di modul.
 
 ### 5. Mode Latihan Soal AI Interaktif & Evaluasi Otomatis
 * Siswa dapat meminta latihan soal interaktif dari materi modul dengan menekan tombol **"Latihan Soal AI"**.
 * AI menyusun soal pemahaman berbasis konteks modul.
 * Siswa menjawab di kolom chat, dan AI langsung memeriksa serta memberikan skor/evaluasi (*auto-grading*) atas jawaban siswa.
 
-### 6. Dashboard Guru 100% Real-Time
+### 6. Dashboard Guru berdasarkan data saat halaman dimuat
 * **Statistik Utama:** Total modul aktif, total potongan teks (chunk), jumlah siswa terdaftar, dan total tanya jawab AI.
 * **Grafik Interaksi Bulanan (Chart.js):** Agregasi riil aktivitas pertanyaan siswa dan modul per bulan.
 * **Live Feed Aktivitas:** Menampilkan daftar pertanyaan terbaru yang diajukan siswa secara langsung.
@@ -78,7 +80,7 @@ Sistem ini menerapkan arsitektur **Retrieval-Augmented Generation (RAG)** cerdas
 | :--- | :--- |
 | **Framework Backend** | Laravel 11 (PHP 8.2+) |
 | **Basis Data** | PostgreSQL (Database Relasional & Vektor Chunk) |
-| **AI LLM & Embedding** | Google Gemini API (`gemini-2.5-flash` & `text-embedding-004`) |
+| **AI LLM & Embedding** | Google Gemini API (`gemini-2.5-flash` & `gemini-embedding-001`) |
 | **Parser Dokumen** | `smalot/pdfparser` (PDF) & `phpoffice/phpword` (DOCX) |
 | **Frontend UI** | Blade Templating, Tailwind CSS, Alpine.js |
 | **Visualisasi Data** | Chart.js |

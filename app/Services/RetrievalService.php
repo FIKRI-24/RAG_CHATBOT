@@ -7,9 +7,16 @@ use Illuminate\Database\Eloquent\Builder;
 
 class RetrievalService
 {
+    private ?int $moduleId = null;
+
+    public function scope(?int $moduleId): void
+    {
+        $this->moduleId = $moduleId;
+    }
+
     public function eligible(string $mapel = 'Semua'): Builder
     {
-        return ModuleChunk::whereHas('module', function ($query) use ($mapel) {
+        return ModuleChunk::when($this->moduleId, fn ($query) => $query->where('module_id', $this->moduleId))->whereHas('module', function ($query) use ($mapel) {
             $query->available();
             if ($mapel !== 'Semua') {
                 $query->where('mapel', $mapel);
@@ -75,6 +82,7 @@ class RetrievalService
                 continue; // Index was replaced or module was withdrawn during retrieval.
             }
             $source['text'] = $neighbors->pluck('chunk_text')->implode("\n");
+            $source['content_hash'] = hash('sha256', $source['text']);
             $source['chunk_ids'] = $neighbors->pluck('id')->values()->all();
             foreach ($source['chunk_ids'] as $id) {
                 $used[$id] = true;
@@ -92,6 +100,8 @@ class RetrievalService
             'judul' => $chunk->module->judul, 'mapel' => $chunk->module->mapel,
             'kb_nomor' => $chunk->module->kb_nomor, 'chunk_index' => $chunk->chunk_index,
             'text' => $chunk->chunk_text, 'similarity' => $score,
+            'indexing_version' => $chunk->module->indexing_version,
+            'content_hash' => hash('sha256', $chunk->chunk_text),
         ];
     }
 

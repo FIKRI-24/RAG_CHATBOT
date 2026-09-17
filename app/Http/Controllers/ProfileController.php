@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use App\Models\User;
+use App\Services\AccountService;
+use App\Services\AuditService;
 use App\Services\StoredFileService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,6 +24,7 @@ class ProfileController extends Controller
     {
         return view('profile.edit', [
             'user' => $request->user(),
+            'transferTeachers' => User::where('role', 'guru')->where('is_active', true)->whereKeyNot($request->user()->id)->get(['id', 'name']),
         ]);
     }
 
@@ -41,6 +44,9 @@ class ProfileController extends Controller
             DB::transaction(function () use ($request, $validated, $path, &$oldPath) {
                 $user = User::whereKey($request->user()->id)->lockForUpdate()->firstOrFail();
                 $user->fill(['name' => $validated['name'], 'email' => $validated['email']]);
+                if (array_key_exists('teacher_number', $validated) && $user->isGuru()) {
+                    $user->teacher_number = $validated['teacher_number'];
+                }
                 if ($path || $request->boolean('remove_avatar')) {
                     $oldPath = $user->avatar;
                     $user->avatar = $path;
@@ -49,6 +55,7 @@ class ProfileController extends Controller
                     $user->email_verified_at = null;
                 }
                 $user->save();
+                app(AuditService::class)->record('account.profile_updated', $user);
             });
         } catch (\Throwable $e) {
             $files->delete($path, 'public');
@@ -68,17 +75,22 @@ class ProfileController extends Controller
     {
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
+            'transfer_to' => 'nullable|integer',
         ]);
 
         $user = $request->user();
 
-        Auth::logout();
+        try {
+            app(AccountService::class)->delete($user, $request->integer('transfer_to') ?: null);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e->errorBag('userDeletion');
+        }
 
-        $user->delete();
+        Auth::logout();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return redirect()->route('login');
     }
 }

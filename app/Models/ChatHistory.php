@@ -20,9 +20,22 @@ class ChatHistory extends Model
         'quiz_status',
         'sources',
         'retrieval_query',
+        'scope_module_id', 'quiz_id', 'quiz_payload', 'assessment', 'score', 'reviewed_by', 'reviewed_at', 'review_note',
     ];
 
-    protected $casts = ['sources' => 'array'];
+    protected $casts = ['sources' => 'array', 'quiz_payload' => 'array', 'assessment' => 'array', 'score' => 'integer', 'reviewed_at' => 'datetime'];
+
+    protected $hidden = ['quiz_payload'];
+
+    public function quiz(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'quiz_id');
+    }
+
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewed_by');
+    }
 
     public function scopeQuestions($query)
     {

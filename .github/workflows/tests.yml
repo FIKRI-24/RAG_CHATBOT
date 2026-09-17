@@ -1,0 +1,54 @@
+name: Application checks
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: rag_testing
+          POSTGRES_USER: rag_testing
+          POSTGRES_PASSWORD: test-only-password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_sqlite, pdo_pgsql, zip, gd, mbstring, bcmath, intl
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist
+      - run: cp .env.example .env && php artisan key:generate
+      - run: npm ci
+      - run: npm run build
+      - run: composer audit
+      - run: npm audit
+      - run: php artisan test
+      - run: npm run test:rag-ui
+      - name: PostgreSQL suite (dedicated disposable database)
+        run: php artisan test
+        env:
+          DB_CONNECTION: pgsql
+          DB_DATABASE: rag_testing
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: rag_testing
+          DB_PASSWORD: test-only-password
+          DB_URL: ''
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:load
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failures
+          path: |
+            playwright-report
+            test-results

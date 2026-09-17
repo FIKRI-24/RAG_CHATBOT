@@ -2,11 +2,12 @@
 providers = ["php", "node"]
 
 [variables]
-NIXPACKS_PHP_ROOT_DIR = "/public"
+NIXPACKS_PHP_ROOT_DIR = "/app/public"
 NIXPACKS_PHP_EXTENSIONS = "pdo_pgsql,pgsql,gd,zip,mbstring,bcmath,intl"
 
 [phases.setup]
 nixPkgs = [
+    '...',
     'php82',
     'php82Extensions.pdo_pgsql',
     'php82Extensions.pgsql',
@@ -16,13 +17,13 @@ nixPkgs = [
     'php82Extensions.zip',
     'php82Extensions.intl',
     'php82Packages.composer',
-    'nodejs_20'
+    'nodejs_22'
 ]
 
 [phases.install]
 cmds = [
-    'npm ci || npm install',
-    'composer install --no-dev --optimize-autoloader --no-interaction --ignore-platform-reqs'
+    'npm ci',
+    'composer install --no-dev --optimize-autoloader --no-interaction'
 ]
 
 [phases.build]
@@ -31,5 +32,6 @@ cmds = [
     'php artisan storage:link'
 ]
 
-[start]
-cmd = 'php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache && (php artisan queue:work --queue=rag,default --tries=3 --timeout=300 &) && php artisan serve --host=0.0.0.0 --port=$PORT'
+# Use the PHP provider's Nginx/PHP-FPM start command.
+# Run migrations explicitly as a release task and run RAG in a separate worker service:
+# php artisan queue:work rag --queue=rag --sleep=3 --tries=3 --timeout=300

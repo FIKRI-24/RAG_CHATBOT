@@ -310,7 +310,7 @@
                 <div class="hidden md:flex items-center gap-2">
                     <span class="text-xs font-medium text-slate-400">Status AI:</span>
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-[#008546] border border-emerald-200/50">
-                        <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> Ready
+                        <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> {{ config('gemini.api_key') ? 'Siap menerima pertanyaan' : 'Belum dikonfigurasi' }}
                     </span>
                 </div>
             </div>
@@ -428,6 +428,7 @@
                             <div class="bg-white p-5 sm:p-6 rounded-2xl rounded-tl-xs shadow-sm border border-slate-200/80 text-slate-800 prose prose-emerald max-w-none w-full relative">
                                 <div class="markdown-content hidden">{{ $chat->jawaban }}</div>
                                 <div class="rendered-content">Memuat format...</div>
+                                @if($chat->reviewed_at)<p class="text-sm text-emerald-800 mt-3">Nilai guru: {{ $chat->score }}/100 ? {{ $chat->review_note }}</p>@endif
                                 @if($chat->sources)
                                     <details class="mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600 chat-sources-block">
                                         <summary class="font-semibold text-slate-700 cursor-pointer hover:text-[#008546] transition-colors inline-flex items-center gap-2 py-1">
@@ -492,6 +493,9 @@
                         </div>
                     </div>
 
+                    <label class="text-sm">Modul / KB
+                        <select id="module-select" class="rounded-xl text-sm"><option value="">Semua modul</option>@foreach($modules->filter(fn ($item) => $selectedMapel === 'Semua' || $item->mapel === $selectedMapel) as $scopeModule)<option value="{{ $scopeModule->id }}" @selected($selectedModule === $scopeModule->id)>{{ $scopeModule->kb_nomor }}: {{ $scopeModule->judul }}</option>@endforeach</select>
+                    </label>
                     <!-- Quiz Button -->
                     <button type="button" id="btn-kuis" class="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#008546] bg-emerald-50 hover:bg-[#008546] hover:text-white px-3.5 py-1.5 rounded-xl border border-emerald-200/80 transition-all shadow-xs group">
                         <i class="fa-solid fa-brain group-hover:rotate-12 transition-transform text-xs"></i>
@@ -533,6 +537,18 @@
             const btnKuis = document.getElementById('btn-kuis');
             const btnQuickKuis = document.getElementById('btn-quick-kuis');
             const mapelSelect = document.getElementById('mapel-select');
+            const moduleSelect = document.getElementById('module-select');
+            const previousModule = moduleSelect.value;
+            moduleSelect.addEventListener('change', async () => {
+                if (inFlight || (activeQuizId && !(await cancelQuiz()))) {
+                    moduleSelect.value = previousModule;
+                    return;
+                }
+                const url = new URL(window.location.href);
+                url.searchParams.set('module_id', moduleSelect.value);
+                url.searchParams.set('mapel', mapelSelect.value);
+                window.location.assign(url);
+            });
             const scrollAnchor = document.getElementById('scroll-anchor');
             const sidebar = document.getElementById('sidebar');
             const openSidebarBtn = document.getElementById('open-sidebar-btn');
@@ -557,6 +573,7 @@
                 try {
                     const response = await fetch("{{ route('siswa.chat.ask') }}", {
                         method: 'POST',
+                        signal: AbortSignal.timeout(65000),
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
                         body: JSON.stringify({ action: 'cancel_quiz' })
@@ -580,6 +597,10 @@
                     return;
                 }
                 previousMapel = mapelSelect.value;
+                const url = new URL(window.location.href);
+                url.searchParams.set('mapel', previousMapel);
+                url.searchParams.delete('module_id');
+                window.location.assign(url);
             });
 
             // Render existing markdown messages
@@ -640,6 +661,7 @@
                 submitBtn.disabled = true;
                 if (btnKuis) btnKuis.disabled = true;
                 mapelSelect.disabled = true;
+                moduleSelect.disabled = true;
                 cancelQuizBtn.disabled = true;
                 inputField.value = '';
 
@@ -665,6 +687,7 @@
                     
                     const response = await fetch("{{ route('siswa.chat.ask') }}", {
                         method: 'POST',
+                        signal: AbortSignal.timeout(65000),
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': token,
@@ -674,7 +697,8 @@
                             pertanyaan: question,
                             mapel: selectedMapel,
                             action,
-                            quiz_id: activeQuizId
+                            quiz_id: activeQuizId,
+                            module_id: moduleSelect.value ? Number(moduleSelect.value) : null
                         })
                     });
 
@@ -698,6 +722,7 @@
                 } finally {
                     inFlight = false;
                     mapelSelect.disabled = false;
+                    moduleSelect.disabled = false;
                     cancelQuizBtn.disabled = false;
                     inputField.disabled = false;
                     submitBtn.disabled = false;

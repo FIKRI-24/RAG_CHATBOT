@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <x-premium-layout>
     <div class="space-y-6">
         
@@ -103,6 +106,7 @@
                                 <td class="py-4 px-6 font-medium text-slate-700">
                                     <i class="fa-regular fa-envelope text-slate-400 mr-1"></i>
                                     {{ $siswa->email }}
+                                    <p>{{ $siswa->class_name ?: 'Kelas belum diisi' }} ? {{ $siswa->student_number ?: 'NIS belum diisi' }} ? {{ $siswa->is_active ? 'Aktif' : 'Nonaktif' }}</p>
                                 </td>
                                 <td class="py-4 px-6 text-slate-500">
                                     {{ $siswa->created_at->timezone(config('app.display_timezone'))->format('d M Y, H:i') }}
@@ -110,12 +114,16 @@
                                 <td class="py-4 px-6">
                                     <div class="flex items-center justify-center gap-2">
                                         <!-- Edit & Reset Password Button -->
-                                        <button onclick="openEditModal({{ json_encode(['name' => $siswa->name, 'email' => $siswa->email, 'update_url' => route('guru.siswa.update', $siswa)]) }})" class="p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008546] rounded-xl border border-slate-200 transition-colors" title="Edit & Reset Password">
+                                        <button onclick="openEditModal({{ json_encode(['name' => $siswa->name, 'email' => $siswa->email, 'class_name' => $siswa->class_name, 'student_number' => $siswa->student_number, 'update_url' => route('guru.siswa.update', $siswa)]) }})" class="p-2 bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008546] rounded-xl border border-slate-200 transition-colors" title="Edit & Reset Password">
                                             <i class="fa-solid fa-[#008546] fa-key text-xs"></i>
                                         </button>
                                         
+                                        <form method="POST" action="{{ route('guru.siswa.status', $siswa) }}">@csrf @method('PATCH')
+                                            <input type="hidden" name="is_active" value="{{ $siswa->is_active ? '0' : '1' }}">
+                                            <button type="submit" class="p-2 bg-slate-100 rounded-xl" title="{{ $siswa->is_active ? 'Nonaktifkan akun; riwayat tetap tersimpan' : 'Aktifkan akun' }}">{{ $siswa->is_active ? 'Nonaktifkan' : 'Aktifkan' }}</button>
+                                        </form>
                                         <!-- Hapus Button -->
-                                        <form method="POST" action="{{ route('guru.siswa.destroy', $siswa->id) }}" onsubmit="return confirm('Apakah Anda yakin ingin menghapus akun siswa ini?');">
+                                        <form method="POST" action="{{ route('guru.siswa.destroy', $siswa->id) }}" onsubmit="return confirm('Hapus permanen akun dan seluruh riwayat siswa ini? Gunakan Nonaktifkan untuk mempertahankan riwayat.');">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="p-2 bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-xl border border-slate-200 transition-colors" title="Hapus Akun">
@@ -174,6 +182,7 @@
                     <input type="password" name="password" required placeholder="Minimal 8 karakter" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20">
                 </div>
 
+                <div class="grid grid-cols-2 gap-3"><label>Kelas<input id="class_name" name="class_name" maxlength="100" class="w-full rounded-xl" placeholder="XI TKJ"></label><label>NIS<input id="student_number" name="student_number" maxlength="100" class="w-full rounded-xl"></label></div>
                 <div class="pt-3 flex justify-end gap-2">
                     <button type="button" onclick="closeAddModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">
                         Batal
@@ -198,7 +207,7 @@
                 </button>
             </div>
 
-            <form id="editForm" method="POST" action="" class="space-y-4">
+            <form id="editForm" method="POST" action="" class="space-y-4" onsubmit="return !document.getElementById('edit_password').value || confirm('Reset password siswa ini? Semua sesi login siswa akan diakhiri.');">
                 @csrf
                 @method('PUT')
                 <div>
@@ -211,9 +220,10 @@
                     <input type="email" id="edit_email" name="email" required class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20">
                 </div>
 
+                <div class="grid grid-cols-2 gap-3"><label>Kelas<input id="edit_class_name" name="class_name" maxlength="100" class="w-full rounded-xl" placeholder="XI TKJ"></label><label>NIS<input id="edit_student_number" name="student_number" maxlength="100" class="w-full rounded-xl"></label></div>
                 <div class="pt-2 border-t border-slate-100">
                     <label class="block text-xs font-semibold text-slate-700 mb-1">Password Baru (Reset Password)</label>
-                    <input type="password" name="password" placeholder="Kosongkan jika tidak ingin mengubah password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20">
+                    <input id="edit_password" autocomplete="new-password" type="password" name="password" placeholder="Kosongkan jika tidak ingin mengubah password" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20">
                     <p class="text-[10px] text-slate-400 mt-1">Isi kolom ini jika Anda ingin mengganti/reset password siswa yang lupa.</p>
                 </div>
 
@@ -239,6 +249,10 @@
         }
 
         function openEditModal(siswa) {
+            document.getElementById('editForm').reset();
+            document.getElementById('edit_password').value = '';
+            document.getElementById('edit_class_name').value = siswa.class_name || '';
+            document.getElementById('edit_student_number').value = siswa.student_number || '';
             document.getElementById('edit_name').value = siswa.name;
             document.getElementById('edit_email').value = siswa.email;
             
@@ -249,6 +263,7 @@
             document.getElementById('editModal').classList.remove('hidden');
         }
         function closeEditModal() {
+            document.getElementById('editForm').reset();
             document.getElementById('editModal').classList.add('hidden');
         }
     </script>

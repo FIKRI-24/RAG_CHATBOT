@@ -68,6 +68,10 @@ class ProcessModuleJob implements ShouldQueue
             if (! $chunks) {
                 throw new RagException('Dokumen tidak memiliki teks terbaca. Gunakan PDF dengan lapisan teks atau DOCX; PDF scan perlu OCR terlebih dahulu.');
             }
+            if (count($chunks) > (int) config('rag.max_chunks_per_module', 200)) {
+                throw new RagException('Dokumen terlalu panjang untuk satu modul. Pisahkan per kegiatan belajar sebelum diindeks.');
+            }
+            $gemini->startBudget((int) config('rag.index_budget_seconds', 270));
             $dimensions = null;
             foreach ($chunks as $index => $chunk) {
                 if (! $this->current()->exists()) {

@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <section class="space-y-4">
     <div class="flex items-center justify-between pb-3 border-b border-rose-100">
         <div class="flex items-center gap-2.5">
@@ -14,7 +17,7 @@
     </div>
 
     <p class="text-xs text-slate-500 leading-relaxed">
-        Setelah akun Anda dihapus, semua data profil, riwayat unduhan, dan log percakapan AI Anda akan dihapus secara permanen dari server SMK N 1 Kinali.
+        Setelah akun Anda dihapus, semua data profil, dan log percakapan AI Anda akan dihapus secara permanen dari server SMK N 1 Kinali.
     </p>
 
     <div>
@@ -30,7 +33,7 @@
     </div>
 
     <!-- Modal Konfirmasi Hapus Akun -->
-    <x-modal name="confirm-user-deletion" :show="$errors->userDeletion->isNotEmpty()" focusable>
+    <x-modal name="confirm-user-deletion" :show="$errors->getBag('userDeletion')->isNotEmpty()" focusable>
         <form method="post" action="{{ route('profile.destroy') }}" class="p-6 sm:p-8 space-y-6">
             @csrf
             @method('delete')
@@ -49,6 +52,12 @@
                 </div>
             </div>
 
+            @if($user->isGuru())
+                <label>Guru penerima modul (wajib jika masih memiliki modul)
+                    <select name="transfer_to" class="block w-full rounded-xl"><option value="">Pilih guru</option>@foreach($transferTeachers as $teacher)<option value="{{ $teacher->id }}">{{ $teacher->name }}</option>@endforeach</select>
+                </label>
+                <x-input-error :messages="$errors->getBag('userDeletion')->get('transfer_to')" />
+            @endif
             <div class="space-y-2">
                 <label for="password" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
                     Kata Sandi Konfirmasi <span class="text-rose-500">*</span>
@@ -65,7 +74,7 @@
                         placeholder="Ketik kata sandi Anda untuk verifikasi"
                     />
                 </div>
-                <x-input-error :messages="$errors->userDeletion->get('password')" class="mt-2" />
+                <x-input-error :messages="$errors->getBag('userDeletion')->get('password')" class="mt-2" />
             </div>
 
             <div class="flex items-center justify-end gap-3 pt-2">

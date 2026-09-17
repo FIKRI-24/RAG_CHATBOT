@@ -27,6 +27,7 @@ class AuthenticatedSessionController extends Controller
         $request->authenticate();
 
         $request->session()->regenerate();
+        $request->session()->put('auth_version', (int) $request->user()->auth_version);
 
         // Redirect berdasarkan role
         if ($request->user()->isGuru()) {

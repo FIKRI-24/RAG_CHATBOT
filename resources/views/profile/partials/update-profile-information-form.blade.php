@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <section>
     <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
         <div class="flex items-center gap-3">
@@ -141,7 +144,7 @@
                     name="email" 
                     type="email" 
                     class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm font-medium focus:bg-white focus:border-[#008546] focus:ring-4 focus:ring-emerald-500/10 focus:outline-none transition-all shadow-xs" 
-                    value="{{ old('email', $user->email) }}" 
+                    value="{{ is_string(old('email', $user->email)) ? old('email', $user->email) : '' }}"
                     required 
                     autocomplete="username" 
                     placeholder="contoh@smkn1kinali.sch.id"
@@ -191,5 +194,6 @@
                 </div>
             @endif
         </div>
+        @if($user->isGuru())<label class="block text-sm">NIP / nomor guru<input name="teacher_number" maxlength="100" value="{{ old('teacher_number', $user->teacher_number) }}" class="block w-full rounded-xl"></label>@endif
     </form>
 </section>

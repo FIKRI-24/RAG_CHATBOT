@@ -39,13 +39,14 @@ class ExportActivityService
         // Ambil Data Guru & Waktu
         $guru = Auth::user();
         $namaGuru = $guru?->name ?? '-';
-        $nipGuru = config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-';
+        $nipGuru = $guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-');
         $waktuCetak = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB';
         $tanggalPengesahan = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y');
 
-        $totalSiswa = User::where('role', 'siswa')->count();
-        $siswaAktifCount = User::where('role', 'siswa')->whereHas('chatHistories', fn ($q) => $q->questions())->count();
-        $totalPertanyaanAll = ChatHistory::questions()->whereHas('siswa', fn ($q) => $q->where('role', 'siswa'))->count();
+        $metrics = app(LearningMetricsService::class)->summary();
+        $totalSiswa = $metrics['students'];
+        $siswaAktifCount = $metrics['active_students'];
+        $totalPertanyaanAll = $metrics['questions'];
         $siswas = User::where('role', 'siswa')
             ->withCount(['chatHistories as questions_count' => fn ($q) => $q->questions(),
                 'chatHistories as quizzes_count' => fn ($q) => $q->quizzes()])
@@ -153,7 +154,7 @@ class ExportActivityService
             'B' => 'NIS / USERNAME',
             'C' => 'NAMA LENGKAP SISWA',
             'D' => 'KELAS',
-            'E' => 'MODUL DIAKSES',
+            'E' => 'MODUL DIRUJUK CHATBOT',
             'F' => 'TANYA CHATBOT',
             'G' => 'LATIHAN SOAL AI',
             'H' => 'AKTIF TERAKHIR',
@@ -190,20 +191,21 @@ class ExportActivityService
                 ? Carbon::parse($siswa->chat_histories_max_created_at)->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i') : 'Belum Pernah';
 
             // Kategori partisipasi
-            if ($tanyaCount >= 10) {
+            $activityCount = $tanyaCount + $kuisCount;
+            if ($activityCount >= 10) {
                 $statusPartisipasi = 'Sangat Aktif';
-            } elseif ($tanyaCount >= 5) {
+            } elseif ($activityCount >= 5) {
                 $statusPartisipasi = 'Aktif';
-            } elseif ($tanyaCount > 0) {
+            } elseif ($activityCount > 0) {
                 $statusPartisipasi = 'Cukup Aktif';
             } else {
                 $statusPartisipasi = 'Perlu Dorongan';
             }
 
             $sheet1->setCellValue("A{$rowIdx}", $no);
-            $sheet1->setCellValue("B{$rowIdx}", $siswa->email);
+            $sheet1->setCellValue("B{$rowIdx}", $siswa->student_number ?: $siswa->email);
             $sheet1->setCellValue("C{$rowIdx}", $siswa->name);
-            $sheet1->setCellValue("D{$rowIdx}", config('reports.student_classes', [])[$siswa->email] ?? '-');
+            $sheet1->setCellValue("D{$rowIdx}", $siswa->class_name ?: (config('reports.student_classes', [])[$siswa->email] ?? '-'));
             $sheet1->setCellValue("E{$rowIdx}", $modulText);
             $sheet1->setCellValue("F{$rowIdx}", "{$tanyaCount} kali");
             $sheet1->setCellValue("G{$rowIdx}", $kuisCount > 0 ? "{$kuisCount} kali" : 'Belum Ada');
@@ -275,7 +277,7 @@ class ExportActivityService
             'C' => 'NAMA SISWA',
             'D' => 'MODUL',
             'E' => 'PERTANYAAN SISWA',
-            'F' => 'JAWABAN CHATBOT AI',
+            'F' => 'JAWABAN AI / TINJAUAN GURU',
             'G' => 'TIPE',
         ];
 
@@ -313,7 +315,12 @@ class ExportActivityService
             $sheet2->setCellValue("C{$cRow}", $namaSiswa);
             $sheet2->setCellValue("D{$cRow}", $modulName);
             $sheet2->setCellValue("E{$cRow}", $pertanyaanText);
-            $sheet2->setCellValue("F{$cRow}", $chat->jawaban);
+            $feedbackText = $chat->jawaban;
+            if ($chat->reviewed_at) {
+                $feedbackText .= "\n\nPenilaian guru: ".$chat->score."/100\n".$chat->review_note
+                    ."\nDitinjau: ".$chat->reviewed_at->timezone(config('app.display_timezone'))->format('d/m/Y H:i').' WIB';
+            }
+            $sheet2->setCellValue("F{$cRow}", $feedbackText);
             $sheet2->setCellValue("G{$cRow}", $tipeText);
 
             $sheet2->getStyle("A{$cRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);

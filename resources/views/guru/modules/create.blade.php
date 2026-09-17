@@ -1,3 +1,6 @@
+@php
+    /** @var \Illuminate\Support\ViewErrorBag $errors */
+@endphp
 <x-premium-layout>
     <div class="space-y-6 max-w-7xl mx-auto pb-12">
         
@@ -157,12 +160,13 @@
                             <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
                                 <label for="kuis_url" class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
                                     <i class="fa-solid fa-pen-to-square text-[#008546] text-sm"></i>
-                                    <span>Link Kuis / Evaluasi</span>
+                                    <span>Link Kuis Eksternal (Opsional)</span>
                                 </label>
                                 <input type="url" id="kuis_url" name="kuis_url" value="{{ old('kuis_url') }}" placeholder="https://forms.gle/... atau Quizizz"
                                        class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl py-2 px-3 outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all">
                                 <p class="text-[10px] text-slate-400 leading-tight">Tautan Google Form, Quizizz, atau lembar kerja siswa.</p>
                                 <x-input-error class="mt-1" :messages="$errors->get('kuis_url')" />
+                                <p class="text-xs text-slate-500 mt-2">Untuk membuat kuis pilihan ganda sendiri, simpan modul lalu pilih <strong>Kelola Kuis</strong> di Manajemen Modul.</p>
                             </div>
                         </div>
                     </div>
@@ -261,6 +265,7 @@
                 </div>
 
             </div>
+            @include('guru.modules.media-fields')
         </form>
 
     </div>

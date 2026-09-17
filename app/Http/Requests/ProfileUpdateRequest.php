@@ -9,6 +9,13 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (is_string($this->input('email'))) {
+            $this->merge(['email' => strtolower(trim($this->input('email')))]);
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -19,6 +26,7 @@ class ProfileUpdateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => [
+                'bail',
                 'required',
                 'string',
                 'lowercase',
@@ -28,6 +36,7 @@ class ProfileUpdateRequest extends FormRequest
             ],
             'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
             'remove_avatar' => ['nullable', 'boolean'],
+            'teacher_number' => ['nullable', 'string', 'max:100', Rule::prohibitedIf(! $this->user()->isGuru())],
         ];
     }
 }

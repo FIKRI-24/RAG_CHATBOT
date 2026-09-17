@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Services\DocumentExtractorService;
 use App\Services\GeminiService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpWord\IOFactory;
@@ -13,6 +14,8 @@ use Tests\TestCase;
 
 class RagApiAndExtractionTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
