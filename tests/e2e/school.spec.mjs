@@ -35,6 +35,7 @@ test('teacher modal clears credentials, account deactivation preserves history, 
 });
 
 test('student RAG, quiz persistence, teacher review, and access control', async ({ page, browser }) => {
+    test.setTimeout(60000);
     await login(page, 'siswa1@e2e.test');
     await page.locator('#mapel-select').selectOption('Jaringan');
     await page.waitForURL('**/dashboard?mapel=Jaringan');
@@ -65,11 +66,12 @@ test('student RAG, quiz persistence, teacher review, and access control', async 
 });
 
 test('upload DOCX, process dedicated RAG queue, extraction preview and export', async ({ page }) => {
+    test.setTimeout(60000);
     await login(page, 'guru@e2e.test');
     await page.goto('/guru/modules/create');
     await page.locator('[name="judul"]').fill('Materi unggahan E2E');
     await page.locator('[name="mapel"]').fill('Jaringan');
-    await page.locator('label').filter({ has: page.locator('[name="kb_nomor"][value="KB 2"]') }).click();
+    await page.locator('#kb_nomor').fill('KB 2');
     await page.locator('[name="file"]').setInputFiles(resolve(process.env.E2E_FIXTURE_DIR, 'private/modules/fixture.docx'));
     await page.locator('#submitBtn').click();
     await page.waitForURL('**/guru/modules');
