@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>TKJ AI Assistant - SMK N 1 Kinali</title>
+    <title>E-Modul TKJ - SMK N 1 Kinali</title>
 
     <!-- Scripts & Styles (bundled via Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -172,11 +172,11 @@
         <!-- Logo Area -->
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100 bg-white">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-tr from-[#008546] to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20 text-white">
-                    <i class="fa-solid fa-robot text-lg"></i>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="w-10 h-10 object-contain">
                 </div>
                 <div>
-                    <h1 class="font-bold text-slate-900 tracking-tight leading-tight">TKJ AI Assistant</h1>
+                    <h1 class="font-bold text-slate-900 tracking-tight leading-tight">E-Modul TKJ</h1>
                     <p class="text-[10px] text-emerald-600 font-semibold tracking-wide uppercase">SMK N 1 Kinali</p>
                 </div>
             </div>

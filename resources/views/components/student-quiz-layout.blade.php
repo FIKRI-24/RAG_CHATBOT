@@ -12,7 +12,7 @@
     <aside class="fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full z-40 transform md:translate-x-0 transition-transform" :class="menuOpen ? 'translate-x-0' : '-translate-x-full'">
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-[#008546] rounded-xl flex items-center justify-center text-white"><i class="fa-solid fa-graduation-cap"></i></div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0"><img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="w-10 h-10 object-contain"></div>
                 <div><p class="font-bold">E-Modul TKJ</p><p class="text-[10px] text-emerald-600 font-semibold">SMK N 1 Kinali</p></div>
             </div>
             <button type="button" @click="menuOpen = false" aria-label="Tutup menu" class="md:hidden p-2"><i class="fa-solid fa-xmark"></i></button>

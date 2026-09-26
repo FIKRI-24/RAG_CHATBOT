@@ -30,9 +30,7 @@
         <!-- Logo Area -->
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100 bg-white">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-gradient-to-tr from-[#008546] to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-600/20 text-white">
-                    <i class="fa-solid fa-graduation-cap text-lg"></i>
-                </div>
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0"><img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="w-10 h-10 object-contain"></div>
                 <div>
                     <h1 class="font-bold text-slate-900 tracking-tight leading-tight">E-Modul TKJ</h1>
                     <p class="text-[10px] text-emerald-600 font-semibold tracking-wide uppercase">SMK N 1 Kinali</p>
