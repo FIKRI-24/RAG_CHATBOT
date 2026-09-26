@@ -55,14 +55,7 @@ class AppServiceProvider extends ServiceProvider
 
         if (! $this->app->runningInConsole() && ! $this->app->runningUnitTests()) {
             try {
-                if (! Cache::has('kb4_seeded_check')) {
-                    if (\Illuminate\Support\Facades\Schema::hasTable('modules') && \Illuminate\Support\Facades\Schema::hasTable('module_quizzes')) {
-                        if (! \App\Models\Module::where('kb_nomor', 'KB 4')->exists()) {
-                            (new \Database\Seeders\ModuleKb4Seeder())->run();
-                        }
-                    }
-                    Cache::put('kb4_seeded_check', true, 86400);
-                }
+                \App\Models\Module::ensureKb4Module();
             } catch (\Throwable) {
                 // Ignore during bootstrap if DB is not ready
             }

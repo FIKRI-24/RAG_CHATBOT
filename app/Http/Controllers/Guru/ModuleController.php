@@ -26,6 +26,10 @@ class ModuleController extends Controller
             'kb_nomor' => 'nullable|string|max:255',
         ]);
 
+        if (! app()->runningUnitTests()) {
+            Module::ensureKb4Module((int) Auth::id());
+        }
+
         $query = Module::where('guru_id', Auth::id());
 
         if ($request->filled('mapel')) {

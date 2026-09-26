@@ -19,6 +19,10 @@ class ModuleController extends Controller
             'kb_nomor' => 'nullable|string|max:255',
         ]);
 
+        if (! app()->runningUnitTests()) {
+            Module::ensureKb4Module();
+        }
+
         $query = Module::available();
 
         if ($request->filled('mapel') && $request->mapel !== 'Semua') {

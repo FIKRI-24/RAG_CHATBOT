@@ -19,6 +19,9 @@ class DashboardController extends Controller
     public function index(): View
     {
         $guruId = auth()->id();
+        if (! app()->runningUnitTests()) {
+            Module::ensureKb4Module($guruId);
+        }
         $year = (int) now(config('app.display_timezone'))->year;
 
         // 1. KPI Metrik Utama
