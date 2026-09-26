@@ -319,4 +319,57 @@ class ModuleKbAndPetunjukTest extends TestCase
         $response->assertSee('font-size-large', false);
         $response->assertSee('rag_chat_font_size', false);
     }
+
+    public function test_kb4_module_fields_and_quiz_display(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+
+        (new \Database\Seeders\ModuleKb4Seeder())->run();
+
+        $module = Module::where('kb_nomor', 'KB 4')->first();
+        $this->assertNotNull($module);
+        $this->assertEquals('KB 4', $module->kb_nomor);
+        $this->assertEquals('completed', $module->status_indexing);
+        $this->assertNotNull($module->quiz);
+        $this->assertTrue($module->quiz->is_published);
+        $this->assertCount(5, $module->quiz->questions);
+
+        // Siswa view catalog
+        $indexResponse = $this->actingAs($siswa)->get(route('siswa.modules.index'));
+        $indexResponse->assertStatus(200);
+        $indexResponse->assertSee('KB 4');
+        $indexResponse->assertSee('Keamanan Jaringan dan Konfigurasi Firewall Filtering');
+
+        // Siswa view module show
+        $showResponse = $this->actingAs($siswa)->get(route('siswa.modules.show', $module->id));
+        $showResponse->assertStatus(200);
+        $showResponse->assertSee('KB 4');
+        $showResponse->assertSee('Tujuan Pembelajaran (TP)');
+        $showResponse->assertSee('Kerjakan Kuis Objektif');
+
+        // Siswa access quiz page
+        $quizResponse = $this->actingAs($siswa)->get(route('siswa.modules.quiz.show', $module));
+        $quizResponse->assertStatus(200);
+        $quizResponse->assertSee('Kuis Evaluasi Pemahaman KB 4');
+        $quizResponse->assertSee('Dalam konsep dasar keamanan informasi (CIA Triad)');
+
+        // Siswa submit answers (all correct)
+        $submitResponse = $this->actingAs($siswa)->post(route('siswa.modules.quiz.submit', $module), [
+            'quiz_id' => $module->quiz->id,
+            'quiz_version' => $module->quiz->version,
+            'answers' => [
+                '0' => 'B',
+                '1' => 'A',
+                '2' => 'C',
+                '3' => 'B',
+                '4' => 'B',
+            ],
+        ]);
+        $submitResponse->assertSessionHasNoErrors();
+        $attempt = \App\Models\ModuleQuizAttempt::where('module_id', $module->id)->where('user_id', $siswa->id)->first();
+        $this->assertNotNull($attempt);
+        $this->assertEquals(100, $attempt->score);
+        $this->assertEquals(5, $attempt->correct_count);
+    }
 }
