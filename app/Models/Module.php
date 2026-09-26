@@ -114,8 +114,8 @@ class Module extends Model
                 ]);
             } else {
                 $updates = [];
-                if ($module->guru_id !== $guruId && auth()->check() && auth()->user()->isGuru()) {
-                    $updates['guru_id'] = $guruId;
+                if ($guruId && (int) $module->guru_id !== (int) $guruId) {
+                    $updates['guru_id'] = (int) $guruId;
                 }
                 if ($module->status_indexing !== 'completed') {
                     $updates['status_indexing'] = 'completed';

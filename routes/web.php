@@ -19,6 +19,23 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
+Route::get('/ping-version', function () {
+    $error = null;
+    try {
+        \App\Models\Module::ensureKb4Module();
+    } catch (\Throwable $e) {
+        $error = $e->getMessage();
+    }
+
+    return response()->json([
+        'status' => 'ok',
+        'build' => 'commit-check-kb4',
+        'error' => $error,
+        'modules' => \App\Models\Module::all(['id', 'guru_id', 'kb_nomor', 'judul', 'status_indexing']),
+        'teachers' => \App\Models\User::where('role', 'guru')->get(['id', 'name', 'email']),
+    ]);
+});
+
 // Redirect /dashboard ke dashboard sesuai role
 Route::get('/dashboard', function () {
     if (auth()->user()->isGuru()) {
