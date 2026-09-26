@@ -51,7 +51,7 @@
 
             <a href="{{ route('siswa.modules.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-book-bookmark text-blue-600 text-sm w-5 text-center"></i>
-                <span>Katalog E-Modul (KB 1-3)</span>
+                <span>Katalog E-Modul</span>
             </a>
 
             <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60 shadow-xs">

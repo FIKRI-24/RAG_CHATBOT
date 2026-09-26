@@ -51,7 +51,7 @@
 
             <a href="{{ route('siswa.modules.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60 shadow-xs">
                 <i class="fa-solid fa-book-bookmark text-sm w-5 text-center"></i>
-                <span>Katalog E-Modul (KB 1-3)</span>
+                <span>Katalog E-Modul</span>
             </a>
 
             <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
@@ -140,8 +140,8 @@
                     <!-- KB Filter -->
                     <div class="w-full sm:w-44">
                         <select name="kb_nomor" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20" onchange="this.form.submit()">
-                            <option value="Semua">Semua KB (1, 2, 3)</option>
-                            @foreach(['KB 1', 'KB 2', 'KB 3'] as $kb)
+                            <option value="Semua">Semua Kegiatan Belajar</option>
+                            @foreach($kbList as $kb)
                                 <option value="{{ $kb }}" {{ request('kb_nomor') == $kb ? 'selected' : '' }}>{{ $kb }}</option>
                             @endforeach
                         </select>

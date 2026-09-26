@@ -19,7 +19,7 @@
         </div>
         <nav class="flex-1 p-4 space-y-2 text-sm font-semibold">
             <a href="{{ route('siswa.dashboard') }}" class="flex gap-3 p-3 rounded-xl hover:bg-slate-100"><i class="fa-solid fa-robot text-emerald-700"></i>Tanya Jawab AI (Chatbot)</a>
-            <a href="{{ route('siswa.modules.index') }}" class="flex gap-3 p-3 rounded-xl bg-emerald-50 text-emerald-800"><i class="fa-solid fa-book-bookmark"></i>Katalog E-Modul (KB 1-3)</a>
+            <a href="{{ route('siswa.modules.index') }}" class="flex gap-3 p-3 rounded-xl bg-emerald-50 text-emerald-800"><i class="fa-solid fa-book-bookmark"></i>Katalog E-Modul</a>
             <a href="{{ route('siswa.petunjuk') }}" class="flex gap-3 p-3 rounded-xl hover:bg-slate-100"><i class="fa-solid fa-circle-question"></i>Petunjuk Siswa</a>
             <a href="{{ route('profile.edit') }}" class="flex gap-3 p-3 rounded-xl hover:bg-slate-100"><i class="fa-solid fa-user-gear"></i>Profil Saya</a>
         </nav>

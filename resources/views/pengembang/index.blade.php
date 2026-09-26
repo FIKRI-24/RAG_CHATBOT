@@ -382,7 +382,7 @@
                             </div>
                             <h4 class="text-sm font-bold text-stone-900">Kegiatan Belajar (KB)</h4>
                             <p class="text-stone-600 text-xs leading-relaxed">
-                                Terstruktur per unit KB 1, KB 2, dan KB 3 yang memuat Tujuan Pembelajaran (TP), dokumen modul asli, video praktikum, dan kuis online.
+                                Terstruktur per unit Kegiatan Belajar (KB) sesuai kebutuhan sekolah, memuat Tujuan Pembelajaran (TP), dokumen modul, video praktikum, dan kuis online.
                             </p>
                         </div>
 

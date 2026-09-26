@@ -194,7 +194,7 @@
             </a>
             <a href="{{ route('siswa.modules.index') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-book-bookmark text-blue-600 text-sm"></i>
-                <span>Katalog E-Modul (KB 1-3)</span>
+                <span>Katalog E-Modul</span>
             </a>
             <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
                 <i class="fa-solid fa-circle-question text-amber-500 text-sm"></i>

@@ -44,8 +44,9 @@ class ModuleController extends Controller
             ->select('mapel')
             ->distinct()
             ->pluck('mapel');
+        $kbList = Module::available()->select('kb_nomor')->distinct()->orderBy('kb_nomor')->pluck('kb_nomor');
 
-        return view('siswa.modules.index', compact('modules', 'mapelList'));
+        return view('siswa.modules.index', compact('modules', 'mapelList', 'kbList'));
     }
 
     /**

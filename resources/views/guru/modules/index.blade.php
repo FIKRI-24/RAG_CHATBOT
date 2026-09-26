@@ -50,7 +50,7 @@
                     <div class="w-full sm:w-48 relative">
                         <select name="kb_nomor" id="kb_nomor" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="this.form.submit()">
                             <option value="">Semua Kegiatan Belajar</option>
-                            @foreach(['KB 1', 'KB 2', 'KB 3'] as $kb)
+                            @foreach($kbList as $kb)
                                 <option value="{{ $kb }}" {{ request('kb_nomor') == $kb ? 'selected' : '' }}>{{ $kb }}</option>
                             @endforeach
                         </select>

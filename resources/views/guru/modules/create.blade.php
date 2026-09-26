@@ -97,23 +97,13 @@
                             <x-input-error class="mt-1" :messages="$errors->get('mapel')" />
                         </div>
 
-                        <!-- Pilihan Kegiatan Belajar (KB) Cards -->
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Tentukan Kegiatan Belajar (KB) <span class="text-rose-500">*</span>
+                            <label for="kb_nomor" class="block text-xs font-bold text-slate-700 mb-1.5">
+                                Nama atau Nomor Kegiatan Belajar (KB) <span class="text-rose-500">*</span>
                             </label>
-                            <div class="grid grid-cols-3 gap-3">
-                                @foreach(['KB 1', 'KB 2', 'KB 3'] as $kb)
-                                <label class="kb-option-card relative flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border-2 cursor-pointer transition-all duration-200 {{ old('kb_nomor', 'KB 1') === $kb ? 'border-[#008546] bg-emerald-50/70 text-[#008546] shadow-xs' : 'border-slate-200 bg-slate-50/50 text-slate-600 hover:border-slate-300 hover:bg-slate-50' }}">
-                                    <input type="radio" name="kb_nomor" value="{{ $kb }}" class="sr-only" {{ old('kb_nomor', 'KB 1') === $kb ? 'checked' : '' }} onchange="selectKbOption(this)">
-                                    <div class="w-8 h-8 rounded-xl bg-white text-[#008546] flex items-center justify-center shadow-xs mb-1.5 border border-slate-100">
-                                        <i class="fa-solid fa-layer-group text-xs"></i>
-                                    </div>
-                                    <span class="font-extrabold text-xs sm:text-sm">{{ $kb }}</span>
-                                    <span class="text-[10px] text-slate-400 mt-0.5">Kegiatan Belajar</span>
-                                </label>
-                                @endforeach
-                            </div>
+                            <input id="kb_nomor" name="kb_nomor" type="text" required maxlength="255" value="{{ old('kb_nomor') }}" placeholder="Contoh: KB 4, Unit 5, atau Semester 2 - Topik 1"
+                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
+                            <p class="text-[11px] text-slate-400 mt-1">Gunakan penamaan KB sesuai struktur pembelajaran sekolah Anda.</p>
                             <x-input-error class="mt-1" :messages="$errors->get('kb_nomor')" />
                         </div>
 

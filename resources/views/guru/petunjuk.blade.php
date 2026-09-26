@@ -64,7 +64,7 @@
                             <i class="fa-solid fa-file-arrow-up text-[#008546]"></i> Unggah Materi
                         </h4>
                         <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-                            Pilih Mata Pelajaran, tentukan <strong>Kegiatan Belajar (KB 1, 2, atau 3)</strong>, dan unggah modul format PDF atau DOCX resmi (maks. 10MB).
+                            Pilih Mata Pelajaran, tentukan <strong>nama atau nomor Kegiatan Belajar (KB)</strong>, dan unggah modul format PDF atau DOCX resmi (maks. 10MB).
                         </p>
                     </div>
                     <div class="mt-4 pt-3 border-t border-slate-50 text-[11px] text-slate-400 flex items-center gap-1">
@@ -143,7 +143,7 @@
             </div>
         </div>
 
-        <!-- Panduan Rinci Komponen Kegiatan Belajar (KB 1, 2, 3) -->
+        <!-- Panduan Rinci Komponen Kegiatan Belajar -->
         <div class="bg-white p-6 sm:p-8 rounded-3xl border-2 border-slate-100 shadow-sm space-y-6">
             <div class="border-b border-slate-100 pb-4">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 text-[#008546] text-xs font-bold mb-2">
@@ -169,7 +169,7 @@
                             Pilih mata pelajaran TKJ yang diampu (misal: <em>Administrasi Infrastruktur Jaringan, Administrasi Sistem Jaringan, Teknologi Jaringan Berbasis Luas, atau Dasar Program Keahlian TJKT</em>).
                         </p>
                         <div class="mt-2 text-[11px] bg-white p-2.5 rounded-xl border border-slate-200 text-slate-500">
-                            <strong>Pilihan KB:</strong> Pilih <span class="text-emerald-700 font-semibold">KB 1</span>, <span class="text-blue-700 font-semibold">KB 2</span>, atau <span class="text-purple-700 font-semibold">KB 3</span> untuk menstrukturkan tahapan belajar siswa dalam satu semester atau satu tema bahasan.
+                            <strong>Penamaan KB:</strong> Gunakan nama atau nomor KB sesuai struktur pembelajaran sekolah, misalnya <span class="text-emerald-700 font-semibold">KB 4</span>, <span class="text-blue-700 font-semibold">Unit 5</span>, atau <span class="text-purple-700 font-semibold">Semester 2 - Topik 1</span>.
                         </div>
                     </div>
                 </div>

@@ -38,12 +38,14 @@ class ModuleController extends Controller
 
         $modules = $query->latest()->paginate(10)->withQueryString();
 
-        $mapelList = Module::where('guru_id', Auth::id())
+        $ownedModules = Module::where('guru_id', Auth::id());
+        $mapelList = (clone $ownedModules)
             ->select('mapel')
             ->distinct()
             ->pluck('mapel');
+        $kbList = $ownedModules->select('kb_nomor')->distinct()->orderBy('kb_nomor')->pluck('kb_nomor');
 
-        return view('guru.modules.index', compact('modules', 'mapelList'));
+        return view('guru.modules.index', compact('modules', 'mapelList', 'kbList'));
     }
 
     public function create()
@@ -59,7 +61,7 @@ class ModuleController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'mapel' => 'required|string|max:255',
-            'kb_nomor' => 'required|string|in:KB 1,KB 2,KB 3',
+            'kb_nomor' => 'required|string|max:255',
             'tp' => 'nullable|string|max:20000',
             'video_url' => 'nullable|url:http,https|max:255',
             'kuis_url' => 'nullable|url:http,https|max:255',
@@ -72,7 +74,7 @@ class ModuleController extends Controller
         ], [
             'judul.required' => 'Judul modul / materi wajib diisi.',
             'mapel.required' => 'Mata pelajaran wajib diisi.',
-            'kb_nomor.required' => 'Pilihan Kegiatan Belajar (KB 1, 2, atau 3) wajib ditentukan.',
+            'kb_nomor.required' => 'Nama atau nomor Kegiatan Belajar (KB) wajib ditentukan.',
             'file.required' => 'File dokumen materi wajib diunggah.',
             'file.mimes' => 'Format file materi hanya boleh PDF atau DOCX.',
             'file.max' => 'Ukuran file materi maksimal 10 MB.',
@@ -152,7 +154,7 @@ class ModuleController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'mapel' => 'required|string|max:255',
-            'kb_nomor' => 'required|string|in:KB 1,KB 2,KB 3',
+            'kb_nomor' => 'required|string|max:255',
             'tp' => 'nullable|string|max:20000',
             'video_url' => 'nullable|url:http,https|max:255',
             'kuis_url' => 'nullable|url:http,https|max:255',
