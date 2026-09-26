@@ -13,9 +13,10 @@
 .login-story-bg-overlay { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; background: linear-gradient(180deg, rgba(4, 52, 33, 0.88) 0%, rgba(5, 68, 43, 0.50) 28%, rgba(3, 45, 28, 0.65) 60%, rgba(2, 28, 17, 0.94) 100%); }
 .login-story > *:not(.login-story-bg) { position: relative; z-index: 2; }
 .login-story::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .12; background-image: radial-gradient(#dcf6d1 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(transparent, #000); z-index: 1; }
-.login-brand { display: inline-flex; width: fit-content; align-items: center; gap: 12px; color: #fff; }
-.login-brand-icon { display: grid; place-items: center; width: 45px; height: 45px; border: 1px solid #ffffff40; border-radius: 13px; background: #ffffff0c; font-size: 20px; overflow: hidden; }
-.login-brand-img { width: 32px; height: 32px; object-fit: contain; display: block; }
+.login-brand { display: inline-flex; width: fit-content; align-items: center; gap: 16px; color: #fff; text-shadow: 0 1px 6px rgba(0, 20, 10, 0.6); }
+.login-brand-logos { display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important; }
+.brand-logo-img { height: 56px !important; width: auto !important; max-width: 60px !important; object-fit: contain !important; display: block !important; filter: drop-shadow(0 3px 8px rgba(0, 20, 10, 0.5)); transition: transform .2s ease; }
+.login-brand:hover .brand-logo-img { transform: scale(1.05); }
 .login-brand strong { font-size: 19px; font-weight: 700; letter-spacing: -.6px; }
 .brand-dot { color: #c5ef9b; }
 .login-brand small { display: block; margin-top: 4px; color: #c2dccb; font-size: 9px; font-weight: 600; letter-spacing: 2px; }
@@ -92,7 +93,7 @@
     .login-page { padding: 12px; }
     .login-shell { grid-template-columns: 1fr; border-radius: 21px; min-height: calc(100svh - 24px); }
     .login-story { padding: 25px 28px 29px; }
-    .login-brand-icon { height: 36px; } .login-brand-img { height: 34px; max-width: 38px; }
+    .login-brand-logos { gap: 10px !important; } .brand-logo-img { height: 44px !important; max-width: 48px !important; }
     .login-brand strong { font-size: 17px; }
     .login-brand small { font-size: 8px; letter-spacing: 1.7px; }
     .login-story-content { padding: 27px 0 0; }

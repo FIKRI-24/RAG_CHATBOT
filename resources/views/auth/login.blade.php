@@ -20,16 +20,15 @@
                 <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="login-story-bg-img" style="position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center 38% !important; display: block !important;">
                 <div class="login-story-bg-overlay" style="position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important;"></div>
             </div>
-            <a class="login-brand" href="{{ route('login') }}" aria-label="E-Modul TKJ SMK Negeri 1 Kinali dan UPGRISBA, halaman masuk">
-                <div class="login-brand-logos">
-                    <span class="login-brand-icon" title="SMK Negeri 1 Kinali">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="login-brand-img">
-                    </span>
-                    <span class="login-brand-icon" title="Universitas PGRI Sumatera Barat (UPGRISBA)">
-                        <img src="{{ asset('images/logo-upgrisba.png') }}" alt="Logo UPGRISBA" class="login-brand-img">
-                    </span>
+            <a class="login-brand" href="{{ route('login') }}" aria-label="E-Modul TKJ SMK Negeri 1 Kinali dan UPGRISBA, halaman masuk" style="display: inline-flex !important; align-items: center !important; gap: 16px !important; text-decoration: none !important;">
+                <div class="login-brand-logos" style="display: flex !important; flex-direction: row !important; align-items: center !important; gap: 12px !important;">
+                    <img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="brand-logo-img" title="SMK Negeri 1 Kinali" style="height: 56px !important; width: auto !important; max-width: 60px !important; object-fit: contain !important; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5)) !important; display: block !important;">
+                    <img src="{{ asset('images/logo-upgrisba.png') }}" alt="Logo UPGRISBA" class="brand-logo-img" title="Universitas PGRI Sumatera Barat (UPGRISBA)" style="height: 56px !important; width: auto !important; max-width: 60px !important; object-fit: contain !important; filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5)) !important; display: block !important;">
                 </div>
-                <span><strong>E-Modul TKJ<span class="brand-dot">.</span></strong><small>SMK NEGERI 1 KINALI &bull; UPGRISBA</small></span>
+                <div class="login-brand-text">
+                    <strong style="font-size: 20px; font-weight: 700; letter-spacing: -0.5px; color: #fff; display: block; line-height: 1.2; text-shadow: 0 2px 8px rgba(0, 20, 10, 0.7);">E-Modul TKJ<span class="brand-dot" style="color: #c5ef9b;">.</span></strong>
+                    <small style="display: block; margin-top: 4px; color: #c2dccb; font-size: 10px; font-weight: 600; letter-spacing: 1.8px; text-shadow: 0 1px 4px rgba(0, 20, 10, 0.6);">SMK NEGERI 1 KINALI &bull; UPGRISBA</small>
+                </div>
             </a>
             <div class="login-story-content">
                 <div class="login-eyebrow"><span></span> RUANG TUMBUH, RUANG BELAJAR</div>
