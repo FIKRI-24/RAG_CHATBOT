@@ -7,7 +7,11 @@
 .login-skip { position: fixed; top: -80px; left: 30px; z-index: 10; background: white; color: #006b3c; padding: 14px 20px; border-radius: 12px; }
 .login-skip:focus { top: 25px; }
 .login-shell { max-width: 1560px; min-height: calc(100svh - 40px); margin: auto; display: grid; grid-template-columns: 1fr 1fr; border-radius: 26px; overflow: clip; background: #fffefa; box-shadow: 0 10px 50px #244d2710; }
-.login-story { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 40px 48px 28px; color: white; background: radial-gradient(ellipse at 20% 60%, #128b5b 0%, transparent 65%), linear-gradient(145deg, #075838, #007246 65%, #075f3f); }
+.login-story { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 40px 48px 28px; color: white; background: #064027; }
+.login-story-bg { position: absolute; inset: 0; z-index: 0 !important; overflow: hidden; pointer-events: none; }
+.login-story-bg-img { width: 100%; height: 100%; object-fit: cover; object-position: center 38%; display: block; filter: saturate(1.08); transform: scale(1.02); }
+.login-story-bg-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4, 52, 33, 0.86) 0%, rgba(5, 68, 43, 0.50) 28%, rgba(3, 45, 28, 0.62) 60%, rgba(2, 28, 17, 0.94) 100%); }
+.login-story > *:not(.login-story-bg) { position: relative; z-index: 1; }
 .login-story::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .12; background-image: radial-gradient(#dcf6d1 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(transparent, #000); }
 .login-story > * { position: relative; z-index: 1; }
 .login-brand { display: inline-flex; width: fit-content; align-items: center; gap: 12px; color: #fff; }
@@ -19,15 +23,11 @@
 .login-story-content { margin: auto 0; padding: 52px 0 35px; }
 .login-eyebrow { display: flex; align-items: center; gap: 9px; color: #d2eacb; font-size: 9px; letter-spacing: 1.6px; font-weight: 600; }
 .login-eyebrow > span { width: 6px; height: 6px; background: #c5ef9b; border-radius: 50%; box-shadow: 0 0 0 4px #c5ef9b14; }
-.login-story h1 { margin: 22px 0 20px; font-size: clamp(36px, 3.75vw, 59px); font-weight: 600; letter-spacing: -2.6px; line-height: 1.16; }
+.login-story h1 { margin: 22px 0 20px; font-size: clamp(36px, 3.75vw, 59px); font-weight: 600; letter-spacing: -2.6px; line-height: 1.16; text-shadow: 0 2px 14px rgba(0, 20, 10, 0.7); }
 .login-story h1 > span { color: #c5ef9b; }
-.login-story-description { max-width: 365px; margin: 0; color: #c6e2d4; font-size: 14px; line-height: 1.85; }
-.school-photo-card { position: relative; max-width: 480px; margin: 18px 0 14px; border-radius: 20px; padding: 6px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05)); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 20px 40px rgba(0, 40, 20, 0.35); }
-.school-photo-wrap { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 15px; overflow: hidden; background: #064e3b; }
-.school-photo-img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; transition: transform .4s ease; }
-.school-photo-card:hover .school-photo-img { transform: scale(1.02); }
-.school-photo-badge { position: absolute; bottom: 12px; left: 12px; right: 12px; background: rgba(8, 30, 20, 0.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.18); color: #f1f8f3; padding: 8px 14px; border-radius: 12px; font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); }
-.school-photo-badge i { color: #6ee7b7; font-size: 12px; }
+.login-story-description { max-width: 385px; margin: 0; color: #e1fbf0; font-size: 14px; line-height: 1.85; text-shadow: 0 1px 6px rgba(0, 20, 10, 0.6); }
+.login-building-tag { display: inline-flex; align-items: center; gap: 8px; margin: 20px 0 16px; padding: 8px 16px; border-radius: 14px; background: rgba(3, 30, 20, 0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.22); color: #f0fdf4; font-size: 11px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); width: fit-content; }
+.login-building-tag i { color: #4ade80; font-size: 12px; }
 .login-feature-buttons { display: flex; gap: 8px; margin-top: 32px; flex-wrap: wrap; }
 .login-feature-buttons button { display: flex; align-items: center; gap: 8px; border-radius: 30px; padding: 10px 17px; font-size: 11px; border: 1px solid #ffffff30; color: #e5f1e6; background: #ffffff08; transition: background .2s, color .2s, transform .2s; }
 .login-feature-buttons button:hover { background: #ffffff1a; transform: translateY(-2px); }
@@ -84,7 +84,7 @@
     .login-story { padding: 32px 30px 25px; }
     .login-access { padding: 34px 32px 25px; }
     .login-story h1 { font-size: 42px; letter-spacing: -1.8px; }
-    .school-photo-card { max-width: 410px; }
+    
     .login-story-footer { flex-direction: column; align-items: flex-start; gap: 7px; }
     .login-feature-buttons button { padding: 10px 12px; }
     .login-access-footer { flex-direction: column; gap: 3px; }
@@ -98,9 +98,7 @@
     .login-brand small { font-size: 8px; letter-spacing: 1.7px; }
     .login-story-content { padding: 27px 0 0; }
     .login-eyebrow, .login-story-footer, .login-feature-buttons, .login-feature-description { display: none !important; }
-    .school-photo-card { max-width: 100%; margin: 14px 0 0; padding: 4px; border-radius: 16px; }
-    .school-photo-wrap { border-radius: 12px; }
-    .school-photo-badge { font-size: 10px; padding: 6px 10px; bottom: 8px; left: 8px; right: 8px; }
+    .login-building-tag { margin: 14px 0 0; font-size: 10px; padding: 6px 12px; }
     .login-story h1 { font-size: 33px; letter-spacing: -1.4px; margin: 0 0 12px; }
     .login-story-description { max-width: 370px; font-size: 12px; line-height: 1.7; }
     .login-access { padding: 24px 28px; }

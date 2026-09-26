@@ -15,6 +15,11 @@
     <a class="login-skip" href="#login-form">Langsung ke form masuk</a>
     <main class="login-shell">
         <section class="login-story" aria-labelledby="story-title">
+            <!-- Background Foto Gedung SMK N 1 Kinali (Full Card) -->
+            <div class="login-story-bg" aria-hidden="true">
+                <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="login-story-bg-img">
+                <div class="login-story-bg-overlay"></div>
+            </div>
             <a class="login-brand" href="{{ route('login') }}" aria-label="E-Modul TKJ SMK Negeri 1 Kinali, halaman masuk">
                 <span class="login-brand-icon"><img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="login-brand-img"></span>
                 <span><strong>E-Modul TKJ<span class="brand-dot">.</span></strong><small>SMK NEGERI 1 KINALI</small></span>
@@ -23,14 +28,9 @@
                 <div class="login-eyebrow"><span></span> RUANG TUMBUH, RUANG BELAJAR</div>
                 <h1 id="story-title">Langkah kecil.<br><span>Pemahaman besar.</span></h1>
                 <p class="login-story-description">Pelajari modul TKJ, asah kemampuan lewat latihan, dan temukan bantuan dari asisten AI saat dibutuhkan.</p>
-                <div class="school-photo-card" aria-label="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali">
-                    <div class="school-photo-wrap">
-                        <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="school-photo-img" loading="eager">
-                        <div class="school-photo-badge">
-                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
-                            <span>Bengkel Praktik TJKT &mdash; SMK Negeri 1 Kinali</span>
-                        </div>
-                    </div>
+                <div class="login-building-tag">
+                    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                    <span>Bengkel Praktik TJKT &mdash; SMK Negeri 1 Kinali</span>
                 </div>
                 <div class="login-feature-buttons" aria-label="Jelajahi fitur belajar" x-cloak>
                     <button type="button" @click="feature = 'modul'" :aria-pressed="feature === 'modul'" :class="{ 'is-active': feature === 'modul' }"><i class="fa-solid fa-book-open" aria-hidden="true"></i> E-Modul</button>
