@@ -1,4 +1,4 @@
-@php
+﻿@php
     /** @var \Illuminate\Support\ViewErrorBag $errors */
 @endphp
 <!DOCTYPE html>
@@ -16,32 +16,21 @@
     <main class="login-shell">
         <section class="login-story" aria-labelledby="story-title">
             <a class="login-brand" href="{{ route('login') }}" aria-label="E-Modul TKJ SMK Negeri 1 Kinali, halaman masuk">
-                <span class="login-brand-icon"><i class="fa-solid fa-book-open-reader" aria-hidden="true"></i></span>
+                <span class="login-brand-icon"><img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="login-brand-img"></span>
                 <span><strong>E-Modul TKJ<span class="brand-dot">.</span></strong><small>SMK NEGERI 1 KINALI</small></span>
             </a>
             <div class="login-story-content">
                 <div class="login-eyebrow"><span></span> RUANG TUMBUH, RUANG BELAJAR</div>
                 <h1 id="story-title">Langkah kecil.<br><span>Pemahaman besar.</span></h1>
                 <p class="login-story-description">Pelajari modul TKJ, asah kemampuan lewat latihan, dan temukan bantuan dari asisten AI saat dibutuhkan.</p>
-                <div class="learning-scene" aria-hidden="true">
-                    <div class="scene-orbit orbit-one"></div><div class="scene-orbit orbit-two"></div>
-                    <span class="scene-spark spark-one">✦</span><span class="scene-spark spark-two">✦</span>
-                    <div class="scene-note note-top"><span class="note-icon"><i class="fa-solid fa-check"></i></span><div>Selangkah lebih paham<small>Mulai dari rasa ingin tahu.</small></div></div>
-                    <div class="scene-book">
-                        <div class="book-heading"><span><i class="fa-solid fa-layer-group"></i> E-MODUL TKJ</span><i class="fa-solid fa-ellipsis"></i></div>
-                        <svg viewBox="0 0 320 148" class="book-illustration" fill="none">
-                            <path d="M160 127C125 107 88 101 42 108V29C86 18 125 29 160 48C195 29 234 18 278 29V108C232 101 195 107 160 127Z" fill="#E3F2DD"/>
-                            <path d="M160 117C130 98 98 94 57 99V17C98 14 130 27 160 47V117Z" fill="#FAFFF7"/>
-                            <path d="M160 117C190 98 222 94 263 99V17C222 14 190 27 160 47V117Z" fill="#C7E8AC"/>
-                            <path d="M160 47V117" stroke="#83B779" stroke-width="2"/>
-                            <path d="M77 42C96 43 112 49 135 61M77 58C96 59 112 65 135 77M77 74C91 75 103 79 116 85" stroke="#B4C8A8" stroke-width="4" stroke-linecap="round"/>
-                            <rect x="190" y="42" width="47" height="32" rx="8" fill="#008546"/>
-                            <path d="M202 54L210 59L202 64M217 65H225" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M189 87L236 81" stroke="#85B46D" stroke-width="4" stroke-linecap="round"/>
-                        </svg>
-                        <div class="book-caption"><span>Kenali. Pelajari. Kuasai.</span><span class="book-arrow">↗</span></div>
+                <div class="school-photo-card" aria-label="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali">
+                    <div class="school-photo-wrap">
+                        <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="school-photo-img" loading="eager">
+                        <div class="school-photo-badge">
+                            <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+                            <span>Bengkel Praktik TJKT &mdash; SMK Negeri 1 Kinali</span>
+                        </div>
                     </div>
-                    <div class="scene-note note-bottom"><span class="note-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div>Teman berpikir kamu<small>Asisten AI berbasis materi.</small></div></div>
                 </div>
                 <div class="login-feature-buttons" aria-label="Jelajahi fitur belajar" x-cloak>
                     <button type="button" @click="feature = 'modul'" :aria-pressed="feature === 'modul'" :class="{ 'is-active': feature === 'modul' }"><i class="fa-solid fa-book-open" aria-hidden="true"></i> E-Modul</button>
