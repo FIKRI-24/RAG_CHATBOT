@@ -8,12 +8,11 @@
 .login-skip:focus { top: 25px; }
 .login-shell { max-width: 1560px; min-height: calc(100svh - 40px); margin: auto; display: grid; grid-template-columns: 1fr 1fr; border-radius: 26px; overflow: clip; background: #fffefa; box-shadow: 0 10px 50px #244d2710; }
 .login-story { position: relative; display: flex; flex-direction: column; overflow: hidden; padding: 40px 48px 28px; color: white; background: #064027; }
-.login-story-bg { position: absolute; inset: 0; z-index: 0 !important; overflow: hidden; pointer-events: none; }
-.login-story-bg-img { width: 100%; height: 100%; object-fit: cover; object-position: center 38%; display: block; filter: saturate(1.08); transform: scale(1.02); }
-.login-story-bg-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(4, 52, 33, 0.86) 0%, rgba(5, 68, 43, 0.50) 28%, rgba(3, 45, 28, 0.62) 60%, rgba(2, 28, 17, 0.94) 100%); }
-.login-story > *:not(.login-story-bg) { position: relative; z-index: 1; }
-.login-story::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .12; background-image: radial-gradient(#dcf6d1 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(transparent, #000); }
-.login-story > * { position: relative; z-index: 1; }
+.login-story-bg { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; z-index: 0 !important; overflow: hidden !important; pointer-events: none !important; }
+.login-story-bg-img { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center 38% !important; display: block !important; filter: saturate(1.08); }
+.login-story-bg-overlay { position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; background: linear-gradient(180deg, rgba(4, 52, 33, 0.88) 0%, rgba(5, 68, 43, 0.50) 28%, rgba(3, 45, 28, 0.65) 60%, rgba(2, 28, 17, 0.94) 100%); }
+.login-story > *:not(.login-story-bg) { position: relative; z-index: 2; }
+.login-story::after { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .12; background-image: radial-gradient(#dcf6d1 1px, transparent 1px); background-size: 24px 24px; mask-image: linear-gradient(transparent, #000); z-index: 1; }
 .login-brand { display: inline-flex; width: fit-content; align-items: center; gap: 12px; color: #fff; }
 .login-brand-icon { display: grid; place-items: center; width: 45px; height: 45px; border: 1px solid #ffffff40; border-radius: 13px; background: #ffffff0c; font-size: 20px; overflow: hidden; }
 .login-brand-img { width: 32px; height: 32px; object-fit: contain; display: block; }

@@ -16,9 +16,9 @@
     <main class="login-shell">
         <section class="login-story" aria-labelledby="story-title">
             <!-- Background Foto Gedung SMK N 1 Kinali (Full Card) -->
-            <div class="login-story-bg" aria-hidden="true">
-                <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="login-story-bg-img">
-                <div class="login-story-bg-overlay"></div>
+            <div class="login-story-bg" style="position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; margin: 0 !important; padding: 0 !important; z-index: 0 !important; overflow: hidden !important; pointer-events: none !important;" aria-hidden="true">
+                <img src="{{ asset('images/smk-kinali.jpg') }}" alt="Gedung Bengkel Praktik TJKT SMK Negeri 1 Kinali" class="login-story-bg-img" style="position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important; object-fit: cover !important; object-position: center 38% !important; display: block !important;">
+                <div class="login-story-bg-overlay" style="position: absolute !important; inset: 0 !important; width: 100% !important; height: 100% !important;"></div>
             </div>
             <a class="login-brand" href="{{ route('login') }}" aria-label="E-Modul TKJ SMK Negeri 1 Kinali, halaman masuk">
                 <span class="login-brand-icon"><img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="login-brand-img"></span>
