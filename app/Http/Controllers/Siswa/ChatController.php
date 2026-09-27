@@ -23,7 +23,7 @@ class ChatController extends Controller
         $request->validate(['mapel' => 'nullable|string|max:255', 'module_id' => 'nullable|integer|exists:modules,id']);
         $historyPages = ChatHistory::where('siswa_id', auth()->id())->latest('id')->cursorPaginate(30)->withQueryString();
         $chats = $historyPages->getCollection()->reverse();
-        $modules = Module::available()->get();
+        $modules = Module::available()->with('quiz')->orderBy('kb_nomor')->orderBy('id')->get();
         $mapels = $modules->pluck('mapel')->unique();
         $selectedMapel = $request->query('mapel', 'Semua');
         $selectedModule = $request->integer('module_id') ?: null;
@@ -105,6 +105,30 @@ class ChatController extends Controller
 
             // Normal questions never implicitly become quiz answers.
             $this->cancelQuizzes();
+
+            // 1. Tangani sapaan ramah (Greetings / Chitchat)
+            if ($this->isGreeting($question)) {
+                $greetingAnswer = $this->buildGreetingResponse($mapel, $moduleId);
+                $chat = ChatHistory::create([
+                    'siswa_id' => auth()->id(), 'pertanyaan' => $question, 'jawaban' => $greetingAnswer,
+                    'referensi_chunk_id' => null, 'mapel' => $mapel, 'kind' => 'answer', 'sources' => [],
+                    'retrieval_query' => $question, 'scope_module_id' => $moduleId,
+                ]);
+
+                return $this->reply($chat);
+            }
+
+            // 2. Tangani pertanyaan seputar katalog & ketersediaan modul (Meta-questions)
+            if ($catalogAnswer = $this->handleCatalogInquiry($question, $mapel, $moduleId)) {
+                $chat = ChatHistory::create([
+                    'siswa_id' => auth()->id(), 'pertanyaan' => $question, 'jawaban' => $catalogAnswer,
+                    'referensi_chunk_id' => null, 'mapel' => $mapel, 'kind' => 'answer', 'sources' => [],
+                    'retrieval_query' => $question, 'scope_module_id' => $moduleId,
+                ]);
+
+                return $this->reply($chat);
+            }
+
             $sources = [];
             $queryText = $question;
             if ($retrieval->eligible($mapel)->exists()) {
@@ -250,6 +274,119 @@ class ChatController extends Controller
             'created_at' => $chat->created_at->timezone(config('app.display_timezone'))->format('H:i'),
             'sources' => $chat->sources ?? [], 'quiz_id' => $quizId,
         ]]);
+    }
+
+    private function isGreeting(string $text): bool
+    {
+        $normalized = trim(mb_strtolower(preg_replace('/[^\p{L}\p{N}\s]/u', ' ', $text)));
+        $normalized = preg_replace('/\s+/', ' ', $normalized);
+
+        $greetings = [
+            'halo', 'halo halo', 'hai', 'hi', 'hey', 'hei', 'hallo',
+            'assalamualaikum', 'assalamu alaikum', 'assalamualaikum wr wb', 'salam',
+            'selamat pagi', 'pagi', 'selamat siang', 'siang', 'selamat sore', 'sore', 'selamat malam', 'malam',
+            'siapa kamu', 'kamu siapa', 'kamu siapa sih', 'apakah kamu ai', 'kamu ai ya',
+            'bisa bantu apa', 'kamu bisa apa', 'tolong bantu', 'bantuan', 'bisa tolong',
+            'tes', 'test', 'halo tes', 'testing',
+        ];
+
+        if (in_array($normalized, $greetings, true)) {
+            return true;
+        }
+
+        if (preg_match('/^(halo|hai|hi|hey|hei|assalamu\s*alaikum|selamat (pagi|siang|sore|malam))(\s+(bot|ai|admin|pak|bu|kak|kawan|sahabat))?$/i', $normalized)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function buildGreetingResponse(string $mapel, ?int $moduleId): string
+    {
+        $modules = Module::available()
+            ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+            ->orderBy('kb_nomor')
+            ->orderBy('id')
+            ->get(['id', 'judul', 'kb_nomor']);
+
+        $greeting = "Halo! Saya adalah **Asisten AI Pembelajaran TKJ SMK Negeri 1 Kinali**.\n\n"
+            . "Saya siap membantu Anda memahami konsep jaringan komputer, konfigurasi perangkat, dan materi pembelajaran lainnya.";
+
+        if ($modules->isNotEmpty()) {
+            $list = $modules->map(function ($m) {
+                $label = $m->kb_nomor ? "**{$m->kb_nomor}**" : "**Modul**";
+                return "• {$label}: {$m->judul}";
+            })->implode("\n");
+
+            $greeting .= "\n\n📚 **Kegiatan Belajar (KB) yang dapat dipelajari:**\n" . $list;
+        }
+
+        $greeting .= "\n\nSilakan ajukan pertanyaan seputar materi di atas, dan saya akan menjelaskannya berdasarkan modul pembelajaran resmi!";
+
+        return $greeting;
+    }
+
+    private function handleCatalogInquiry(string $text, string $mapel, ?int $moduleId): ?string
+    {
+        $normalized = trim(mb_strtolower($text));
+
+        // 1. Cek apakah menanyakan ketersediaan / topik KB tertentu (misal: "apakah ada materi kb 4", "kb 4 ada?", "kb 4 tentang apa")
+        if (preg_match('/\b(kb|kegiatan belajar)\s*([1-9]\d*)\b/i', $normalized, $matches)) {
+            $kbNum = $matches[2];
+            $kbLabel = "KB {$kbNum}";
+
+            $isMetaQuestion = preg_match('/(ada|tersedia|aktif|tentang apa|bahas apa|materi apa|penjelasan|judul)/i', $normalized);
+            if ($isMetaQuestion) {
+                $module = Module::available()
+                    ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+                    ->where(function ($q) use ($kbLabel, $kbNum) {
+                        $q->where('kb_nomor', $kbLabel)
+                            ->orWhere('kb_nomor', "KB-{$kbNum}")
+                            ->orWhere('judul', 'like', "%{$kbLabel}%");
+                    })->first();
+
+                if ($module) {
+                    $hasQuiz = $module->quiz && $module->quiz->is_published;
+                    $quizStatus = $hasQuiz ? '✅ Kuis Objektif Tersedia (1x kesempatan pengerjaan)' : '⏳ Kuis Belum Diterbitkan';
+                    $response = "Ya, materi **{$module->kb_nomor}: {$module->judul}** sudah **aktif dan tersedia** di sistem E-Modul SMK Negeri 1 Kinali!\n\n";
+                    if ($module->tp) {
+                        $response .= "🎯 **Tujuan Pembelajaran:**\n{$module->tp}\n\n";
+                    }
+                    $response .= "📌 **Status Kuis:** {$quizStatus}\n\n";
+                    $response .= "Anda dapat membaca materi selengkapnya pada menu **Katalog E-Modul** atau langsung menanyakan konsep teknis seputar materi ini kepada saya!";
+
+                    return $response;
+                } else {
+                    return "Saat ini materi **{$kbLabel}** belum ditemukan atau belum diaktifkan dalam sistem. Silakan periksa daftar Kegiatan Belajar yang tersedia.";
+                }
+            }
+        }
+
+        // 2. Cek pertanyaan umum tentang katalog modul (misal: "ada materi apa saja", "daftar materi", "kegiatan belajar apa saja", "modul apa yang ada")
+        $isGeneralCatalog = preg_match('/(ada materi apa( saja)?|apa( saja)? materi yang ada|daftar (materi|modul|kb|kegiatan belajar)|modul apa( saja)? yang (ada|tersedia)|kegiatan belajar apa( saja)?)/i', $normalized);
+
+        if ($isGeneralCatalog) {
+            $modules = Module::available()
+                ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+                ->orderBy('kb_nomor')
+                ->orderBy('id')
+                ->get(['id', 'judul', 'kb_nomor', 'mapel']);
+
+            if ($modules->isEmpty()) {
+                return 'Saat ini belum ada modul pembelajaran yang aktif dalam sistem.';
+            }
+
+            $list = $modules->map(function ($m) {
+                $label = $m->kb_nomor ? "**{$m->kb_nomor}**" : "**Modul**";
+                return "• {$label}: {$m->judul}";
+            })->implode("\n");
+
+            return "Saat ini terdapat **{$modules->count()} Kegiatan Belajar (KB)** yang aktif dan dapat Anda pelajari di E-Modul TKJ SMK Negeri 1 Kinali:\n\n"
+                . $list . "\n\n"
+                . "💡 Anda dapat menanyakan materi atau konsep apa pun dari daftar di atas, dan saya siap membantu!";
+        }
+
+        return null;
     }
 
     private function error(string $message, int $status)

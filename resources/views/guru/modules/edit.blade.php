@@ -3,41 +3,49 @@
     /** @var \App\Models\Module $module */
 @endphp
 <x-premium-layout>
-            @if(session('error'))
-                <div role="alert" class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{{ session('error') }}</div>
-            @endif
+    @if(session('error'))
+        <div role="alert" class="max-w-5xl mx-auto mb-6 rounded-2xl border-2 border-rose-300 bg-rose-50 p-4 text-base font-bold text-rose-900 shadow-sm flex items-center gap-3">
+            <i class="fa-solid fa-triangle-exclamation text-lg text-rose-700"></i>
+            <span>{{ session('error') }}</span>
+        </div>
+    @endif
 
-    <div class="space-y-6 max-w-7xl mx-auto pb-12">
+    <div class="space-y-6 max-w-5xl mx-auto pb-16">
         
-        <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
-            <div class="flex items-center gap-3">
-                <a href="{{ route('guru.modules.index') }}" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-emerald-50 text-slate-600 hover:text-[#008546] flex items-center justify-center transition-colors shadow-xs" title="Kembali">
-                    <i class="fa-solid fa-arrow-left text-sm"></i>
+        <!-- Header Section (Jelas, Terbaca & Kontras Tinggi) -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-300 shadow-sm">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('guru.modules.index') }}" 
+                   class="w-12 h-12 rounded-2xl bg-slate-100 hover:bg-emerald-50 text-slate-800 hover:text-emerald-800 border-2 border-slate-300 flex items-center justify-center transition-colors shadow-xs flex-shrink-0" 
+                   title="Kembali ke Daftar Modul">
+                    <i class="fa-solid fa-arrow-left text-lg"></i>
                 </a>
                 <div>
-                    <h1 class="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                        <i class="fa-solid fa-pen-to-square text-[#008546]"></i> Edit Modul & Kegiatan Belajar
+                    <h1 class="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2.5">
+                        <i class="fa-solid fa-pen-to-square text-emerald-700"></i> Edit Modul & Kegiatan Belajar
                     </h1>
-                    <p class="text-xs text-slate-500 mt-0.5">Perbarui rincian materi, Tujuan Pembelajaran (TP), link video, atau ganti file dokumen.</p>
+                    <p class="text-sm font-medium text-slate-700 mt-1">
+                        Perbarui rincian materi, Tujuan Pembelajaran (TP), link video, atau ganti berkas dokumen modul.
+                    </p>
                 </div>
             </div>
 
             <div class="flex items-center gap-2">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-[#008546] border border-emerald-200">
-                    <i class="fa-solid fa-layer-group text-[10px]"></i> Mode Edit: {{ $module->kb_nomor }}
+                <span class="inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold bg-emerald-50 text-emerald-900 border-2 border-emerald-400 shadow-2xs">
+                    <i class="fa-solid fa-layer-group text-emerald-700"></i>
+                    <span>Sedang Mengedit: {{ $module->kb_nomor }}</span>
                 </span>
             </div>
         </div>
 
-        <!-- Alert Notifications -->
+        <!-- Peringatan Error -->
         @if($errors->any())
-            <div class="bg-rose-50 border border-rose-200 text-rose-800 p-4 rounded-2xl text-xs space-y-1 animate-fade-in shadow-xs">
-                <div class="font-bold flex items-center gap-2 text-rose-700">
-                    <i class="fa-solid fa-triangle-exclamation text-sm"></i>
-                    <span>Harap periksa kembali form pengisian:</span>
+            <div class="bg-rose-50 border-2 border-rose-300 text-rose-900 p-5 rounded-2xl space-y-2 shadow-sm">
+                <div class="font-extrabold flex items-center gap-2 text-base text-rose-800">
+                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+                    <span>Harap periksa kembali bagian berikut:</span>
                 </div>
-                <ul class="list-disc pl-5 space-y-0.5">
+                <ul class="list-disc pl-6 space-y-1 text-sm font-semibold text-rose-800">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
                     @endforeach
@@ -45,245 +53,297 @@
             </div>
         @endif
 
-        <!-- Main Form (2-Column Balanced Layout) -->
-        <form id="editForm" method="POST" action="{{ route('guru.modules.update', $module->id) }}" enctype="multipart/form-data">
+        <!-- Formulir Edit Modul -->
+        <form id="editForm" method="POST" action="{{ route('guru.modules.update', $module->id) }}" enctype="multipart/form-data" class="space-y-6">
             @csrf
             @method('PUT')
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                
-                <!-- KOLOM KIRI (KONTEN & MATERI) - 7 COLS -->
-                <div class="lg:col-span-7 space-y-6">
-                    
-                    <!-- Card 1: Informasi Pokok & Kegiatan Belajar -->
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6 sm:p-7 space-y-5">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-3.5">
-                            <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-book-bookmark text-[#008546]"></i> 1. Identitas Modul & Kegiatan Belajar
-                            </h3>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">Wajib Diisi</span>
-                        </div>
-
-                        <!-- Judul Modul -->
-                        <div>
-                            <label for="judul" class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Judul Modul / Materi Pembelajaran <span class="text-rose-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                    <i class="fa-solid fa-heading text-xs"></i>
-                                </span>
-                                <input type="text" id="judul" name="judul" value="{{ old('judul', $module->judul) }}" required
-                                       class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
-                            </div>
-                            <x-input-error class="mt-1" :messages="$errors->get('judul')" />
-                        </div>
-
-                        <!-- Mata Pelajaran -->
-                        <div>
-                            <label for="mapel" class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Mata Pelajaran / Konsentrasi Keahlian <span class="text-rose-500">*</span>
-                            </label>
-                            <div class="relative">
-                                <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                                    <i class="fa-solid fa-graduation-cap text-xs"></i>
-                                </span>
-                                <input type="text" id="mapel" name="mapel" list="mapel-suggestions" value="{{ old('mapel', $module->mapel) }}" required
-                                       class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl py-2.5 pl-10 pr-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
-                                <datalist id="mapel-suggestions">
-                                    <option value="Administrasi Infrastruktur Jaringan">
-                                    <option value="Administrasi Sistem Jaringan">
-                                    <option value="Teknologi Jaringan Berbasis Luas (WAN)">
-                                    <option value="Teknologi Layanan Jaringan">
-                                    <option value="Dasar-Dasar Teknik Komputer & Jaringan">
-                                    <option value="Keamanan Jaringan">
-                                    <option value="Subnetting & Routing">
-                                </datalist>
-                            </div>
-                            <x-input-error class="mt-1" :messages="$errors->get('mapel')" />
-                        </div>
-
-                        <div>
-                            <label for="kb_nomor" class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Nama atau Nomor Kegiatan Belajar (KB) <span class="text-rose-500">*</span>
-                            </label>
-                            <input id="kb_nomor" name="kb_nomor" type="text" required maxlength="255" value="{{ old('kb_nomor', $module->kb_nomor) }}" placeholder="Contoh: KB 4, Unit 5, atau Semester 2 - Topik 1"
-                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
-                            <p class="text-[11px] text-slate-400 mt-1">Gunakan penamaan KB sesuai struktur pembelajaran sekolah Anda.</p>
-                            <x-input-error class="mt-1" :messages="$errors->get('kb_nomor')" />
-                        </div>
-
-                        <!-- Tujuan Pembelajaran (TP) -->
-                        <div>
-                            <div class="flex items-center justify-between mb-1.5">
-                                <label for="tp" class="text-xs font-bold text-slate-700">
-                                    Tujuan Pembelajaran (TP)
-                                </label>
-                                <span class="text-[10px] text-slate-400">Direkomendasikan</span>
-                            </div>
-                            <textarea id="tp" name="tp" rows="4" placeholder="Tuliskan capaian atau target pembelajaran yang diharapkan siswa kuasai pada KB ini..."
-                                      class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs sm:text-sm rounded-2xl p-3.5 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all leading-relaxed placeholder-slate-400">{{ old('tp', $module->tp) }}</textarea>
-                            <x-input-error class="mt-1" :messages="$errors->get('tp')" />
-                        </div>
+            <!-- ========================================== -->
+            <!-- LANGKAH 1: BERKAS DOKUMEN MODUL            -->
+            <!-- ========================================== -->
+            <div class="bg-white rounded-3xl border-2 border-slate-300 shadow-sm p-6 sm:p-8 space-y-5">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-emerald-700 text-white font-black text-sm flex items-center justify-center">1</span>
+                        <h2 class="font-extrabold text-lg sm:text-xl text-slate-900">
+                            Berkas Dokumen Modul
+                        </h2>
                     </div>
-
-                    <!-- Card 2: Media Interaktif & Evaluasi -->
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6 sm:p-7 space-y-5">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-3.5">
-                            <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-photo-film text-blue-600"></i> 2. Media Pembelajaran & Link Evaluasi
-                            </h3>
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md">Opsional</span>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Link Video -->
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                                <label for="video_url" class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                    <i class="fa-brands fa-youtube text-red-500 text-sm"></i>
-                                    <span>Link Video Pembelajaran</span>
-                                </label>
-                                <input type="url" id="video_url" name="video_url" value="{{ old('video_url', $module->video_url) }}" placeholder="https://www.youtube.com/watch?v=..."
-                                       class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl py-2 px-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 transition-all">
-                                <x-input-error class="mt-1" :messages="$errors->get('video_url')" />
-                            </div>
-
-                            <!-- Link Kuis -->
-                            <div class="p-4 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
-                                <label for="kuis_url" class="block text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                                    <i class="fa-solid fa-pen-to-square text-[#008546] text-sm"></i>
-                                    <span>Link Kuis Eksternal (Opsional)</span>
-                                </label>
-                                <input type="url" id="kuis_url" name="kuis_url" value="{{ old('kuis_url', $module->kuis_url) }}" placeholder="https://forms.gle/... atau Quizizz"
-                                       class="w-full bg-white border border-slate-200 text-slate-800 text-xs rounded-xl py-2 px-3 outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all">
-                                <x-input-error class="mt-1" :messages="$errors->get('kuis_url')" />
-                                <a href="{{ route('guru.modules.quiz.edit', $module) }}" class="inline-flex mt-3 text-sm font-semibold text-purple-700">Buat / Kelola Kuis Objektif di Aplikasi →</a>
-                            </div>
-                        </div>
-                    </div>
-
+                    <span class="self-start sm:self-auto text-xs font-black uppercase tracking-wider text-emerald-900 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-lg">
+                        Berkas Tersimpan
+                    </span>
                 </div>
 
-                <!-- KOLOM KANAN (UPLOAD FILE & AKSI) - 5 COLS -->
-                <div class="lg:col-span-5 space-y-6">
-                    
-                    <!-- Card 3: Berkas Materi Saat Ini & Ganti File -->
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6 space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-file-lines text-[#008546]"></i> 3. Berkas Dokumen Modul
-                            </h3>
-                            <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200/50">Tersimpan</span>
+                <!-- Info Berkas Saat Ini -->
+                <div class="p-5 bg-emerald-50 rounded-2xl border-2 border-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4 overflow-hidden">
+                        <div class="w-14 h-14 rounded-2xl bg-white text-emerald-700 shadow-sm flex items-center justify-center text-2xl flex-shrink-0 border-2 border-emerald-200">
+                            <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <span class="text-xs font-black text-emerald-900 uppercase tracking-wider">Berkas Aktif di Sistem</span>
+                            <p class="text-base sm:text-lg font-black text-slate-900 truncate mt-0.5" title="{{ basename($module->file_path) }}">
+                                {{ basename($module->file_path) }}
+                            </p>
+                            <p class="text-xs sm:text-sm font-semibold text-emerald-800 mt-0.5">
+                                <i class="fa-solid fa-check-circle mr-1"></i> Materi ini sudah aktif dipelajari oleh Asisten AI siswa
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ route('modules.download', $module->id) }}" 
+                       class="self-start sm:self-auto px-4 py-2.5 bg-white hover:bg-emerald-100 text-emerald-900 font-extrabold text-xs sm:text-sm rounded-xl border-2 border-emerald-400 shadow-2xs transition-colors flex items-center gap-2 flex-shrink-0 cursor-pointer" 
+                       title="Unduh Berkas Ini">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Unduh Berkas Ini</span>
+                    </a>
+                </div>
+
+                <!-- Opsi Mengganti Berkas -->
+                <div class="pt-2">
+                    <label class="block text-sm sm:text-base font-bold text-slate-900 mb-1">
+                        Unggah Berkas Baru Pengganti (Hanya jika ingin merevisi)
+                    </label>
+                    <p class="text-xs sm:text-sm font-medium text-slate-700 mb-3">
+                        Kosongkan bagian ini jika berkas lama tidak perlu diubah. Jika Bapak/Ibu mengunggah berkas baru, sistem AI akan otomatis membaca ulang materi dari awal.
+                    </p>
+
+                    <div id="dropZone" class="relative border-3 border-dashed border-slate-400 hover:border-emerald-700 bg-slate-50 hover:bg-emerald-50/40 rounded-3xl p-7 text-center transition-all cursor-pointer group">
+                        <input type="file" id="file" name="file" accept=".pdf,.docx" 
+                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+                               onchange="handleFileSelect(this)">
+                        
+                        <div id="uploadPrompt" class="space-y-3">
+                            <div class="w-12 h-12 rounded-xl bg-white shadow-xs text-emerald-700 flex items-center justify-center mx-auto text-xl border-2 border-slate-200 group-hover:scale-105 transition-transform">
+                                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                            </div>
+                            <p class="text-sm font-bold text-slate-900">
+                                <span class="text-emerald-800 underline">Klik untuk memilih file baru</span> jika ingin mengganti dokumen lama
+                            </p>
+                            <p class="text-xs font-semibold text-slate-600">
+                                Format: PDF (.pdf) atau Word (.docx) • Maksimal 10 MB
+                            </p>
                         </div>
 
-                        <!-- Current File Info Card -->
-                        <div class="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200/80 flex items-center justify-between gap-3">
-                            <div class="flex items-center gap-3 overflow-hidden">
-                                <div class="w-10 h-10 rounded-xl bg-white text-[#008546] shadow-xs flex items-center justify-center text-lg flex-shrink-0 border border-emerald-100">
-                                    <i class="fa-solid fa-file-lines"></i>
+                        <div id="filePreview" class="hidden text-left space-y-3">
+                            <div class="flex items-center gap-4 p-4 bg-white rounded-2xl border-2 border-emerald-500 shadow-md">
+                                <div class="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center text-xl flex-shrink-0 border border-emerald-300">
+                                    <i id="fileIcon" class="fa-solid fa-file-lines"></i>
                                 </div>
-                                <div class="overflow-hidden">
-                                    <p class="text-xs font-bold text-slate-800 truncate" title="{{ basename($module->file_path) }}">{{ basename($module->file_path) }}</p>
-                                    <p class="text-[10px] text-emerald-700 font-semibold">Berkas aktif terindeks AI</p>
+                                <div class="flex-1 overflow-hidden">
+                                    <span class="text-xs font-black bg-emerald-700 text-white px-2 py-0.5 rounded-md">BERKAS PENGGANTI TERPILIH</span>
+                                    <p id="fileName" class="text-base font-black text-slate-900 truncate mt-1"></p>
+                                    <p id="fileSize" class="text-xs font-bold text-slate-600 mt-0.5"></p>
                                 </div>
                             </div>
-                            <a href="{{ route('modules.download', $module->id) }}" class="p-2 bg-white hover:bg-emerald-100 text-[#008546] rounded-xl border border-emerald-200 shadow-2xs transition-colors flex-shrink-0" title="Unduh File Saat Ini">
-                                <i class="fa-solid fa-download text-xs"></i>
+                            <p class="text-xs sm:text-sm font-bold text-amber-900 bg-amber-50 border border-amber-300 p-2.5 rounded-xl text-center">
+                                ⚠️ Perhatian: File baru ini akan menggantikan berkas lama saat Anda menekan tombol Simpan di bawah.
+                            </p>
+                        </div>
+                    </div>
+                    <x-input-error class="mt-2 text-sm font-bold text-rose-700" :messages="$errors->get('file')" />
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- LANGKAH 2: IDENTITAS MODUL (WAJIB)         -->
+            <!-- ========================================== -->
+            <div class="bg-white rounded-3xl border-2 border-slate-300 shadow-sm p-6 sm:p-8 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-emerald-700 text-white font-black text-sm flex items-center justify-center">2</span>
+                        <h2 class="font-extrabold text-lg sm:text-xl text-slate-900">
+                            Identitas Modul & Kegiatan Belajar
+                        </h2>
+                    </div>
+                    <span class="self-start sm:self-auto text-xs font-black uppercase tracking-wider text-rose-800 bg-rose-100 border border-rose-300 px-3 py-1 rounded-lg">
+                        * Wajib Diisi
+                    </span>
+                </div>
+
+                <!-- Judul Modul -->
+                <div>
+                    <label for="judul" class="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-900 mb-1">
+                        <i class="fa-solid fa-book-open text-emerald-700 text-base"></i>
+                        <span>Judul Modul / Materi Pembelajaran <span class="text-rose-600">*</span></span>
+                    </label>
+                    <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                        Tuliskan judul pokok bahasan materi secara lengkap dan jelas.
+                    </p>
+                    <input type="text" id="judul" name="judul" value="{{ old('judul', $module->judul) }}" required 
+                           class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all">
+                    <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('judul')" />
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Mata Pelajaran -->
+                    <div>
+                        <label for="mapel" class="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-900 mb-1">
+                            <i class="fa-solid fa-graduation-cap text-emerald-700 text-base"></i>
+                            <span>Mata Pelajaran / Konsentrasi Keahlian <span class="text-rose-600">*</span></span>
+                        </label>
+                        <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                            Pilih rekomendasi yang tersedia atau ketik nama mata pelajaran.
+                        </p>
+                        <input type="text" id="mapel" name="mapel" list="mapel-suggestions" value="{{ old('mapel', $module->mapel) }}" required 
+                               class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all">
+                        <datalist id="mapel-suggestions">
+                            <option value="Administrasi Infrastruktur Jaringan">
+                            <option value="Administrasi Sistem Jaringan">
+                            <option value="Teknologi Jaringan Berbasis Luas (WAN)">
+                            <option value="Teknologi Layanan Jaringan">
+                            <option value="Dasar-Dasar Teknik Komputer & Jaringan">
+                            <option value="Keamanan Jaringan">
+                            <option value="Subnetting & Routing">
+                        </datalist>
+                        <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('mapel')" />
+                    </div>
+
+                    <!-- Nomor Kegiatan Belajar (KB) -->
+                    <div>
+                        <label for="kb_nomor" class="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-900 mb-1">
+                            <i class="fa-solid fa-layer-group text-emerald-700 text-base"></i>
+                            <span>Nama atau Nomor Kegiatan Belajar (KB) <span class="text-rose-600">*</span></span>
+                        </label>
+                        <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                            Tentukan urutan belajar siswa (contoh: <strong>KB 1</strong>, <strong>KB 2</strong>, atau <strong>Topik 1</strong>).
+                        </p>
+                        <input id="kb_nomor" name="kb_nomor" type="text" required maxlength="255" value="{{ old('kb_nomor', $module->kb_nomor) }}" 
+                               class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all">
+                        <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('kb_nomor')" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- LANGKAH 3: PENGAYAAN & MEDIA (OPSIONAL)    -->
+            <!-- ========================================== -->
+            <div class="bg-white rounded-3xl border-2 border-slate-300 shadow-sm p-6 sm:p-8 space-y-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-blue-700 text-white font-black text-sm flex items-center justify-center">3</span>
+                        <h2 class="font-extrabold text-lg sm:text-xl text-slate-900">
+                            Pengayaan & Media Pendukung
+                        </h2>
+                    </div>
+                    <span class="self-start sm:self-auto text-xs font-bold uppercase tracking-wider text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg">
+                        Opsional (Boleh Dikosongkan)
+                    </span>
+                </div>
+
+                <!-- Tujuan Pembelajaran (TP) -->
+                <div>
+                    <label for="tp" class="block text-sm sm:text-base font-bold text-slate-900 mb-1">
+                        Tujuan Pembelajaran (TP)
+                    </label>
+                    <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                        Tuliskan target kompetensi yang diharapkan dikuasai siswa. TP ini akan muncul di kartu pembelajaran siswa.
+                    </p>
+                    <textarea id="tp" name="tp" rows="3" 
+                              placeholder="Tuliskan capaian atau target pembelajaran yang diharapkan..."
+                              class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-medium rounded-2xl p-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all leading-relaxed">{{ old('tp', $module->tp) }}</textarea>
+                    <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('tp')" />
+                </div>
+
+                <!-- Link Video & Kuis Eksternal -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Link Video YouTube -->
+                    <div class="p-5 bg-slate-50 rounded-2xl border-2 border-slate-300 space-y-2">
+                        <label for="video_url" class="block text-sm font-bold text-slate-900 flex items-center gap-2">
+                            <i class="fa-brands fa-youtube text-red-600 text-lg"></i>
+                            <span>Link Video Pembelajaran Utama (YouTube)</span>
+                        </label>
+                        <p class="text-xs font-medium text-slate-700">
+                            Siswa dapat langsung menonton video ini di halaman modul mereka.
+                        </p>
+                        <input type="url" id="video_url" name="video_url" value="{{ old('video_url', $module->video_url) }}" 
+                               placeholder="https://www.youtube.com/watch?v=..."
+                               class="w-full bg-white border-2 border-slate-300 text-slate-900 text-sm font-semibold rounded-xl py-2.5 px-3.5 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/20 transition-all">
+                        <x-input-error class="mt-1 text-sm font-bold text-rose-700" :messages="$errors->get('video_url')" />
+                    </div>
+
+                    <!-- Link Kuis Eksternal & Tombol Kuis Aplikasi -->
+                    <div class="p-5 bg-slate-50 rounded-2xl border-2 border-slate-300 space-y-3">
+                        <div>
+                            <label for="kuis_url" class="block text-sm font-bold text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-pen-to-square text-emerald-700 text-lg"></i>
+                                <span>Link Kuis Luar (Opsional)</span>
+                            </label>
+                            <p class="text-xs font-medium text-slate-700 mt-1">
+                                Tautan Google Form, Quizizz, atau lembar kerja siswa jika ada.
+                            </p>
+                        </div>
+                        <input type="url" id="kuis_url" name="kuis_url" value="{{ old('kuis_url', $module->kuis_url) }}" 
+                               placeholder="https://forms.gle/... atau Quizizz"
+                               class="w-full bg-white border-2 border-slate-300 text-slate-900 text-sm font-semibold rounded-xl py-2.5 px-3.5 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20 transition-all">
+                        <x-input-error class="mt-1 text-sm font-bold text-rose-700" :messages="$errors->get('kuis_url')" />
+
+                        <!-- Tautan Menuju Kuis Pilihan Ganda Internal -->
+                        <div class="pt-2 border-t border-slate-200">
+                            <a href="{{ route('guru.modules.quiz.edit', $module) }}" 
+                               class="w-full px-4 py-2.5 bg-purple-50 hover:bg-purple-100 text-purple-900 border-2 border-purple-400 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer shadow-2xs">
+                                <i class="fa-solid fa-list-check text-purple-700"></i>
+                                <span>Buat / Kelola Kuis Pilihan Ganda di Aplikasi →</span>
                             </a>
                         </div>
-
-                        <!-- Drag & Drop Zone untuk Ganti File -->
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Unggah File Pengganti (Opsional)
-                            </label>
-                            <div id="dropZone" class="relative border-2 border-dashed border-slate-300 hover:border-[#008546] bg-slate-50 hover:bg-emerald-50/40 rounded-3xl p-5 text-center transition-all cursor-pointer group">
-                                <input type="file" id="file" name="file" accept=".pdf,.docx" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleFileSelect(this)">
-                                
-                                <div id="uploadPrompt" class="space-y-2">
-                                    <div class="w-10 h-10 rounded-xl bg-white shadow-xs text-[#008546] flex items-center justify-center mx-auto text-lg group-hover:scale-110 transition-transform border border-slate-100">
-                                        <i class="fa-solid fa-arrow-up-from-bracket"></i>
-                                    </div>
-                                    <p class="text-xs font-bold text-slate-800">
-                                        <span class="text-[#008546] underline">Pilih file baru</span> jika ingin merevisi
-                                    </p>
-                                    <p class="text-[10px] text-slate-400">PDF / DOCX (Maks 10 MB)</p>
-                                </div>
-
-                                <div id="filePreview" class="hidden text-left space-y-2">
-                                    <div class="flex items-center gap-3 p-3 bg-white rounded-xl border border-emerald-200">
-                                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-[#008546] flex items-center justify-center text-sm flex-shrink-0">
-                                            <i id="fileIcon" class="fa-solid fa-file-lines"></i>
-                                        </div>
-                                        <div class="flex-1 overflow-hidden">
-                                            <p id="fileName" class="text-xs font-bold text-slate-800 truncate"></p>
-                                            <p id="fileSize" class="text-[10px] text-slate-400"></p>
-                                        </div>
-                                    </div>
-                                    <p class="text-[10px] text-amber-600 font-semibold text-center">*File baru akan di-index ulang otomatis oleh AI</p>
-                                </div>
-                            </div>
-                            <x-input-error class="mt-1" :messages="$errors->get('file')" />
-                        </div>
                     </div>
-
-                    <!-- Card 4: Pengaturan Masa Berlaku Modul -->
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6 space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                            <h3 class="font-bold text-sm text-slate-800 flex items-center gap-2">
-                                <i class="fa-solid fa-calendar-days text-[#008546]"></i> 4. Periode Aktif Modul
-                            </h3>
-                            <span class="text-[10px] text-slate-400 font-medium">Auto-Archive</span>
-                        </div>
-
-                        <div>
-                            <label for="berlaku_sampai" class="block text-xs font-bold text-slate-700 mb-1.5">
-                                Berlaku Sampai Tanggal
-                            </label>
-                            <input type="date" id="berlaku_sampai" name="berlaku_sampai" value="{{ old('berlaku_sampai', $module->berlaku_sampai ? $module->berlaku_sampai->format('Y-m-d') : '') }}"
-                                   class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all font-medium">
-                            <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">
-                                Setelah tanggal ini lewat, modul otomatis diarsipkan dari pencarian AI siswa.
-                            </p>
-                            <x-input-error class="mt-1" :messages="$errors->get('berlaku_sampai')" />
-                        </div>
-                    </div>
-
-                    <!-- Card 5: Tombol Aksi Simpan & Batal -->
-                    <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm p-6 space-y-3">
-                        <button type="submit" class="w-full py-3.5 px-6 bg-[#008546] hover:bg-[#00703c] text-white font-bold text-sm rounded-2xl shadow-md hover:shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-floppy-disk"></i>
-                            <span>Simpan Seluruh Perubahan</span>
-                        </button>
-
-                        <a href="{{ route('guru.modules.index') }}" class="w-full py-3 px-6 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-2xl transition-colors flex items-center justify-center">
-                            Batal dan Kembali
-                        </a>
-                    </div>
-
                 </div>
 
+                <!-- Bagian Video Tambahan (Menyatu Rapi di Langkah 3) -->
+                @include('guru.modules.media-fields')
             </div>
-            @include('guru.modules.media-fields')
+
+            <!-- ========================================== -->
+            <!-- LANGKAH 4: MASA AKTIF MODUL (OPSIONAL)     -->
+            <!-- ========================================== -->
+            <div class="bg-white rounded-3xl border-2 border-slate-300 shadow-sm p-6 sm:p-8 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-slate-200 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="w-8 h-8 rounded-xl bg-slate-700 text-white font-black text-sm flex items-center justify-center">4</span>
+                        <h2 class="font-extrabold text-lg sm:text-xl text-slate-900">
+                            Periode Aktif Modul
+                        </h2>
+                    </div>
+                    <span class="self-start sm:self-auto text-xs font-bold text-slate-700 bg-slate-100 border border-slate-300 px-3 py-1 rounded-lg">
+                        Pengaturan Waktu
+                    </span>
+                </div>
+
+                <div class="max-w-md">
+                    <label for="berlaku_sampai" class="block text-sm sm:text-base font-bold text-slate-900 mb-1">
+                        Berlaku Sampai Tanggal
+                    </label>
+                    <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                        Setelah tanggal ini lewat, modul tetap aman dan tersimpan di arsip sekolah.
+                    </p>
+                    <input type="date" id="berlaku_sampai" name="berlaku_sampai" 
+                           value="{{ old('berlaku_sampai', $module->berlaku_sampai ? $module->berlaku_sampai->format('Y-m-d') : '') }}"
+                           class="w-full sm:w-72 bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all">
+                    <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('berlaku_sampai')" />
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TOMBOL AKSI SIMPAN & BATAL                 -->
+            <!-- ========================================== -->
+            <div class="bg-white rounded-3xl border-2 border-slate-300 shadow-md p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <a href="{{ route('guru.modules.index') }}" 
+                   class="w-full sm:w-auto order-2 sm:order-1 py-4 px-8 bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-900 font-extrabold text-sm sm:text-base rounded-2xl transition-colors text-center shadow-xs">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> Batal dan Kembali
+                </a>
+
+                <button type="submit" 
+                        class="w-full sm:w-auto order-1 sm:order-2 py-4 px-10 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer">
+                    <i class="fa-solid fa-floppy-disk text-xl"></i>
+                    <span>Simpan Seluruh Perubahan Modul</span>
+                </button>
+            </div>
+
         </form>
 
     </div>
 
-    <!-- Script Interaktif UI -->
+    <!-- Script Interaktif UI Pratinjau Berkas -->
     <script>
-        function selectKbOption(radio) {
-            document.querySelectorAll('.kb-option-card').forEach(card => {
-                const input = card.querySelector('input[type="radio"]');
-                if (input.checked) {
-                    card.classList.add('border-[#008546]', 'bg-emerald-50/70', 'text-[#008546]', 'shadow-xs');
-                    card.classList.remove('border-slate-200', 'bg-slate-50/50', 'text-slate-600');
-                } else {
-                    card.classList.remove('border-[#008546]', 'bg-emerald-50/70', 'text-[#008546]', 'shadow-xs');
-                    card.classList.add('border-slate-200', 'bg-slate-50/50', 'text-slate-600');
-                }
-            });
-        }
-
         function handleFileSelect(input) {
             if (input.files && input.files[0]) {
                 const file = input.files[0];
@@ -297,17 +357,17 @@
                 
                 const sizeInKb = (file.size / 1024).toFixed(1);
                 if (file.size > 1024 * 1024) {
-                    sizeEl.textContent = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+                    sizeEl.textContent = 'Ukuran berkas baru: ' + (file.size / (1024 * 1024)).toFixed(2) + ' MB';
                 } else {
-                    sizeEl.textContent = sizeInKb + ' KB';
+                    sizeEl.textContent = 'Ukuran berkas baru: ' + sizeInKb + ' KB';
                 }
 
-                if (file.name.endsWith('.pdf')) {
-                    iconEl.className = 'fa-solid fa-file-pdf text-red-500';
-                } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
-                    iconEl.className = 'fa-solid fa-file-word text-blue-500';
+                if (file.name.toLowerCase().endsWith('.pdf')) {
+                    iconEl.className = 'fa-solid fa-file-pdf text-red-600';
+                } else if (file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')) {
+                    iconEl.className = 'fa-solid fa-file-word text-blue-600';
                 } else {
-                    iconEl.className = 'fa-solid fa-file-lines text-[#008546]';
+                    iconEl.className = 'fa-solid fa-file-lines text-emerald-700';
                 }
 
                 prompt.classList.add('hidden');

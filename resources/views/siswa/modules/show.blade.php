@@ -259,11 +259,40 @@
                 </div>
 
                 @if($module->quiz?->is_published)
-                    <div class="p-5 bg-purple-50 rounded-2xl border border-purple-100 space-y-3">
-                        <h4 class="font-bold text-sm text-slate-900">{{ $module->quiz->title }}</h4>
-                        <p class="text-xs text-slate-600">Kuis pilihan ganda dari guru. Kerjakan di aplikasi dan lihat nilai otomatis.</p>
-                        <a href="{{ route('siswa.modules.quiz.show', $module) }}" class="inline-flex px-6 py-3 bg-[#008546] hover:bg-emerald-800 text-white text-sm font-bold rounded-xl">Kerjakan Kuis Objektif</a>
-                    </div>
+                    @if(isset($userAttempt) && $userAttempt)
+                        <div class="p-5 bg-emerald-50 rounded-2xl border-2 border-emerald-200/80 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h4 class="font-bold text-sm text-slate-900 flex items-center gap-2">
+                                    <i class="fa-solid fa-circle-check text-[#008546]"></i>
+                                    <span>{{ $module->quiz->title }}</span>
+                                </h4>
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#008546] text-white shadow-2xs">
+                                    <i class="fa-solid fa-check"></i> Sudah Dikerjakan
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-600">
+                                Anda telah menyelesaikan kuis ini dengan skor: <strong class="text-[#008546] text-sm">{{ $userAttempt->score }}/100</strong> (Benar {{ $userAttempt->correct_count }} dari {{ $userAttempt->question_count }} butir soal). Sesuai ketentuan, kuis hanya dapat dikerjakan satu kali.
+                            </p>
+                            <a href="{{ route('siswa.quiz-attempts.show', $userAttempt) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-emerald-100 text-[#008546] text-xs font-bold rounded-xl border border-emerald-300 shadow-2xs transition-all">
+                                <i class="fa-solid fa-eye"></i>
+                                <span>Lihat Rincian Jawaban & Pembahasan</span>
+                            </a>
+                        </div>
+                    @else
+                        <div class="p-5 bg-purple-50 rounded-2xl border border-purple-100 space-y-3">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h4 class="font-bold text-sm text-slate-900">{{ $module->quiz->title }}</h4>
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800">
+                                    <i class="fa-solid fa-shield-halved text-[10px]"></i> 1x Kesempatan
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-600">Kuis pilihan ganda dari guru. <strong>Kuis hanya dapat dikerjakan 1 kali</strong> dan nilai akan langsung tersimpan ke rekap guru.</p>
+                            <a href="{{ route('siswa.modules.quiz.show', $module) }}" class="inline-flex items-center gap-2 px-6 py-3 bg-[#008546] hover:bg-emerald-800 text-white text-sm font-bold rounded-xl shadow-sm hover:shadow-md transition-all">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                                <span>Kerjakan Kuis Objektif</span>
+                            </a>
+                        </div>
+                    @endif
                 @endif
                 @if($module->kuis_url)
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 bg-purple-50/50 rounded-2xl border border-purple-100">

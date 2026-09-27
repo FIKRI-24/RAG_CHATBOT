@@ -1,6 +1,18 @@
 <x-student-quiz-layout>
     <div class="max-w-4xl mx-auto p-4 sm:p-8 space-y-6">
         <a href="{{ route('siswa.modules.index') }}" class="text-emerald-700 font-semibold">← Katalog Modul</a>
+        @if(session('info'))
+            <div role="status" class="p-4 bg-blue-50 text-blue-800 rounded-2xl border border-blue-200 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-base"></i>
+                <span>{{ session('info') }}</span>
+            </div>
+        @endif
+        @if(session('warning'))
+            <div role="alert" class="p-4 bg-amber-50 text-amber-800 rounded-2xl border border-amber-200 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-base"></i>
+                <span>{{ session('warning') }}</span>
+            </div>
+        @endif
         <div class="bg-white p-6 rounded-3xl border border-slate-200 space-y-2">
             <h1 class="text-2xl font-bold">Hasil Kuis: {{ $attempt->quiz_title }}</h1>
             <p class="text-slate-500">{{ $attempt->module_title }} · versi {{ $attempt->quiz_version }}</p>
@@ -17,7 +29,11 @@
             </div>
         @endforeach
         @if($attempt->module_id)
-            <a href="{{ route('siswa.modules.quiz.show', $attempt->module_id) }}" class="inline-block text-emerald-700 font-semibold">Kembali ke Latihan →</a>
+            <div>
+                <a href="{{ route('siswa.modules.show', $attempt->module_id) }}" class="inline-flex items-center gap-2 px-5 py-2.5 bg-[#008546] hover:bg-emerald-800 text-white font-semibold text-xs rounded-xl shadow-sm transition-all">
+                    <i class="fa-solid fa-arrow-left"></i> Kembali ke Modul Pembelajaran
+                </a>
+            </div>
         @endif
     </div>
 </x-student-quiz-layout>

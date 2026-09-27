@@ -63,7 +63,11 @@ class ModuleController extends Controller
         }
 
         $module->load(['quiz' => fn ($query) => $query->select('id', 'module_id', 'title', 'is_published')]);
+        $userAttempt = \App\Models\ModuleQuizAttempt::where('module_id', $module->id)
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->first();
 
-        return view('siswa.modules.show', compact('module'));
+        return view('siswa.modules.show', compact('module', 'userAttempt'));
     }
 }

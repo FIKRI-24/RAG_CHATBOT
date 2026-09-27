@@ -3,10 +3,13 @@
 namespace App\Services;
 
 use App\Models\ChatHistory;
+use App\Models\Module;
+use App\Models\ModuleQuizAttempt;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\StringValueBinder;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -19,7 +22,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class ExportActivityService
 {
     /**
-     * Generate file Excel (.xlsx) Rekapitulasi Aktivitas Pembelajaran Siswa
+     * Generate file Excel (.xlsx) Rekapitulasi Aktivitas Pembelajaran Siswa (Sheet 1: Keaktifan, Sheet 2: Transkrip, Sheet 3: Rekap Kuis)
      */
     public function export(): StreamedResponse
     {
@@ -351,6 +354,11 @@ class ExportActivityService
         $sheet2->getColumnDimension('F')->setWidth(65);
         $sheet2->getColumnDimension('G')->setWidth(18);
 
+        // =====================================================================
+        // SHEET 3: REKAPITULASI HASIL KUIS OBJEKTIF SISWA
+        // =====================================================================
+        $this->buildQuizRecapSheet($spreadsheet, null, null, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, true);
+
         // Set active sheet back to Sheet 1
         $spreadsheet->setActiveSheetIndex(0);
 
@@ -370,5 +378,548 @@ class ExportActivityService
             'Cache-Control' => 'private, no-store',
             'Pragma' => 'no-cache',
         ]);
+    }
+
+    /**
+     * Generate file Excel (.xlsx) khusus Rekapitulasi Nilai Kuis Siswa
+     */
+    public function exportQuizRecap(?string $className = null, ?string $search = null): StreamedResponse
+    {
+        Carbon::setLocale('id');
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->setValueBinder((new StringValueBinder)->setNumericConversion(false));
+
+        // Terapkan Font Global: Times New Roman 12pt
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Times New Roman');
+        $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
+
+        $guru = Auth::user();
+        $namaGuru = $guru?->name ?? '-';
+        $nipGuru = $guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-');
+        $waktuCetak = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB';
+        $tanggalPengesahan = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y');
+
+        // Sheet 1: Rekap Nilai Kuis Matrix Siswa
+        $this->buildQuizRecapSheet($spreadsheet, $className, $search, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, false);
+
+        // Sheet 2: Log Detail Percobaan Kuis
+        $this->buildQuizAttemptLogSheet($spreadsheet, $className, $search);
+
+        // Aktifkan kembali Sheet 1
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'REKAP_NILAI_KUIS_SMKN1_KINALI_'.Carbon::now(config('app.display_timezone'))->format('Ymd_His').'.xlsx';
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            try {
+                $writer->save('php://output');
+            } finally {
+                $spreadsheet->disconnectWorksheets();
+            }
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'private, no-store',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    /**
+     * Membangun Lembar Rekapitulasi Nilai Kuis Siswa (Format Matriks Modul KB 1, KB 2, dst.)
+     */
+    public function buildQuizRecapSheet(
+        Spreadsheet $spreadsheet,
+        ?string $className = null,
+        ?string $search = null,
+        ?string $namaGuru = null,
+        ?string $nipGuru = null,
+        ?string $waktuCetak = null,
+        ?string $tanggalPengesahan = null,
+        bool $isNewSheet = true
+    ): void {
+        Carbon::setLocale('id');
+
+        $guru = Auth::user();
+        $namaGuru = $namaGuru ?? ($guru?->name ?? '-');
+        $nipGuru = $nipGuru ?? ($guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-'));
+        $waktuCetak = $waktuCetak ?? (Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB');
+        $tanggalPengesahan = $tanggalPengesahan ?? (Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y'));
+
+        $sheet = $isNewSheet ? $spreadsheet->createSheet() : $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Rekap Nilai Kuis Siswa');
+        $sheet->setShowGridLines(true);
+
+        $greenHeaderBg = '107C41';
+        $softGreenBg = 'E8F5E9';
+        $lightGrayBg = 'F4F4F5';
+        $borderGray = 'A1A1AA';
+
+        $thinBorder = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => $borderGray],
+                ],
+            ],
+        ];
+
+        // Modul dengan kuis aktif
+        $modules = Module::available()
+            ->whereHas('quiz', fn ($q) => $q->where('is_published', true))
+            ->orderBy('kb_nomor')
+            ->orderBy('id')
+            ->get(['id', 'judul', 'kb_nomor', 'mapel']);
+
+        $moduleIds = $modules->pluck('id');
+
+        // Query Siswa
+        $query = User::where('role', 'siswa');
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('student_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        if ($className) {
+            $query->where('class_name', $className);
+        }
+
+        $students = $query->with(['quizAttempts' => function ($q) use ($moduleIds) {
+            $q->whereIn('module_id', $moduleIds);
+        }])->orderBy('class_name')->orderBy('name')->get();
+
+        // Hitung total kolom
+        $moduleCount = $modules->count();
+        $totalColumns = max(6, 4 + $moduleCount + 2);
+        $lastColLetter = Coordinate::stringFromColumnIndex($totalColumns);
+
+        // --- ROW 1 - 3: KOP LAPORAN RESMI ---
+        $sheet->mergeCells("A1:{$lastColLetter}1");
+        $sheet->setCellValue('A1', 'PEMERINTAH PROVINSI SUMATERA BARAT • DINAS PENDIDIKAN');
+        $sheet->getStyle('A1')->getFont()->setBold(true);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+
+        $sheet->mergeCells("A2:{$lastColLetter}2");
+        $sheet->setCellValue('A2', 'SMK NEGERI 1 KINALI — KABUPATEN PASAMAN BARAT');
+        $sheet->getStyle('A2')->getFont()->setBold(true);
+        $sheet->getStyle('A2')->getFont()->getColor()->setRGB('107C41');
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A2')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+
+        $sheet->mergeCells("A3:{$lastColLetter}3");
+        $sheet->setCellValue('A3', 'LAPORAN REKAPITULASI HASIL PENILAIAN KUIS OBJEKTIF SISWA PER KEGIATAN BELAJAR (KB)');
+        $sheet->getStyle('A3')->getFont()->setBold(true);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new Color('52525B'));
+
+        // Metadata Sekolah & Guru (Baris 5 - 8)
+        $filterKelasText = $className ? ": {$className}" : ': Semua Kelas';
+        $meta = [
+            ['Nama Sekolah', ': SMK Negeri 1 Kinali', 'Guru Pengampu', ": {$namaGuru}"],
+            ['NPSN / ID Sekolah', ': 10304384', 'NIP / ID Guru', ": {$nipGuru}"],
+            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Mata Pelajaran', ': Administrasi Infrastruktur & Jaringan Nirkabel'],
+            ['Filter Rombel', $filterKelasText, 'Waktu Cetak', ": {$waktuCetak}"],
+        ];
+
+        $midColIndex = max(4, (int) floor($totalColumns / 2) + 1);
+        $colBLetter = Coordinate::stringFromColumnIndex(min(3, $midColIndex - 1));
+        $colCLetter = Coordinate::stringFromColumnIndex($midColIndex);
+        $colDLetter = $lastColLetter;
+
+        $r = 5;
+        foreach ($meta as $row) {
+            $sheet->setCellValue("A{$r}", $row[0]);
+            $sheet->mergeCells("B{$r}:{$colBLetter}{$r}");
+            $sheet->setCellValue("B{$r}", $row[1]);
+
+            $sheet->setCellValue("{$colCLetter}{$r}", $row[2]);
+            $sheet->mergeCells(Coordinate::stringFromColumnIndex($midColIndex + 1)."{$r}:{$colDLetter}{$r}");
+            $sheet->setCellValue(Coordinate::stringFromColumnIndex($midColIndex + 1)."{$r}", $row[3]);
+
+            $sheet->getStyle("A{$r}")->getFont()->setBold(true);
+            $sheet->getStyle("A{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($lightGrayBg);
+            $sheet->getStyle("{$colCLetter}{$r}")->getFont()->setBold(true);
+            $sheet->getStyle("{$colCLetter}{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($lightGrayBg);
+
+            $sheet->getStyle("A{$r}:{$lastColLetter}{$r}")->applyFromArray($thinBorder);
+            $r++;
+        }
+
+        // Mini KPI Baris 10 - 11
+        $totalSiswa = $students->count();
+        $participatingSiswa = 0;
+        $totalScoreSum = 0;
+        $totalAttemptsCount = 0;
+        $tuntasCount = 0;
+
+        foreach ($students as $s) {
+            if ($s->quizAttempts->isNotEmpty()) {
+                $participatingSiswa++;
+                $studentAvg = $s->quizAttempts->avg('score');
+                $totalScoreSum += $studentAvg;
+                $totalAttemptsCount++;
+                if ($studentAvg >= 75) {
+                    $tuntasCount++;
+                }
+            }
+        }
+
+        $avgClassScore = $totalAttemptsCount > 0 ? round($totalScoreSum / $totalAttemptsCount, 1) : 0;
+        $ketuntasanPersen = $participatingSiswa > 0 ? round(($tuntasCount / $participatingSiswa) * 100, 1) : 0;
+
+        $sheet->mergeCells('A10:B10')->setCellValue('A10', 'TOTAL SISWA TERDAFTAR');
+        $sheet->mergeCells('C10:D10')->setCellValue('C10', 'SISWA MENGERJAKAN');
+        $kpiCol3Start = Coordinate::stringFromColumnIndex(min(5, $totalColumns - 1));
+        $kpiCol3End = Coordinate::stringFromColumnIndex(min(6, $totalColumns));
+        $sheet->mergeCells("{$kpiCol3Start}10:{$kpiCol3End}10")->setCellValue($kpiCol3Start.'10', 'RATA-RATA NILAI');
+        $kpiCol4Start = Coordinate::stringFromColumnIndex(min(7, $totalColumns));
+        if ($totalColumns >= 7) {
+            $sheet->mergeCells("{$kpiCol4Start}10:{$lastColLetter}10")->setCellValue($kpiCol4Start.'10', 'KETUNTASAN (>= 75)');
+        }
+
+        $sheet->getStyle("A10:{$lastColLetter}10")->getFont()->setBold(true);
+        $sheet->getStyle("A10:{$lastColLetter}10")->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle("A10:{$lastColLetter}10")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("A10:{$lastColLetter}10")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1B5E20');
+        $sheet->getStyle("A10:{$lastColLetter}10")->applyFromArray($thinBorder);
+
+        $sheet->mergeCells('A11:B11')->setCellValue('A11', "{$totalSiswa} Siswa");
+        $sheet->mergeCells('C11:D11')->setCellValue('C11', "{$participatingSiswa} Siswa");
+        $sheet->mergeCells("{$kpiCol3Start}11:{$kpiCol3End}11")->setCellValue($kpiCol3Start.'11', "{$avgClassScore} / 100");
+        if ($totalColumns >= 7) {
+            $sheet->mergeCells("{$kpiCol4Start}11:{$lastColLetter}11")->setCellValue($kpiCol4Start.'11', "{$ketuntasanPersen}% ({$tuntasCount} Siswa)");
+        }
+
+        $sheet->getStyle("A11:{$lastColLetter}11")->getFont()->setBold(true);
+        $sheet->getStyle("A11:{$lastColLetter}11")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("A11:{$lastColLetter}11")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+        $sheet->getStyle("A11:{$lastColLetter}11")->applyFromArray($thinBorder);
+
+        // Header Tabel Baris 13
+        $sheet->setCellValue('A13', 'NO');
+        $sheet->setCellValue('B13', 'NIS / USERNAME');
+        $sheet->setCellValue('C13', 'NAMA LENGKAP SISWA');
+        $sheet->setCellValue('D13', 'KELAS');
+
+        $curCol = 5;
+        foreach ($modules as $mod) {
+            $label = $mod->kb_nomor ? strtoupper($mod->kb_nomor) : "MODUL #{$mod->id}";
+            $colLet = Coordinate::stringFromColumnIndex($curCol);
+            $sheet->setCellValue("{$colLet}13", $label);
+            $curCol++;
+        }
+
+        $avgColLet = Coordinate::stringFromColumnIndex($curCol);
+        $sheet->setCellValue("{$avgColLet}13", 'RATA-RATA');
+        $curCol++;
+
+        $statusColLet = Coordinate::stringFromColumnIndex($curCol);
+        $sheet->setCellValue("{$statusColLet}13", 'STATUS KELULUSAN');
+
+        $sheet->getStyle("A13:{$lastColLetter}13")->getFont()->setBold(true);
+        $sheet->getStyle("A13:{$lastColLetter}13")->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle("A13:{$lastColLetter}13")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('C13')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("A13:{$lastColLetter}13")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($greenHeaderBg);
+        $sheet->getStyle("A13:{$lastColLetter}13")->applyFromArray($thinBorder);
+
+        // Data Siswa Baris 14+
+        $rowIdx = 14;
+        $no = 1;
+        $moduleScoresSum = array_fill_keys($moduleIds->toArray(), ['sum' => 0, 'count' => 0]);
+
+        foreach ($students as $siswa) {
+            $attemptsByModule = $siswa->quizAttempts->keyBy('module_id');
+
+            $sheet->setCellValue("A{$rowIdx}", $no);
+            $sheet->setCellValue("B{$rowIdx}", $siswa->student_number ?: $siswa->email);
+            $sheet->setCellValue("C{$rowIdx}", $siswa->name);
+            $sheet->setCellValue("D{$rowIdx}", $siswa->class_name ?: (config('reports.student_classes', [])[$siswa->email] ?? '-'));
+
+            $sheet->getStyle("A{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("B{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("D{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $col = 5;
+            $studentTotal = 0;
+            $studentCount = 0;
+
+            foreach ($modules as $mod) {
+                $colLet = Coordinate::stringFromColumnIndex($col);
+                $att = $attemptsByModule->get($mod->id);
+
+                if ($att) {
+                    $scoreVal = (float) $att->score;
+                    $sheet->setCellValue("{$colLet}{$rowIdx}", number_format($scoreVal, 1));
+                    $studentTotal += $scoreVal;
+                    $studentCount++;
+                    $moduleScoresSum[$mod->id]['sum'] += $scoreVal;
+                    $moduleScoresSum[$mod->id]['count']++;
+                } else {
+                    $sheet->setCellValue("{$colLet}{$rowIdx}", '-');
+                }
+
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $col++;
+            }
+
+            // Rata-rata
+            $colLet = Coordinate::stringFromColumnIndex($col);
+            if ($studentCount > 0) {
+                $studentAvg = round($studentTotal / $studentCount, 1);
+                $sheet->setCellValue("{$colLet}{$rowIdx}", number_format($studentAvg, 1));
+            } else {
+                $studentAvg = null;
+                $sheet->setCellValue("{$colLet}{$rowIdx}", '-');
+            }
+            $sheet->getStyle("{$colLet}{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->setBold(true);
+            $col++;
+
+            // Status Kelulusan
+            $colLet = Coordinate::stringFromColumnIndex($col);
+            if ($studentAvg === null) {
+                $statusText = 'Belum Mengerjakan';
+                $sheet->setCellValue("{$colLet}{$rowIdx}", $statusText);
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->getColor()->setRGB('71717A');
+            } elseif ($studentAvg >= 75) {
+                $statusText = 'TUNTAS';
+                $sheet->setCellValue("{$colLet}{$rowIdx}", $statusText);
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->getColor()->setRGB('15803D');
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->setBold(true);
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('DCFCE7');
+            } else {
+                $statusText = 'REMEDIAL';
+                $sheet->setCellValue("{$colLet}{$rowIdx}", $statusText);
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->getColor()->setRGB('B91C1C');
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFont()->setBold(true);
+                $sheet->getStyle("{$colLet}{$rowIdx}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEE2E2');
+            }
+            $sheet->getStyle("{$colLet}{$rowIdx}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            // Striping
+            if ($rowIdx % 2 == 1 && $studentAvg === null) {
+                $sheet->getStyle("A{$rowIdx}:{$lastColLetter}{$rowIdx}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FAFAFA');
+            }
+
+            $sheet->getStyle("A{$rowIdx}:{$lastColLetter}{$rowIdx}")->applyFromArray($thinBorder);
+
+            $rowIdx++;
+            $no++;
+        }
+
+        // --- ROW REKAPITULASI RATA-RATA KELAS ---
+        $summaryRow = $rowIdx;
+        $sheet->mergeCells("A{$summaryRow}:D{$summaryRow}");
+        $sheet->setCellValue("A{$summaryRow}", 'RATA-RATA KELAS');
+        $sheet->getStyle("A{$summaryRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("A{$summaryRow}")->getFont()->setBold(true);
+
+        $col = 5;
+        $totalAllKbAvg = 0;
+        $totalKbWithAttempts = 0;
+
+        foreach ($modules as $mod) {
+            $colLet = Coordinate::stringFromColumnIndex($col);
+            $modStat = $moduleScoresSum[$mod->id] ?? ['sum' => 0, 'count' => 0];
+            if ($modStat['count'] > 0) {
+                $modAvg = round($modStat['sum'] / $modStat['count'], 1);
+                $sheet->setCellValue("{$colLet}{$summaryRow}", number_format($modAvg, 1));
+                $totalAllKbAvg += $modAvg;
+                $totalKbWithAttempts++;
+            } else {
+                $sheet->setCellValue("{$colLet}{$summaryRow}", '-');
+            }
+            $sheet->getStyle("{$colLet}{$summaryRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("{$colLet}{$summaryRow}")->getFont()->setBold(true);
+            $col++;
+        }
+
+        // Rata-rata total
+        $colLet = Coordinate::stringFromColumnIndex($col);
+        if ($totalKbWithAttempts > 0) {
+            $grandAvg = round($totalAllKbAvg / $totalKbWithAttempts, 1);
+            $sheet->setCellValue("{$colLet}{$summaryRow}", number_format($grandAvg, 1));
+        } else {
+            $sheet->setCellValue("{$colLet}{$summaryRow}", '-');
+        }
+        $sheet->getStyle("{$colLet}{$summaryRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("{$colLet}{$summaryRow}")->getFont()->setBold(true);
+        $col++;
+
+        // Status empty cell
+        $colLet = Coordinate::stringFromColumnIndex($col);
+        $sheet->setCellValue("{$colLet}{$summaryRow}", '-');
+        $sheet->getStyle("{$colLet}{$summaryRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sheet->getStyle("A{$summaryRow}:{$lastColLetter}{$summaryRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+        $sheet->getStyle("A{$summaryRow}:{$lastColLetter}{$summaryRow}")->applyFromArray($thinBorder);
+
+        // --- PENGESAHAN / TANDA TANGAN GURU ---
+        $sigRow = $summaryRow + 2;
+        $sigStartColIndex = max(1, $totalColumns - 3);
+        $sigStartCol = Coordinate::stringFromColumnIndex($sigStartColIndex);
+        $sheet->mergeCells("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->setCellValue("{$sigStartCol}{$sigRow}", "Kinali, {$tanggalPengesahan}");
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $sigRow++;
+        $sheet->mergeCells("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->setCellValue("{$sigStartCol}{$sigRow}", 'Guru Pengampu Mata Pelajaran TKJ,');
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getFont()->setBold(true);
+
+        $sigRow += 4;
+        $sheet->mergeCells("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->setCellValue("{$sigStartCol}{$sigRow}", $namaGuru);
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getFont()->setBold(true);
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getFont()->setUnderline(true);
+
+        $sigRow++;
+        $sheet->mergeCells("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->setCellValue("{$sigStartCol}{$sigRow}", "NIP. {$nipGuru}");
+        $sheet->getStyle("{$sigStartCol}{$sigRow}:{$lastColLetter}{$sigRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Auto-fit kolom
+        for ($c = 1; $c <= $totalColumns; $c++) {
+            $colLetter = Coordinate::stringFromColumnIndex($c);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        }
+    }
+
+    /**
+     * Membangun Lembar Log Detail Riwayat Pengerjaan Kuis Siswa
+     */
+    public function buildQuizAttemptLogSheet(
+        Spreadsheet $spreadsheet,
+        ?string $className = null,
+        ?string $search = null
+    ): void {
+        $sheet = $spreadsheet->createSheet();
+        $sheet->setTitle('Log Detail Percobaan Kuis');
+        $sheet->setShowGridLines(true);
+
+        $greenHeaderBg = '107C41';
+        $softGreenBg = 'E8F5E9';
+        $borderGray = 'A1A1AA';
+
+        $thinBorder = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => $borderGray],
+                ],
+            ],
+        ];
+
+        $sheet->mergeCells('A1:J1');
+        $sheet->setCellValue('A1', 'LOG DETAIL RIWAYAT PENGERJAAN KUIS SISWA — SMK NEGERI 1 KINALI');
+        $sheet->getStyle('A1')->getFont()->setBold(true);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+
+        $headers = [
+            'A' => 'NO',
+            'B' => 'WAKTU SELESAI (WIB)',
+            'C' => 'NIS / USERNAME',
+            'D' => 'NAMA SISWA',
+            'E' => 'KELAS',
+            'F' => 'KEGIATAN BELAJAR',
+            'G' => 'BENAR',
+            'H' => 'TOTAL SOAL',
+            'I' => 'NILAI (0-100)',
+            'J' => 'STATUS KELULUSAN',
+        ];
+
+        foreach ($headers as $col => $title) {
+            $sheet->setCellValue("{$col}3", $title);
+        }
+
+        $sheet->getStyle('A3:J3')->getFont()->setBold(true);
+        $sheet->getStyle('A3:J3')->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle('A3:J3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('D3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle('A3:J3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($greenHeaderBg);
+        $sheet->getStyle('A3:J3')->applyFromArray($thinBorder);
+
+        $query = ModuleQuizAttempt::with(['user', 'module'])->orderBy('created_at', 'desc');
+
+        if ($className) {
+            $query->whereHas('user', fn ($q) => $q->where('class_name', $className));
+        }
+
+        if ($search) {
+            $query->whereHas('user', function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('student_number', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%");
+            });
+        }
+
+        $attempts = $query->lazy(100);
+
+        $r = 4;
+        $no = 1;
+
+        foreach ($attempts as $att) {
+            $user = $att->user;
+            $module = $att->module;
+            $waktu = $att->created_at ? $att->created_at->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i:s') : '-';
+            $modulName = $module ? ($module->kb_nomor ? "{$module->kb_nomor} - {$module->judul}" : $module->judul) : '-';
+            $score = (float) $att->score;
+            $statusText = $score >= 75 ? 'TUNTAS' : 'REMEDIAL';
+
+            $sheet->setCellValue("A{$r}", $no);
+            $sheet->setCellValue("B{$r}", $waktu);
+            $sheet->setCellValue("C{$r}", $user?->student_number ?: ($user?->email ?? '-'));
+            $sheet->setCellValue("D{$r}", $user?->name ?? 'Siswa');
+            $sheet->setCellValue("E{$r}", $user?->class_name ?: '-');
+            $sheet->setCellValue("F{$r}", $modulName);
+            $sheet->setCellValue("G{$r}", $att->correct_count);
+            $sheet->setCellValue("H{$r}", $att->question_count);
+            $sheet->setCellValue("I{$r}", number_format($score, 1));
+            $sheet->setCellValue("J{$r}", $statusText);
+
+            $sheet->getStyle("A{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("B{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("C{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("E{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("G{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("H{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("I{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("J{$r}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            if ($score >= 75) {
+                $sheet->getStyle("J{$r}")->getFont()->getColor()->setRGB('15803D');
+                $sheet->getStyle("J{$r}")->getFont()->setBold(true);
+            } else {
+                $sheet->getStyle("J{$r}")->getFont()->getColor()->setRGB('B91C1C');
+                $sheet->getStyle("J{$r}")->getFont()->setBold(true);
+            }
+
+            if ($r % 2 == 1) {
+                $sheet->getStyle("A{$r}:J{$r}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FAFAFA');
+            }
+
+            $sheet->getStyle("A{$r}:J{$r}")->applyFromArray($thinBorder);
+
+            $r++;
+            $no++;
+        }
+
+        // Sizing
+        $sheet->getColumnDimension('A')->setWidth(8);
+        $sheet->getColumnDimension('B')->setWidth(22);
+        $sheet->getColumnDimension('C')->setWidth(18);
+        $sheet->getColumnDimension('D')->setWidth(28);
+        $sheet->getColumnDimension('E')->setWidth(16);
+        $sheet->getColumnDimension('F')->setWidth(35);
+        $sheet->getColumnDimension('G')->setWidth(12);
+        $sheet->getColumnDimension('H')->setWidth(14);
+        $sheet->getColumnDimension('I')->setWidth(16);
+        $sheet->getColumnDimension('J')->setWidth(20);
     }
 }

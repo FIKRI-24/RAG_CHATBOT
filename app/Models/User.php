@@ -82,6 +82,14 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
+     * Get module quiz attempts for this user.
+     */
+    public function quizAttempts()
+    {
+        return $this->hasMany(\App\Models\ModuleQuizAttempt::class, 'user_id');
+    }
+
+    /**
      * The attributes that should be hidden for serialization.
      *
      * @var list<string>

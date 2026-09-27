@@ -167,7 +167,7 @@
     <div id="mobile-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
 
     <!-- Sidebar (Desktop & Mobile Drawer) -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-80 bg-white border-r border-slate-200 flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
         
         <!-- Logo Area -->
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100 bg-white">
@@ -203,48 +203,105 @@
         </div>
 
         <!-- Modules Context Section -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-4">
+        <div class="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-3 space-y-3">
             <div class="flex items-center justify-between px-1">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Modul Terindeks AI</span>
-                <span class="bg-emerald-50 text-[#008546] text-xs font-bold px-2.5 py-0.5 rounded-full border border-emerald-200/60">{{ $modules->count() }} Modul</span>
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Modul Terindeks AI</span>
+                <span class="bg-emerald-100 text-[#008546] text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-300/80">{{ $modules->count() }} Modul</span>
             </div>
             
             @if($modules->isEmpty())
-                <div class="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs text-slate-400 text-center">
+                <div class="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-xs text-slate-400 text-center">
                     <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>
                     Belum ada modul aktif yang diunggah.
                 </div>
             @else
-                <div class="space-y-2">
+                <div class="space-y-2.5">
                     @foreach($modules as $module)
-                    <div class="group p-2.5 bg-slate-50 hover:bg-emerald-50/50 rounded-xl border border-slate-200/60 hover:border-emerald-300 transition-all duration-200 flex items-center justify-between gap-2">
-                        <a href="{{ route('siswa.modules.show', $module->id) }}" class="flex items-center gap-2.5 flex-1 overflow-hidden" title="Lihat detail KB {{ $module->judul }}">
-                            <div class="w-8 h-8 rounded-lg bg-white text-[#008546] flex items-center justify-center flex-shrink-0 shadow-sm border border-slate-100 group-hover:scale-105 transition-transform">
-                                <i class="fa-solid fa-layer-group text-xs"></i>
+                    @php
+                        $isSelected = $selectedModule === $module->id;
+                    @endphp
+                    <div class="group relative p-3 rounded-2xl border-2 transition-all duration-200 {{ $isSelected ? 'border-[#008546] bg-emerald-50/60 shadow-sm ring-2 ring-emerald-500/20' : 'border-slate-200 bg-white hover:border-emerald-400 hover:shadow-md hover:-translate-y-0.5' }}">
+                        <!-- Header Row: KB Badge + Quiz Tag / Active Badge -->
+                        <div class="flex items-center justify-between gap-1.5 mb-1.5">
+                            <div class="flex items-center gap-1.5">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-lg text-[11px] font-extrabold {{ $isSelected ? 'bg-[#008546] text-white shadow-2xs' : 'bg-emerald-100 text-[#008546] border border-emerald-300/80' }}">
+                                    {{ $module->kb_nomor ?? 'KB' }}
+                                </span>
+                                @if($module->quiz?->is_published)
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-purple-700 bg-purple-50 px-1.5 py-0.5 rounded-md border border-purple-200" title="Kuis Objektif Tersedia">
+                                        <i class="fa-solid fa-clipboard-check text-[9px]"></i> Kuis
+                                    </span>
+                                @endif
                             </div>
-                            <div class="overflow-hidden flex-1">
-                                <p class="text-xs sm:text-sm font-semibold text-slate-800 truncate group-hover:text-[#008546] transition-colors">{{ $module->kb_nomor ?? 'KB' }}: {{ $module->judul }}</p>
-                                <p class="text-xs text-slate-400 truncate">{{ $module->mapel }}</p>
-                            </div>
+
+                            @if($isSelected)
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-200/70 px-2 py-0.5 rounded-full border border-emerald-300">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                                    Aktif
+                                </span>
+                            @endif
+                        </div>
+
+                        <!-- Title & Subject -->
+                        <a href="{{ route('siswa.modules.show', $module->id) }}" class="block group/link" title="Buka materi {{ $module->judul }}">
+                            <h4 class="text-xs font-bold text-slate-900 group-hover/link:text-[#008546] line-clamp-2 leading-snug transition-colors">
+                                {{ $module->judul }}
+                            </h4>
+                            <p class="text-[10px] font-semibold text-slate-400 mt-1 truncate">
+                                {{ $module->mapel }}
+                            </p>
                         </a>
-                        <!-- Download File Asli (FR-16) -->
-                        <a href="{{ route('modules.download', $module->id) }}" class="p-1.5 rounded-lg text-slate-400 hover:text-[#008546] hover:bg-white transition-colors" title="Download Materi Asli">
-                            <i class="fa-solid fa-download text-xs"></i>
-                        </a>
+
+                        <!-- Interactive Action Toolbar -->
+                        <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                            @if($isSelected)
+                                <a href="{{ route('siswa.dashboard', ['mapel' => $selectedMapel]) }}" 
+                                   class="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl text-[10px] font-bold bg-[#008546] text-white hover:bg-emerald-800 shadow-2xs transition-all"
+                                   title="Klik untuk melepas fokus dan bertanya ke semua modul">
+                                    <i class="fa-solid fa-check text-[9px]"></i>
+                                    <span>Fokus Aktif</span>
+                                </a>
+                            @else
+                                <a href="{{ route('siswa.dashboard', ['mapel' => $selectedMapel, 'module_id' => $module->id]) }}" 
+                                   class="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl text-[10px] font-bold text-emerald-800 bg-emerald-50 hover:bg-[#008546] hover:text-white border border-emerald-200 shadow-2xs transition-all active:scale-95"
+                                   title="Fokuskan tanya jawab AI hanya ke materi KB ini">
+                                    <i class="fa-solid fa-crosshairs text-[9px]"></i>
+                                    <span>Tanya KB Ini</span>
+                                </a>
+                            @endif
+
+                            <a href="{{ route('siswa.modules.show', $module->id) }}" 
+                               class="w-7 h-7 flex items-center justify-center rounded-xl text-slate-500 hover:text-[#008546] hover:bg-emerald-50 border border-slate-200 transition-colors" 
+                               title="Buka Materi Lengkap">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                            </a>
+
+                            <a href="{{ route('modules.download', $module->id) }}" 
+                               class="w-7 h-7 flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 border border-slate-200 transition-colors" 
+                               title="Unduh File Modul">
+                                <i class="fa-solid fa-download text-[10px]"></i>
+                            </a>
+                        </div>
                     </div>
                     @endforeach
                 </div>
             @endif
 
             <!-- Quick Action Chips in Sidebar -->
-            <div class="pt-4 border-t border-slate-100">
-                <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-2 px-1">Panduan Cepat</span>
+            <div class="pt-3 border-t border-slate-100">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-1">Panduan Cepat</span>
                 <div class="space-y-1.5">
-                    <button class="quick-chip w-full text-left p-2.5 rounded-xl text-xs sm:text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors flex items-center gap-2.5">
-                        <i class="fa-regular fa-lightbulb text-amber-500 text-sm"></i> <span>Apa saja materi di modul ini?</span>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
+                        <i class="fa-regular fa-lightbulb text-amber-500 text-xs shrink-0"></i>
+                        <span class="truncate">Ada materi apa saja di sistem?</span>
                     </button>
-                    <button class="quick-chip w-full text-left p-2.5 rounded-xl text-xs sm:text-sm text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors flex items-center gap-2.5">
-                        <i class="fa-solid fa-network-wired text-blue-500 text-sm"></i> <span>Penjelasan tentang Router & Switch</span>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-purple-500 text-xs shrink-0"></i>
+                        <span class="truncate">Jelaskan Firewall & Keamanan (KB 4)</span>
+                    </button>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-tower-broadcast text-blue-500 text-xs shrink-0"></i>
+                        <span class="truncate">Frekuensi & Perawatan Jaringan (KB 3)</span>
                     </button>
                 </div>
             </div>
@@ -280,38 +337,40 @@
     <main class="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
         
         <!-- Top Bar Header -->
-        <header class="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-slate-100 bg-white/90 backdrop-blur-md shrink-0 z-20">
+        <header class="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-slate-200 bg-white shrink-0 z-20 shadow-2xs">
             <div class="flex items-center gap-3">
-                <button id="open-sidebar-btn" class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100">
+                <button id="open-sidebar-btn" class="md:hidden text-slate-600 p-2 rounded-xl hover:bg-slate-100 border border-slate-200">
                     <i class="fa-solid fa-bars text-lg"></i>
                 </button>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-                    <h2 class="text-sm sm:text-base font-bold text-slate-800">Ruang Tanya Jawab AI</h2>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
+                        <i class="fa-solid fa-robot"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight flex items-center gap-2">
+                            <span>Ruang Tanya Jawab AI</span>
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                            </span>
+                        </h2>
+                        <p class="text-[11px] text-slate-400 font-semibold hidden sm:block">Asisten Cerdas E-Modul TKJ SMK Negeri 1 Kinali</p>
+                    </div>
                 </div>
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3">
                 <!-- Font Size Selector (A Standard, A+ Besar, A++ Ekstra Besar) -->
-                <div class="inline-flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200/80" title="Atur Ukuran Teks">
-                    <span class="hidden sm:inline text-[11px] font-semibold text-slate-500 px-2">Ukuran Teks:</span>
+                <div class="inline-flex items-center bg-slate-100 p-0.5 rounded-xl border border-slate-200" title="Atur Ukuran Teks">
+                    <span class="hidden sm:inline text-[11px] font-bold text-slate-400 px-2 uppercase tracking-wider">Ukuran Teks:</span>
                     <button type="button" data-size="standard" class="font-size-btn px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all" title="Ukuran Normal">
                         A
                     </button>
-                    <button type="button" data-size="large" class="font-size-btn px-2.5 py-1 rounded-lg text-xs font-bold text-[#008546] bg-white shadow-xs transition-all" title="Ukuran Besar (Default)">
+                    <button type="button" data-size="large" class="font-size-btn px-2.5 py-1 rounded-lg text-xs font-bold text-[#008546] bg-white shadow-2xs transition-all" title="Ukuran Besar (Default)">
                         A+
                     </button>
                     <button type="button" data-size="xl" class="font-size-btn px-2.5 py-1 rounded-lg text-xs font-extrabold text-slate-600 hover:text-slate-900 transition-all" title="Ukuran Ekstra Besar">
                         A++
                     </button>
-                </div>
-
-                <!-- Subject Badge Dropdown Indicator -->
-                <div class="hidden md:flex items-center gap-2">
-                    <span class="text-xs font-medium text-slate-400">Status AI:</span>
-                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-[#008546] border border-emerald-200/50">
-                        <i class="fa-solid fa-circle text-[8px] animate-pulse"></i> {{ config('gemini.api_key') ? 'Siap menerima pertanyaan' : 'Belum dikonfigurasi' }}
-                    </span>
                 </div>
             </div>
         </header>
@@ -425,7 +484,17 @@
                             <i class="fa-solid fa-robot text-sm"></i>
                         </div>
                         <div class="flex flex-col items-start max-w-[92%] sm:max-w-[85%] w-full">
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl rounded-tl-xs shadow-sm border border-slate-200/80 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                            <div class="bg-white p-5 sm:p-6 rounded-3xl rounded-tl-xs shadow-md border-2 border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 not-prose">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-extrabold text-[#008546] flex items-center gap-1.5">
+                                            <i class="fa-solid fa-robot"></i> Asisten AI Pembelajaran TKJ
+                                        </span>
+                                        <span class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-bold border border-slate-200/80">
+                                            RAG Verified
+                                        </span>
+                                    </div>
+                                </div>
                                 <div class="markdown-content hidden">{{ $chat->jawaban }}</div>
                                 <div class="rendered-content">Memuat format...</div>
                                 @if($chat->reviewed_at)<p class="text-sm text-emerald-800 mt-3">Nilai guru: {{ $chat->score }}/100 ? {{ $chat->review_note }}</p>@endif
@@ -475,33 +544,59 @@
         </div>
 
         <!-- Input Bar Section -->
-        <div class="bg-white/90 backdrop-blur-md border-t border-slate-200/80 shrink-0 px-4 sm:px-6 py-4 shadow-lg shadow-slate-200/40">
+        <div class="bg-white border-t-2 border-slate-100 shrink-0 px-4 sm:px-6 py-4 shadow-xl">
             <div class="max-w-4xl mx-auto space-y-3">
                 
                 <!-- Quick Tools & Filter Bar -->
-                <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
-                    <div class="flex items-center gap-2">
+                <div class="flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
+                    <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1">
                         <!-- Subject Selector -->
-                        <div class="inline-flex items-center bg-slate-100 border border-slate-200/80 rounded-xl px-3 py-1.5 text-xs sm:text-sm text-slate-600 focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-100 transition-all">
-                            <i class="fa-solid fa-filter text-slate-400 text-xs mr-2"></i>
-                            <select id="mapel-select" class="bg-transparent border-0 outline-none text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer pr-2">
-                                <option value="Semua" {{ $selectedMapel === 'Semua' ? 'selected' : '' }}>Semua Mata Pelajaran</option>
+                        <div class="inline-flex items-center bg-slate-50 border-2 border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-700 shadow-2xs focus-within:border-[#008546] focus-within:bg-white transition-all shrink-0">
+                            <i class="fa-solid fa-book-open text-slate-400 text-xs mr-2"></i>
+                            <select id="mapel-select" class="bg-transparent border-0 outline-none text-xs font-bold text-slate-800 cursor-pointer pr-1">
+                                <option value="Semua" {{ $selectedMapel === 'Semua' ? 'selected' : '' }}>Semua Mapel</option>
                                 @foreach($mapels as $m)
                                     <option value="{{ $m }}" {{ $selectedMapel === $m ? 'selected' : '' }}>{{ $m }}</option>
                                 @endforeach
                             </select>
                         </div>
+
+                        <!-- Scope Module / KB Selector -->
+                        <div class="inline-flex items-center {{ $selectedModule ? 'bg-emerald-50/70 border-emerald-400 text-emerald-900 ring-2 ring-emerald-500/20' : 'bg-slate-50 border-slate-200/90 text-slate-700' }} border-2 rounded-xl px-3 py-1.5 text-xs shadow-2xs focus-within:border-[#008546] focus-within:bg-white transition-all flex-1 min-w-[200px]">
+                            <i class="fa-solid fa-layer-group {{ $selectedModule ? 'text-[#008546]' : 'text-slate-400' }} text-xs mr-2 shrink-0"></i>
+                            <span class="text-slate-400 text-[10px] font-bold uppercase tracking-wider mr-1.5 shrink-0">Cakupan:</span>
+                            <select id="module-select" class="bg-transparent border-0 outline-none text-xs font-bold {{ $selectedModule ? 'text-emerald-950' : 'text-slate-800' }} cursor-pointer w-full truncate">
+                                <option value="">Semua Modul (KB 1 - KB 4)</option>
+                                @foreach($modules->filter(fn ($item) => $selectedMapel === 'Semua' || $item->mapel === $selectedMapel) as $scopeModule)
+                                    <option value="{{ $scopeModule->id }}" @selected($selectedModule === $scopeModule->id)>{{ $scopeModule->kb_nomor }}: {{ $scopeModule->judul }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
 
-                    <label class="text-sm">Modul / KB
-                        <select id="module-select" class="rounded-xl text-sm"><option value="">Semua modul</option>@foreach($modules->filter(fn ($item) => $selectedMapel === 'Semua' || $item->mapel === $selectedMapel) as $scopeModule)<option value="{{ $scopeModule->id }}" @selected($selectedModule === $scopeModule->id)>{{ $scopeModule->kb_nomor }}: {{ $scopeModule->judul }}</option>@endforeach</select>
-                    </label>
                     <!-- Quiz Button -->
-                    <button type="button" id="btn-kuis" class="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-[#008546] bg-emerald-50 hover:bg-[#008546] hover:text-white px-3.5 py-1.5 rounded-xl border border-emerald-200/80 transition-all shadow-xs group">
+                    <button type="button" id="btn-kuis" class="inline-flex items-center gap-2 text-xs font-extrabold text-white bg-gradient-to-r from-[#008546] to-emerald-600 hover:from-[#00703c] hover:to-emerald-700 px-4 py-2 rounded-xl border border-emerald-500 shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 group">
                         <i class="fa-solid fa-brain group-hover:rotate-12 transition-transform text-xs"></i>
                         <span>Latihan Soal AI</span>
                     </button>
                 </div>
+
+                @if($selectedModule)
+                    @php
+                        $activeScopeMod = $modules->firstWhere('id', $selectedModule);
+                    @endphp
+                    @if($activeScopeMod)
+                        <div class="flex items-center justify-between gap-2 px-3.5 py-2 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 animate-fade-in shadow-2xs">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0"></span>
+                                <span class="truncate">Fokus Tanya Jawab AI: <strong>{{ $activeScopeMod->kb_nomor }}</strong> — {{ $activeScopeMod->judul }}</span>
+                            </div>
+                            <a href="{{ route('siswa.dashboard', ['mapel' => $selectedMapel]) }}" class="shrink-0 font-bold underline hover:text-emerald-950 text-[11px]">
+                                Reset ke Semua KB
+                            </a>
+                        </div>
+                    @endif
+                @endif
 
                 <!-- Chat Input Form -->
                 <div id="quiz-state" class="hidden text-sm text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200/60" role="status">
@@ -510,16 +605,16 @@
                 </div>
                 <form id="chat-form" class="relative flex items-center">
                     <input type="text" id="pertanyaan" maxlength="1000" autocomplete="off" placeholder="Ketik pertanyaan seputar materi TKJ..."
-                           class="w-full bg-slate-50 border border-slate-200 text-slate-800 rounded-2xl pl-5 pr-14 py-3.5 text-base sm:text-lg focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20 transition-all outline-none placeholder-slate-400 font-medium shadow-xs">
+                           class="w-full bg-slate-50 border-2 border-slate-200 text-slate-900 rounded-2xl pl-5 pr-14 py-3.5 text-base sm:text-lg focus:bg-white focus:border-[#008546] focus:ring-4 focus:ring-emerald-500/15 transition-all outline-none placeholder-slate-400 font-medium shadow-xs">
                     
                     <button type="submit" id="submit-btn" 
-                            class="absolute right-2 top-2 bottom-2 bg-[#008546] hover:bg-[#00703c] text-white rounded-xl px-4 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:scale-105 active:scale-95" title="Kirim Pertanyaan">
+                            class="absolute right-2.5 top-2.5 bottom-2.5 bg-[#008546] hover:bg-[#00703c] text-white rounded-xl px-4 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:scale-105 active:scale-95" title="Kirim Pertanyaan">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
                     </button>
                 </form>
 
                 <div class="text-center">
-                    <span class="text-xs text-slate-400 font-medium">RAG Chatbot Pintar • SMK N 1 Kinali</span>
+                    <span class="text-xs text-slate-400 font-semibold tracking-wide">RAG Chatbot Pintar • SMK N 1 Kinali</span>
                 </div>
             </div>
         </div>
@@ -812,7 +907,17 @@
                             <i class="fa-solid fa-robot text-sm"></i>
                         </div>
                         <div class="flex flex-col items-start max-w-[92%] sm:max-w-[85%] w-full">
-                            <div class="bg-white p-5 sm:p-6 rounded-2xl rounded-tl-xs shadow-sm border border-slate-200/80 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                            <div class="bg-white p-5 sm:p-6 rounded-3xl rounded-tl-xs shadow-md border-2 border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                                <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 not-prose">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xs font-extrabold text-[#008546] flex items-center gap-1.5">
+                                            <i class="fa-solid fa-robot"></i> Asisten AI Pembelajaran TKJ
+                                        </span>
+                                        <span class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-bold border border-slate-200/80">
+                                            RAG Verified
+                                        </span>
+                                    </div>
+                                </div>
                                 ${htmlContent}
                                 ${sourceHtml}
                                 <button onclick="copyResponse(this)" class="absolute top-3 right-3 text-slate-400 hover:text-[#008546] bg-slate-50 hover:bg-emerald-50 p-2 rounded-lg border border-slate-200 text-xs transition-colors opacity-0 group-hover:opacity-100" title="Salin jawaban">

@@ -4,6 +4,7 @@ use App\Http\Controllers\DeveloperProfileController;
 use App\Http\Controllers\Guru\DashboardController;
 use App\Http\Controllers\Guru\ModuleController;
 use App\Http\Controllers\Guru\ModuleQuizController;
+use App\Http\Controllers\Guru\QuizRecapController;
 use App\Http\Controllers\Guru\QuizReviewController;
 use App\Http\Controllers\Guru\SiswaController;
 use App\Http\Controllers\Guru\SystemController;
@@ -63,6 +64,9 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:gu
     Route::patch('/siswa/{siswa}/status', [SiswaController::class, 'status'])->name('siswa.status');
     Route::get('/quiz-reviews', [QuizReviewController::class, 'index'])->name('quiz-reviews.index');
     Route::patch('/quiz-reviews/{chat}', [QuizReviewController::class, 'update'])->name('quiz-reviews.update');
+    Route::get('/rekap-kuis', [QuizRecapController::class, 'index'])->name('quiz-recap.index');
+    Route::get('/rekap-kuis/export', [QuizRecapController::class, 'export'])->name('quiz-recap.export');
+    Route::get('/rekap-kuis/attempt/{attempt}', [QuizRecapController::class, 'showAttempt'])->name('quiz-recap.show-attempt');
     Route::get('/system', [SystemController::class, 'index'])->name('system');
     Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show']);
 });

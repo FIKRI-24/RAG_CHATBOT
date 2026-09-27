@@ -18,20 +18,51 @@ class ModuleQuizController extends Controller
         abort_unless(Module::available()->whereKey($module->id)->exists(), 403, 'Modul belum tersedia atau sudah kedaluwarsa.');
         $quiz = $module->quiz;
         abort_unless($quiz && $quiz->is_published, 404, 'Kuis belum diterbitkan.');
+
+        $existingAttempt = ModuleQuizAttempt::where('module_id', $module->id)
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->first();
+
+        if ($existingAttempt) {
+            return redirect()->route('siswa.quiz-attempts.show', $existingAttempt)
+                ->with('info', 'Anda telah menyelesaikan kuis ini. Kuis hanya dapat dikerjakan satu kali.');
+        }
+
         $questions = $quiz->studentQuestions();
-        $attempts = ModuleQuizAttempt::where('module_id', $module->id)->where('user_id', auth()->id())->latest()->limit(10)->get();
+        $attempts = collect();
 
         return view('siswa.modules.quiz', compact('module', 'quiz', 'questions', 'attempts'));
     }
 
     public function submit(Request $request, Module $module)
     {
+        $existing = ModuleQuizAttempt::where('module_id', $module->id)
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->first();
+
+        if ($existing) {
+            return redirect()->route('siswa.quiz-attempts.show', $existing)
+                ->with('warning', 'Anda sudah pernah mengerjakan kuis ini. Kuis hanya dapat dikerjakan satu kali.');
+        }
+
         $identity = $request->validate(['quiz_id' => 'required|integer|min:1', 'quiz_version' => 'required|integer|min:1']);
         $attempt = DB::transaction(function () use ($request, $module, $identity) {
             $current = Module::whereKey($module->id)->lockForUpdate()->firstOrFail();
             abort_unless(Module::available()->whereKey($current->id)->exists(), 403, 'Modul belum tersedia atau sudah kedaluwarsa.');
             $quiz = $current->quiz()->lockForUpdate()->first();
             abort_unless($quiz && $quiz->is_published, 404, 'Kuis belum diterbitkan.');
+
+            $doubleCheck = ModuleQuizAttempt::where('module_id', $current->id)
+                ->where('user_id', auth()->id())
+                ->lockForUpdate()
+                ->first();
+
+            if ($doubleCheck) {
+                return $doubleCheck;
+            }
+
             if ((int) $identity['quiz_id'] !== (int) $quiz->id || (int) $identity['quiz_version'] !== $quiz->version) {
                 throw ValidationException::withMessages(['quiz_version' => 'Kuis telah diperbarui guru. Muat ulang halaman dan kerjakan versi terbaru.']);
             }

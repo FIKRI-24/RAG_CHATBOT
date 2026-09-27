@@ -7,7 +7,10 @@
         <div class="bg-white p-6 rounded-3xl border border-slate-200 space-y-2">
             <h1 class="text-2xl font-bold">{{ $quiz->title }}</h1>
             <p class="text-slate-500">{{ $module->kb_nomor }} · {{ $module->judul }}</p>
-            <p class="text-sm text-slate-500">Pilih satu jawaban per soal. Semua soal wajib dijawab. Nilai dihitung otomatis; latihan boleh diulang.</p>
+            <p class="text-sm text-amber-700 bg-amber-50 p-3 rounded-xl border border-amber-200/80 flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-base shrink-0"></i>
+                <span><strong>Perhatian:</strong> Kuis ini hanya dapat dikerjakan <strong>1 (satu) kali</strong>. Periksa kembali jawaban Anda dengan teliti sebelum menekan tombol Kirim Jawaban.</span>
+            </p>
         </div>
         @if($errors->any())
             <div role="alert" class="p-4 bg-rose-50 text-rose-800 rounded-2xl"><ul class="list-disc pl-5">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>
@@ -28,15 +31,7 @@
                     @endforeach
                 </fieldset>
             @endforeach
-            <button type="submit" class="bg-[#008546] hover:bg-emerald-800 text-white px-6 py-3 rounded-xl font-semibold">Kirim Jawaban</button>
+            <button type="submit" class="bg-[#008546] hover:bg-emerald-800 text-white px-6 py-3 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all">Kirim Jawaban</button>
         </form>
-        @if($attempts->isNotEmpty())
-            <div class="bg-white p-6 rounded-3xl border border-slate-200 space-y-3">
-                <h2 class="font-bold text-lg">Hasil Latihan Sebelumnya</h2>
-                @foreach($attempts as $attempt)
-                    <a href="{{ route('siswa.quiz-attempts.show', $attempt) }}" class="block text-emerald-700">{{ $attempt->quiz_title }} · v{{ $attempt->quiz_version }} · {{ $attempt->score }}/100 · {{ $attempt->created_at->timezone(config('app.display_timezone'))->format('d/m/Y H:i') }}</a>
-                @endforeach
-            </div>
-        @endif
     </div>
 </x-student-quiz-layout>

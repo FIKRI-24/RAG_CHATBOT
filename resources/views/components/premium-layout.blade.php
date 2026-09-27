@@ -83,6 +83,11 @@
             <a href="{{ route('guru.quiz-reviews.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.quiz-reviews.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fa-solid fa-clipboard-check text-sm w-5 text-center"></i><span>Tinjauan kuis</span>
             </a>
+
+            <a href="{{ route('guru.quiz-recap.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.quiz-recap.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
+                <i class="fa-solid fa-square-poll-vertical text-sm w-5 text-center"></i>
+                <span>Rekap Nilai Kuis</span>
+            </a>
             <a href="{{ route('guru.petunjuk') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.petunjuk') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
                 <i class="fa-solid fa-circle-question text-sm w-5 text-center"></i>
                 <span>Petunjuk Guru</span>
