@@ -26,10 +26,6 @@ class ModuleController extends Controller
             'kb_nomor' => 'nullable|string|max:255',
         ]);
 
-        if (! app()->runningUnitTests()) {
-            Module::ensureKb4Module((int) Auth::id());
-        }
-
         $query = Module::where('guru_id', Auth::id());
 
         if ($request->filled('mapel')) {
@@ -41,6 +37,7 @@ class ModuleController extends Controller
         }
 
         $modules = $query->latest()->paginate(10)->withQueryString();
+        
 
         $ownedModules = Module::where('guru_id', Auth::id());
         $mapelList = (clone $ownedModules)
@@ -70,7 +67,7 @@ class ModuleController extends Controller
             'video_url' => 'nullable|url:http,https|max:255',
             'kuis_url' => 'nullable|url:http,https|max:255',
             'file' => 'required|file|mimes:pdf,docx|max:10240',
-            'berlaku_sampai' => 'nullable|date',
+            'berlaku_sampai' => 'nullable|date|after_or_equal:today',
             'additional_videos' => 'nullable|array|max:10',
             'additional_videos.*' => 'array:title,url',
             'additional_videos.*.title' => 'required|string|max:100',
@@ -193,8 +190,7 @@ class ModuleController extends Controller
             return back()->withInput()->withErrors(['file' => 'Perubahan belum dapat disimpan. Dokumen sebelumnya tetap tersedia.']);
         }
         if ($newPath) {
-            $files->delete($oldPath, 'local');
-            if (! $this->schedule($module)) {
+            if (! $this->schedule($module, $oldPath)) {
                 return back()->with('error', 'Dokumen tersimpan, tetapi antrean AI belum tersedia. Silakan jalankan indexing ulang.');
             }
         }
@@ -279,10 +275,10 @@ class ModuleController extends Controller
         return $disk->download($module->file_path, $cleanName);
     }
 
-    private function schedule(Module $module): bool
+    private function schedule(Module $module, ?string $oldFilePath = null): bool
     {
         try {
-            ProcessModuleJob::dispatch($module);
+            ProcessModuleJob::dispatch($module, $oldFilePath);
 
             return true;
         } catch (\Throwable $e) {
@@ -295,3 +291,7 @@ class ModuleController extends Controller
         }
     }
 }
+
+
+
+

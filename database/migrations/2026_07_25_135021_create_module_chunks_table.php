@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('module_chunks', function (Blueprint $table) {
             $table->id();
             $table->foreignId('module_id')->constrained('modules')->onDelete('cascade');
-            $table->text('chunk_text');
+            $table->mediumText('chunk_text');
             $table->longText('embedding_vector')->nullable(); // Fallback to JSON/Text if pgvector is not available
             $table->timestamps();
         });

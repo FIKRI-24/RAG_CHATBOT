@@ -27,6 +27,118 @@ class BackupService
         }
     }
 
+    public function assertSafeDrillDatabase(string $drillDb, ?string $currentDb = null): void
+    {
+        $activeDb = $currentDb ?? (string) (DB::connection()->getConfig()['database'] ?? '');
+        $envDb = (string) env('DB_DATABASE', '');
+
+        if (! str_starts_with($drillDb, 'rag_restore_drill_')
+            || $drillDb === $activeDb
+            || ($envDb !== '' && $drillDb === $envDb)
+            || ! preg_match('/^rag_restore_drill_[a-zA-Z0-9_]+$/', $drillDb)
+        ) {
+            throw new RuntimeException("Nama database restore drill '{$drillDb}' tidak aman atau sama dengan database aktif.");
+        }
+    }
+
+    public function getMysqlBinary(string $tool): string
+    {
+        $bin = trim((string) config('backup.mysql_bin', ''));
+        if ($bin === '') {
+            throw new RuntimeException("Konfigurasi MYSQL_BIN tidak ditemukan atau kosong. Periksa konfigurasi MYSQL_BIN di file .env.");
+        }
+        $bin = rtrim($bin, '/\\');
+        $executable = $bin.DIRECTORY_SEPARATOR.$tool.(PHP_OS_FAMILY === 'Windows' ? '.exe' : '');
+        if (! file_exists($executable)) {
+            throw new RuntimeException("Tool {$tool} tidak ditemukan di '{$executable}'. Periksa konfigurasi MYSQL_BIN di file .env.");
+        }
+
+        return $executable;
+    }
+
+    public function buildMysqlDumpProcess(string $dumpPath, ?array $connectionConfig = null): Process
+    {
+        $config = $connectionConfig ?? DB::connection()->getConfig();
+        $executable = $this->getMysqlBinary('mysqldump');
+
+        $arguments = [
+            $executable,
+            '-h', (string) ($config['host'] ?? '127.0.0.1'),
+            '-P', (string) ($config['port'] ?? 3306),
+            '-u', (string) ($config['username'] ?? 'root'),
+            '--single-transaction',
+            '--default-character-set=utf8mb4',
+            '--routines',
+            '--no-tablespaces',
+            '--max-allowed-packet=256M',
+            '--skip-extended-insert',
+            '--result-file='.$dumpPath,
+            (string) ($config['database'] ?? ''),
+        ];
+
+        $process = new Process(
+            $arguments,
+            null,
+            ['MYSQL_PWD' => (string) ($config['password'] ?? '')]
+        );
+        $process->setTimeout((int) config('backup.process_timeout', 180));
+
+        return $process;
+    }
+
+    public function buildMysqlRestoreProcess(string $database, ?array $connectionConfig = null): Process
+    {
+        $config = $connectionConfig ?? DB::connection()->getConfig();
+        $executable = $this->getMysqlBinary('mysql');
+
+        $arguments = [
+            $executable,
+            '-h', (string) ($config['host'] ?? '127.0.0.1'),
+            '-P', (string) ($config['port'] ?? 3306),
+            '-u', (string) ($config['username'] ?? 'root'),
+            '--default-character-set=utf8mb4',
+            '--max-allowed-packet=256M',
+            $database,
+        ];
+
+        $process = new Process(
+            $arguments,
+            null,
+            ['MYSQL_PWD' => (string) ($config['password'] ?? '')]
+        );
+        $process->setTimeout((int) config('backup.process_timeout', 180));
+
+        return $process;
+    }
+
+    private function mysqlDump(string $dumpPath, ?array $connectionConfig = null): void
+    {
+        $process = $this->buildMysqlDumpProcess($dumpPath, $connectionConfig);
+        if ($process->run() !== 0) {
+            throw new RuntimeException('mysqldump gagal. Periksa konfigurasi MySQL, MYSQL_BIN, dan izin database.');
+        }
+    }
+
+    private function mysqlRestore(string $dumpPath, string $database, ?array $connectionConfig = null): void
+    {
+        $stream = fopen($dumpPath, 'r');
+        if ($stream === false) {
+            throw new RuntimeException('Tidak dapat membaca berkas dump database.');
+        }
+
+        try {
+            $process = $this->buildMysqlRestoreProcess($database, $connectionConfig);
+            $process->setInput($stream);
+            if ($process->run() !== 0) {
+                throw new RuntimeException('mysql restore gagal. Periksa konfigurasi MySQL, MYSQL_BIN, dan izin database.');
+            }
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+    }
+
     public function create(): string
     {
         if (! app()->isDownForMaintenance()) {
@@ -36,21 +148,23 @@ class BackupService
             throw new RuntimeException('Masih ada pekerjaan yang direservasi. Tunggu selesai dan hentikan worker sebelum backup.');
         }
         $driver = DB::connection()->getDriverName();
-        if (! in_array($driver, ['pgsql', 'sqlite'], true)) {
-            throw new RuntimeException('Backup mendukung PostgreSQL dan SQLite.');
+        if (! in_array($driver, ['pgsql', 'sqlite', 'mysql', 'mariadb'], true)) {
+            throw new RuntimeException('Backup mendukung PostgreSQL, SQLite, dan MySQL/MariaDB.');
         }
         $directory = storage_path('app/backups');
         File::ensureDirectoryExists($directory, 0700);
         $id = now()->format('Ymd-His').'-'.bin2hex(random_bytes(4));
         $work = $directory.'/'.$id;
         File::makeDirectory($work, 0700);
-        $dump = $work.'/database.'.($driver === 'pgsql' ? 'dump' : 'sqlite');
+        $dump = $work.'/database.'.(in_array($driver, ['mysql', 'mariadb'], true) ? 'sql' : ($driver === 'pgsql' ? 'dump' : 'sqlite'));
         $archive = $directory.'/'.$id.'.zip';
         $zip = new ZipArchive;
         $opened = false;
         try {
             if ($driver === 'pgsql') {
                 $this->pg('pg_dump', ['--format=custom', '--no-owner', '--no-acl', '--file='.$dump]);
+            } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                $this->mysqlDump($dump);
             } else {
                 DB::connection()->getPdo()->exec('VACUUM INTO '.DB::connection()->getPdo()->quote($dump));
             }
@@ -117,10 +231,11 @@ class BackupService
         }
         $scratch = storage_path('app/backups/verify-'.bin2hex(random_bytes(8)));
         File::ensureDirectoryExists($scratch, 0700);
+        $driver = null;
         $temporaryDatabase = null;
         try {
             $manifest = json_decode($zip->getFromName('manifest.json'), true, 512, JSON_THROW_ON_ERROR);
-            if (($manifest['version'] ?? null) !== 1 || ! in_array($manifest['driver'] ?? null, ['pgsql', 'sqlite'], true)) {
+            if (($manifest['version'] ?? null) !== 1 || ! in_array($manifest['driver'] ?? null, ['pgsql', 'sqlite', 'mysql', 'mariadb'], true)) {
                 throw new RuntimeException('Manifest tidak didukung.');
             }
             foreach ($manifest['files'] as $entry => $expected) {
@@ -136,7 +251,7 @@ class BackupService
                 }
             }
             $driver = $manifest['driver'];
-            $dump = $scratch.'/database.'.($driver === 'pgsql' ? 'dump' : 'sqlite');
+            $dump = $scratch.'/database.'.(in_array($driver, ['mysql', 'mariadb'], true) ? 'sql' : ($driver === 'pgsql' ? 'dump' : 'sqlite'));
             $stream = $zip->getStream('database/'.basename($dump));
             $target = fopen($dump, 'wb');
             stream_copy_to_stream($stream, $target);
@@ -153,6 +268,29 @@ class BackupService
                 $config['database'] = $temporaryDatabase;
                 $config['url'] = null;
                 config(['database.connections.backup_verify' => $config]);
+                $restored = DB::connection('backup_verify');
+                foreach ($manifest['counts'] as $table => $expected) {
+                    if ($restored->table($table)->count() !== $expected) {
+                        throw new RuntimeException('Jumlah baris hasil restore tidak cocok.');
+                    }
+                }
+                DB::purge('backup_verify');
+            } elseif (in_array($driver, ['mysql', 'mariadb'], true)) {
+                if (! in_array(DB::connection()->getDriverName(), ['mysql', 'mariadb'], true)) {
+                    throw new RuntimeException('Verifikasi dump MySQL/MariaDB memerlukan koneksi MySQL/MariaDB.');
+                }
+                $config = DB::connection()->getConfig();
+                $currentDb = (string) ($config['database'] ?? '');
+                $temporaryDatabase = 'rag_restore_drill_'.bin2hex(random_bytes(6));
+                $this->assertSafeDrillDatabase($temporaryDatabase, $currentDb);
+
+                DB::connection()->getPdo()->exec("CREATE DATABASE `{$temporaryDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+                $this->mysqlRestore($dump, $temporaryDatabase);
+
+                $verifyConfig = $config;
+                $verifyConfig['database'] = $temporaryDatabase;
+                $verifyConfig['url'] = null;
+                config(['database.connections.backup_verify' => $verifyConfig]);
                 $restored = DB::connection('backup_verify');
                 foreach ($manifest['counts'] as $table => $expected) {
                     if ($restored->table($table)->count() !== $expected) {
@@ -177,7 +315,13 @@ class BackupService
         } finally {
             DB::purge('backup_verify');
             if ($temporaryDatabase !== null) {
-                DB::connection()->getPdo()->exec('DROP DATABASE IF EXISTS "'.$temporaryDatabase.'"');
+                if (in_array($driver, ['mysql', 'mariadb'], true)) {
+                    $currentDb = (string) (DB::connection()->getConfig()['database'] ?? '');
+                    $this->assertSafeDrillDatabase($temporaryDatabase, $currentDb);
+                    DB::connection()->getPdo()->exec("DROP DATABASE IF EXISTS `{$temporaryDatabase}`");
+                } else {
+                    DB::connection()->getPdo()->exec('DROP DATABASE IF EXISTS "'.$temporaryDatabase.'"');
+                }
             }
             $zip->close();
             File::deleteDirectory($scratch);

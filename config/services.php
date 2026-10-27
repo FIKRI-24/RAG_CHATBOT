@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'grok' => [
+        'key' => env('GROK_API_KEY'),
+    ],
+
 ];

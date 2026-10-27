@@ -15,8 +15,8 @@ if [ -d "resources/default-modules" ]; then
     cp -n resources/default-modules/* storage/app/private/modules/ 2>/dev/null || true
 fi
 
-# 3. Jalankan migrasi database
-if [ "$RAILPACK_SKIP_MIGRATIONS" != "true" ]; then
+# 3. Jalankan migrasi database jika tidak dinonaktifkan
+if [ "$RAILPACK_SKIP_MIGRATIONS" != "true" ] && [ "$SKIP_STARTUP_MIGRATIONS" != "true" ]; then
     echo "Menjalankan migrasi database..."
     php artisan migrate --force
 fi
@@ -26,10 +26,22 @@ php artisan storage:link || true
 php artisan optimize:clear
 php artisan optimize
 
-# 5. Jalankan Worker Antrean AI (RAG Queue) di latar belakang
-echo "Menjalankan Worker Antrean AI RAG (queue:work rag)..."
-php artisan queue:work rag --queue=rag --sleep=3 --tries=3 --timeout=300 &
+# 5. Jalankan Worker Antrean AI (RAG Queue) dengan loop autorestart jika diaktifkan
+if [ "${RUN_EMBEDDED_WORKER:-true}" = "true" ]; then
+    echo "Menjalankan Supervised Worker Antrean AI RAG (queue:work rag)..."
+    (
+        while true; do
+            php artisan queue:work rag --queue=rag --sleep=3 --tries=3 --timeout=300 --max-time=3600 || true
+            sleep 3
+        done
+    ) &
+fi
 
-# 6. Jalankan Server Web FrankenPHP
-echo "Menjalankan FrankenPHP Server..."
-exec docker-php-entrypoint --config /Caddyfile --adapter caddyfile 2>&1
+# 6. Jalankan Server Web
+if command -v docker-php-entrypoint >/dev/null 2>&1 && [ -f "/Caddyfile" ]; then
+    echo "Menjalankan FrankenPHP Server..."
+    exec docker-php-entrypoint --config /Caddyfile --adapter caddyfile 2>&1
+else
+    echo "Menjalankan Laravel Server..."
+    exec php artisan serve --host=0.0.0.0 --port="${PORT:-8000}"
+fi

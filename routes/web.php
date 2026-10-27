@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DeveloperProfileController;
+use App\Http\Controllers\Guru\ChatActivityController;
 use App\Http\Controllers\Guru\DashboardController;
 use App\Http\Controllers\Guru\ModuleController;
 use App\Http\Controllers\Guru\ModuleQuizController;
@@ -15,26 +16,8 @@ use App\Http\Controllers\Siswa\ModuleQuizController as SiswaModuleQuizController
 use App\Http\Controllers\Siswa\PetunjukController;
 use Illuminate\Support\Facades\Route;
 
-
 Route::get('/', function () {
     return redirect()->route('login');
-});
-
-Route::get('/ping-version', function () {
-    $error = null;
-    try {
-        \App\Models\Module::ensureKb4Module();
-    } catch (\Throwable $e) {
-        $error = $e->getMessage();
-    }
-
-    return response()->json([
-        'status' => 'ok',
-        'build' => 'commit-check-kb4',
-        'error' => $error,
-        'modules' => \App\Models\Module::all(['id', 'guru_id', 'kb_nomor', 'judul', 'status_indexing']),
-        'teachers' => \App\Models\User::where('role', 'guru')->get(['id', 'name', 'email']),
-    ]);
 });
 
 // Redirect /dashboard ke dashboard sesuai role
@@ -49,6 +32,8 @@ Route::get('/dashboard', function () {
 // Routes khusus Guru
 Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/aktivitas-tanya-jawab', [ChatActivityController::class, 'index'])->name('chat-activities.index');
+    Route::get('/aktivitas-tanya-jawab/export-mingguan', [ChatActivityController::class, 'exportWeekly'])->name('chat-activities.export-weekly');
 
     Route::get('/petunjuk', function () {
         return view('guru.petunjuk');
@@ -74,13 +59,12 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:gu
 // Route Download Materi (Bisa diakses Guru & Siswa terautentikasi)
 Route::middleware(['auth', 'active', 'auth.session', 'school.verified'])->get('/modules/{module}/download', [ModuleController::class, 'download'])->name('modules.download');
 
-
 // Routes khusus Siswa
 Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:siswa'])->prefix('siswa')->name('siswa.')->group(function () {
     Route::get('/dashboard', [ChatController::class, 'index'])->name('dashboard');
     Route::post('/chat/ask', [ChatController::class, 'ask'])->middleware('throttle:60,1')->name('chat.ask');
 
-    // E-Modul & Kegiatan Belajar (KB 1, 2, 3)
+    // E-Modul & Kegiatan Belajar (KB 1, 2, 3, 4)
     Route::get('/modules', [SiswaModuleController::class, 'index'])->name('modules.index');
     Route::get('/modules/{module}', [SiswaModuleController::class, 'show'])->name('modules.show');
     Route::get('/modules/{module}/quiz', [SiswaModuleQuizController::class, 'show'])->name('modules.quiz.show');

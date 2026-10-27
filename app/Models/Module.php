@@ -90,16 +90,27 @@ class Module extends Model
                 return null;
             }
 
-            $module = self::where('kb_nomor', 'KB 4')->first();
-            if (! $module) {
-                $tpContent = "Setelah mempelajari KB 4 ini peserta didik dapat:\n"
-                    ."1) Menjelaskan prinsip dasar keamanan jaringan (CIA Triad: Confidentiality, Integrity, Availability)\n"
-                    ."2) Mengidentifikasi jenis ancaman dan serangan jaringan (Port Scanning, DoS/DDoS, SYN Flood Attack)\n"
-                    ."3) Menganalisis alur pemrosesan rantai paket firewall (Chain Input, Forward, Output)\n"
-                    ."4) Membedakan tindakan aturan penyaringan firewall (Action Accept, Drop, Reject)\n"
-                    ."5) Mengonfigurasi aturan filtering firewall untuk mengamankan router gateway.";
+            $defaultDocx = base_path('resources/default-modules/kb4_keamanan_jaringan.docx');
+            if (is_file($defaultDocx) && ! \Illuminate\Support\Facades\Storage::disk('local')->exists('modules/kb4_keamanan_jaringan.docx')) {
+                \Illuminate\Support\Facades\Storage::disk('local')->put(
+                    'modules/kb4_keamanan_jaringan.docx',
+                    file_get_contents($defaultDocx)
+                );
+            }
 
-                $module = self::create([
+            $tpContent = "Setelah mempelajari KB 4 ini peserta didik dapat:\n"
+                ."1) Menjelaskan prinsip dasar keamanan jaringan (CIA Triad: Confidentiality, Integrity, Availability)\n"
+                ."2) Mengidentifikasi jenis ancaman dan serangan jaringan (Port Scanning, DoS/DDoS, SYN Flood Attack)\n"
+                ."3) Menganalisis alur pemrosesan rantai paket firewall (Chain Input, Forward, Output)\n"
+                ."4) Membedakan tindakan aturan penyaringan firewall (Action Accept, Drop, Reject)\n"
+                ."5) Mengonfigurasi aturan filtering firewall untuk mengamankan router gateway.";
+
+            $module = self::firstOrCreate(
+                [
+                    'kb_nomor' => 'KB 4',
+                    'mapel' => 'Teknik Komputer dan Jaringan',
+                ],
+                [
                     'guru_id' => $guruId,
                     'judul' => 'Keamanan Jaringan dan Konfigurasi Firewall Filtering pada Router Gateway',
                     'mapel' => 'Teknik Komputer dan Jaringan',
@@ -111,24 +122,10 @@ class Module extends Model
                     'status_indexing' => 'completed',
                     'indexing_version' => (string) \Illuminate\Support\Str::uuid(),
                     'indexing_error' => null,
-                ]);
-            } else {
-                $updates = [];
-                if ($guruId && (int) $module->guru_id !== (int) $guruId) {
-                    $updates['guru_id'] = (int) $guruId;
-                }
-                if ($module->status_indexing !== 'completed') {
-                    $updates['status_indexing'] = 'completed';
-                }
-                if ($module->file_path !== 'modules/kb4_keamanan_jaringan.docx') {
-                    $updates['file_path'] = 'modules/kb4_keamanan_jaringan.docx';
-                }
-                if (! empty($updates)) {
-                    $module->update($updates);
-                }
-            }
+                ]
+            );
 
-            if (! $module->quiz()->exists() || ! $module->quiz->is_published) {
+            if (! $module->quiz()->exists()) {
                 $questions = [
                     [
                         'text' => 'Dalam konsep dasar keamanan informasi (CIA Triad), pilar yang bertugas menjamin bahwa data atau informasi tidak dimanipulasi, diubah, atau dirusak oleh pihak yang tidak sah selama proses transmisi adalah...',
@@ -182,15 +179,20 @@ class Module extends Model
                     ],
                 ];
 
-                ModuleQuiz::updateOrCreate(
-                    ['module_id' => $module->id],
-                    [
-                        'title' => 'Kuis Evaluasi Pemahaman KB 4: Keamanan Jaringan & Firewall',
-                        'questions' => $questions,
-                        'is_published' => true,
-                        'version' => 1,
-                    ]
-                );
+                $module->quiz()->create([
+                    'title' => 'Kuis Evaluasi Pemahaman KB 4: Keamanan Jaringan & Firewall',
+                    'questions' => $questions,
+                    'is_published' => true,
+                    'version' => 1,
+                ]);
+            }
+
+            if ($module->wasRecentlyCreated || ! $module->chunks()->exists()) {
+                try {
+                    \App\Jobs\ProcessModuleJob::dispatch($module);
+                } catch (\Throwable) {
+                    // Ignore queue dispatch failure during seeding if queue table is not ready
+                }
             }
 
             return $module;

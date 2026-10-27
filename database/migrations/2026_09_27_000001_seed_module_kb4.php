@@ -1,18 +1,18 @@
 <?php
 
-use Database\Seeders\ModuleKb4Seeder;
 use Illuminate\Database\Migrations\Migration;
-use App\Models\Module;
 
 return new class extends Migration
 {
     /**
      * Run the migrations.
+     *
+     * Note: Initial module data seeding is handled via DatabaseSeeder / ModuleKb4Seeder,
+     * not inside schema migrations (per PRD §7.6).
      */
     public function up(): void
     {
-        $seeder = new ModuleKb4Seeder();
-        $seeder->run();
+        // No-op: data seeding is managed by seeders.
     }
 
     /**
@@ -20,10 +20,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $module = Module::where('kb_nomor', 'KB 4')->first();
-        if ($module) {
-            $module->quiz()?->delete();
-            $module->delete();
-        }
+        // No-op: do not delete teacher-managed KB 4 modules on schema rollback.
     }
 };

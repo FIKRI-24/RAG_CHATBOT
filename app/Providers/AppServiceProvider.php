@@ -52,13 +52,5 @@ class AppServiceProvider extends ServiceProvider
             app(AuditService::class)->record('account.password_reset', $event->user);
         });
         RateLimiter::for('account-entry', fn ($request) => Limit::perMinute(6)->by($request->ip()));
-
-        if (! $this->app->runningInConsole() && ! $this->app->runningUnitTests()) {
-            try {
-                \App\Models\Module::ensureKb4Module();
-            } catch (\Throwable) {
-                // Ignore during bootstrap if DB is not ready
-            }
-        }
     }
 }

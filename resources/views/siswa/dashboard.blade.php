@@ -12,13 +12,13 @@
 
     <style>
         body { font-family: 'Inter', sans-serif; }
-        
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 9999px; }
         ::-webkit-scrollbar-thumb:hover { background-color: #94a3b8; }
-        
+
         /* Accessibility & Font Size Controls */
         :root {
             --chat-base-size: 1.25rem;      /* ~20px base for AI answers (mudah dibaca siswa) */
@@ -63,11 +63,19 @@
             font-size: var(--chat-input-size, 1.125rem);
         }
 
-        /* Sources text */
+        /* Sources text & excerpt */
         .chat-sources-block {
             font-size: var(--chat-details-size, 1rem);
         }
-        
+        .source-excerpt {
+            border: 1px solid #e2e8f0 !important;
+            border-left: 1px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            font-style: normal !important;
+            font-family: inherit !important;
+            color: #334155 !important;
+        }
+
         /* Prose Markdown Styling (AI Responses) */
         .prose {
             font-size: var(--chat-base-size, 1.25rem);
@@ -167,40 +175,48 @@
     <div id="mobile-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
 
     <!-- Sidebar (Desktop & Mobile Drawer) -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-80 bg-white border-r border-slate-200 flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
-        
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-72 bg-white border-r border-slate-200 flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-out">
+
         <!-- Logo Area -->
-        <div class="h-16 flex items-center justify-between px-5 border-b border-slate-100 bg-white">
+        <div class="h-16 flex items-center justify-between px-5 border-b border-slate-200 bg-white">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden shrink-0">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden shrink-0">
                     <img src="{{ asset('images/logo.png') }}" alt="Logo SMK N 1 Kinali" class="w-10 h-10 object-contain">
                 </div>
                 <div>
-                    <h1 class="font-bold text-slate-900 tracking-tight leading-tight">E-Modul TKJ</h1>
-                    <p class="text-[10px] text-emerald-600 font-semibold tracking-wide uppercase">SMK N 1 Kinali</p>
+                    <h1 class="font-bold text-slate-900 tracking-tight leading-tight text-sm">E-Modul TKJ</h1>
+                    <p class="text-[10px] text-[#008546] font-mono font-semibold tracking-wider uppercase">SMK N 1 Kinali</p>
                 </div>
             </div>
             <button id="close-sidebar-btn" class="md:hidden text-slate-400 hover:text-slate-600 p-1.5 rounded-lg">
                 <i class="fa-solid fa-xmark text-lg"></i>
             </button>
         </div>
-        
+
         <!-- Navigation Links Section -->
-        <div class="px-4 pt-4 pb-2 border-b border-slate-100 space-y-1.5">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider block px-2 mb-1">Menu Utama</span>
-            <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60 shadow-xs">
-                <i class="fa-solid fa-robot text-sm"></i>
-                <span>Tanya Jawab AI</span>
+        <nav class="p-3.5 border-b border-slate-200 space-y-1">
+            <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block px-2.5 mb-1.5">Menu Utama</span>
+
+            <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                <i class="fa-solid fa-user-gear text-slate-400 text-xs w-4 text-center"></i>
+                <span>Profil Saya</span>
             </a>
-            <a href="{{ route('siswa.modules.index') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-book-bookmark text-blue-600 text-sm"></i>
-                <span>Katalog E-Modul</span>
-            </a>
-            <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
-                <i class="fa-solid fa-circle-question text-amber-500 text-sm"></i>
+
+            <a href="{{ route('siswa.petunjuk') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                <i class="fa-solid fa-circle-question text-slate-400 text-xs w-4 text-center"></i>
                 <span>Petunjuk Siswa</span>
             </a>
-        </div>
+
+            <a href="{{ route('siswa.modules.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-900 transition-colors">
+                <i class="fa-solid fa-book-bookmark text-slate-400 text-xs w-4 text-center"></i>
+                <span>Katalog E-Modul</span>
+            </a>
+
+            <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200/80 transition-colors">
+                <i class="fa-solid fa-robot text-[#008546] text-xs w-4 text-center"></i>
+                <span>Tanya Jawab AI (Chatbot)</span>
+            </a>
+        </nav>
 
         <!-- Modules Context Section -->
         <div class="flex-1 overflow-y-auto overflow-x-hidden px-3.5 py-3 space-y-3">
@@ -208,7 +224,7 @@
                 <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Modul Terindeks AI</span>
                 <span class="bg-emerald-100 text-[#008546] text-xs font-extrabold px-2.5 py-0.5 rounded-full border border-emerald-300/80">{{ $modules->count() }} Modul</span>
             </div>
-            
+
             @if($modules->isEmpty())
                 <div class="p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-xs text-slate-400 text-center">
                     <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-300 block"></i>
@@ -289,44 +305,44 @@
 
             <!-- Quick Action Chips in Sidebar -->
             <div class="pt-3 border-t border-slate-100">
-                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2 px-1">Panduan Cepat</span>
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-2 px-1">Pertanyaan Cepat</span>
                 <div class="space-y-1.5">
-                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
-                        <i class="fa-regular fa-lightbulb text-amber-500 text-xs shrink-0"></i>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/50 rounded-lg border border-slate-200 hover:border-[#008546]/40 text-xs font-medium text-slate-700 hover:text-[#008546] transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-emerald-600 text-[10px] shrink-0"></i>
                         <span class="truncate">Ada materi apa saja di sistem?</span>
                     </button>
-                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-shield-halved text-purple-500 text-xs shrink-0"></i>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/50 rounded-lg border border-slate-200 hover:border-[#008546]/40 text-xs font-medium text-slate-700 hover:text-[#008546] transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-emerald-600 text-[10px] shrink-0"></i>
                         <span class="truncate">Jelaskan Firewall & Keamanan (KB 4)</span>
                     </button>
-                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/60 rounded-xl border border-slate-200/80 hover:border-emerald-300 text-xs font-semibold text-slate-700 hover:text-[#008546] transition-all flex items-center gap-2">
-                        <i class="fa-solid fa-tower-broadcast text-blue-500 text-xs shrink-0"></i>
+                    <button class="quick-chip w-full text-left p-2.5 bg-slate-50 hover:bg-emerald-50/50 rounded-lg border border-slate-200 hover:border-[#008546]/40 text-xs font-medium text-slate-700 hover:text-[#008546] transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-emerald-600 text-[10px] shrink-0"></i>
                         <span class="truncate">Frekuensi & Perawatan Jaringan (KB 3)</span>
                     </button>
                 </div>
             </div>
         </div>
-        
+
         <!-- User Profile Area -->
-        <div class="p-3.5 border-t border-slate-100 bg-white">
-            <div class="flex items-center gap-3 p-2 rounded-xl bg-slate-50 border border-slate-100">
+        <div class="p-3.5 border-t border-slate-200 bg-white">
+            <div class="flex items-center gap-3 p-2 rounded-lg bg-slate-50 border border-slate-200/80">
                 @if(auth()->user()->avatar_url)
-                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-xl object-cover shadow-sm shrink-0 border border-slate-200">
+                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-8 h-8 rounded-lg object-cover shrink-0 border border-slate-200">
                 @else
-                    <div class="w-9 h-9 rounded-xl bg-[#008546] text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
+                    <div class="w-8 h-8 rounded-lg bg-[#008546] text-white flex items-center justify-center font-bold text-xs shrink-0">
                         {{ strtoupper(substr(auth()->user()->name, 0, 1)) }}
                     </div>
                 @endif
                 <div class="flex-1 overflow-hidden">
                     <p class="text-xs font-bold text-slate-800 truncate">{{ auth()->user()->name }}</p>
-                    <p class="text-[10px] text-emerald-600 font-semibold truncate flex items-center gap-1">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-ping"></span> Siswa TKJ
+                    <p class="text-[10px] text-slate-500 font-medium truncate flex items-center gap-1.5">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block"></span> Siswa TKJ
                     </p>
                 </div>
                 <form method="POST" action="{{ route('logout') }}" class="flex-shrink-0">
                     @csrf
                     <button type="submit" class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors" title="Log Out">
-                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                        <i class="fa-solid fa-right-from-bracket text-xs"></i>
                     </button>
                 </form>
             </div>
@@ -335,7 +351,7 @@
 
     <!-- Main Content Area -->
     <main class="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
-        
+
         <!-- Top Bar Header -->
         <header class="h-16 flex items-center justify-between px-4 sm:px-6 border-b border-slate-200 bg-white shrink-0 z-20 shadow-2xs">
             <div class="flex items-center gap-3">
@@ -343,17 +359,17 @@
                     <i class="fa-solid fa-bars text-lg"></i>
                 </button>
                 <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white flex items-center justify-center text-lg shadow-sm shrink-0">
-                        <i class="fa-solid fa-robot"></i>
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#008546] to-emerald-700 text-white flex items-center justify-center text-sm shadow-xs shrink-0">
+                        <i class="fa-solid fa-microchip"></i>
                     </div>
                     <div>
-                        <h2 class="text-sm sm:text-base font-extrabold text-slate-900 leading-tight flex items-center gap-2">
+                        <h2 class="text-sm sm:text-base font-bold text-slate-900 leading-tight flex items-center gap-2">
                             <span>Ruang Tanya Jawab AI</span>
-                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-[#008546] border border-emerald-200/60">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Online
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-[#008546] border border-emerald-200/80">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> RAG Ready
                             </span>
                         </h2>
-                        <p class="text-[11px] text-slate-400 font-semibold hidden sm:block">Asisten Cerdas E-Modul TKJ SMK Negeri 1 Kinali</p>
+                        <p class="text-[11px] text-slate-500 font-medium hidden sm:block">Asisten Materi TKJ Terverifikasi Dokumen — SMK Negeri 1 Kinali</p>
                     </div>
                 </div>
             </div>
@@ -378,73 +394,84 @@
         <!-- Messages Area -->
         <div id="chat-container" class="flex-1 overflow-y-auto scroll-smooth">
             <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6 flex flex-col min-h-full">
-                
+
                 <!-- Welcome Banner (Shows when chats are fresh or as hero header) -->
                 @if($chats->isEmpty())
-                <div id="welcome-hero" class="my-auto py-8 text-center animate-fade-in">
-                    <div class="w-20 h-20 bg-emerald-50 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-emerald-500/10 border border-emerald-100 mb-5 relative">
-                        <i class="fa-solid fa-robot text-3xl text-[#008546]"></i>
-                        <span class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-amber-400 text-white flex items-center justify-center text-xs shadow">
-                            <i class="fa-solid fa-bolt"></i>
-                        </span>
-                    </div>
-                    
-                    <h3 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                        Halo, <span class="text-[#008546]">{{ explode(' ', auth()->user()->name)[0] }}</span>! 👋
-                    </h3>
-                    <p class="text-slate-600 text-base sm:text-lg mt-2.5 max-w-lg mx-auto leading-relaxed">
-                        Saya asisten pintar TKJ SMK N 1 Kinali. Tanyakan materi jaringan, mikrotik, hardware, atau minta soal latihan!
-                    </p>
+                <div id="welcome-hero" class="my-auto py-6 animate-fade-in">
+                    <div class="max-w-2xl mx-auto bg-white rounded-3xl border border-slate-200/90 shadow-sm overflow-hidden">
+                        <!-- Cyber-Network Hero Header -->
+                        <div class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/80 text-white p-6 sm:p-8">
+                            <!-- Cyber Grid Overlay -->
+                            <div class="absolute inset-0 opacity-[0.07] pointer-events-none" style="background-image: radial-gradient(rgba(255,255,255,0.4) 1px, transparent 1px); background-size: 20px 20px;"></div>
+                            <div class="absolute -top-16 -right-16 w-56 h-56 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
 
-                    <!-- Interactive Suggestion Cards -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-2xl mx-auto mt-8 text-left">
-                        <button class="quick-chip p-4 bg-slate-50 hover:bg-emerald-50/60 rounded-2xl border border-slate-200/80 hover:border-emerald-300 transition-all text-left group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-emerald-100 text-[#008546] flex items-center justify-center text-sm group-hover:scale-110 transition-transform shrink-0">
-                                    <i class="fa-solid fa-network-wired"></i>
+                            <div class="relative z-10 space-y-2.5">
+                                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-emerald-300 border border-white/15 text-xs font-semibold backdrop-blur-md">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                    <span>RAG Knowledge Assistant • TKJ</span>
                                 </div>
-                                <div>
-                                    <h4 class="text-sm sm:text-base font-bold text-slate-800 group-hover:text-[#008546]">Konstruksi Jaringan</h4>
-                                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Jelaskan mengenai konsep IP Address & Subnetting</p>
-                                </div>
+                                <h3 class="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                                    Halo, {{ explode(' ', auth()->user()->name)[0] }} 👋
+                                </h3>
+                                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-xl">
+                                    Ajukan pertanyaan seputar materi Kegiatan Belajar (KB 1–KB 4), konfigurasi perangkat, atau uji pemahaman Anda dengan soal interaktif.
+                                </p>
                             </div>
-                        </button>
+                        </div>
 
-                        <button class="quick-chip p-4 bg-slate-50 hover:bg-emerald-50/60 rounded-2xl border border-slate-200/80 hover:border-emerald-300 transition-all text-left group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center text-sm group-hover:scale-110 transition-transform shrink-0">
-                                    <i class="fa-solid fa-server"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm sm:text-base font-bold text-slate-800 group-hover:text-blue-600">Sistem Operasi Jaringan</h4>
-                                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Bagaimana cara setting dasar Mikrotik Router?</p>
-                                </div>
-                            </div>
-                        </button>
+                        <!-- Interactive Suggestion Matrix -->
+                        <div class="p-5 sm:p-6 bg-slate-50/70">
+                            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-3">Rekomendasi Topik Diskusi</span>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+                                <button class="quick-chip p-3.5 bg-white hover:bg-emerald-50/40 rounded-2xl border border-slate-200/90 hover:border-emerald-400/80 transition-all text-left group shadow-2xs hover:shadow-xs">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-[#008546] text-slate-600 group-hover:text-white flex items-center justify-center text-xs transition-colors shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-network-wired"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#008546] transition-colors">Konstruksi Jaringan</h4>
+                                            <p class="text-xs text-slate-500 mt-0.5">Jelaskan mengenai konsep IP Address & Subnetting</p>
+                                        </div>
+                                    </div>
+                                </button>
 
-                        <button class="quick-chip p-4 bg-slate-50 hover:bg-emerald-50/60 rounded-2xl border border-slate-200/80 hover:border-emerald-300 transition-all text-left group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center text-sm group-hover:scale-110 transition-transform shrink-0">
-                                    <i class="fa-solid fa-shield-halved"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm sm:text-base font-bold text-slate-800 group-hover:text-purple-600">Keamanan Jaringan</h4>
-                                    <p class="text-xs sm:text-sm text-slate-500 mt-0.5">Apa fungsi utama Firewall dalam jaringan?</p>
-                                </div>
-                            </div>
-                        </button>
+                                <button class="quick-chip p-3.5 bg-white hover:bg-emerald-50/40 rounded-2xl border border-slate-200/90 hover:border-emerald-400/80 transition-all text-left group shadow-2xs hover:shadow-xs">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-[#008546] text-slate-600 group-hover:text-white flex items-center justify-center text-xs transition-colors shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-server"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#008546] transition-colors">Sistem Operasi Jaringan</h4>
+                                            <p class="text-xs text-slate-500 mt-0.5">Bagaimana cara setting dasar Mikrotik Router?</p>
+                                        </div>
+                                    </div>
+                                </button>
 
-                        <button id="btn-quick-kuis" class="p-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-2xl shadow-md hover:shadow-lg transition-all text-left group">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-sm group-hover:rotate-12 transition-transform shrink-0">
-                                    <i class="fa-solid fa-graduation-cap"></i>
-                                </div>
-                                <div>
-                                    <h4 class="text-sm sm:text-base font-bold">Mulai Latihan Soal AI 🚀</h4>
-                                    <p class="text-xs sm:text-sm text-emerald-100 mt-0.5">Uji pemahaman materi Anda sekarang</p>
-                                </div>
+                                <button class="quick-chip p-3.5 bg-white hover:bg-emerald-50/40 rounded-2xl border border-slate-200/90 hover:border-emerald-400/80 transition-all text-left group shadow-2xs hover:shadow-xs">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-xl bg-slate-100 group-hover:bg-[#008546] text-slate-600 group-hover:text-white flex items-center justify-center text-xs transition-colors shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-shield-halved"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs sm:text-sm font-bold text-slate-800 group-hover:text-[#008546] transition-colors">Keamanan Jaringan</h4>
+                                            <p class="text-xs text-slate-500 mt-0.5">Apa fungsi utama Firewall dalam jaringan?</p>
+                                        </div>
+                                    </div>
+                                </button>
+
+                                <button id="btn-quick-kuis" class="p-3.5 bg-gradient-to-br from-slate-900 to-emerald-950 hover:from-slate-800 hover:to-emerald-900 text-white rounded-2xl border border-emerald-500/30 transition-all text-left group shadow-2xs hover:shadow-xs">
+                                    <div class="flex items-start gap-3">
+                                        <div class="w-8 h-8 rounded-xl bg-white/10 text-emerald-400 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-clipboard-question"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="text-xs sm:text-sm font-bold text-white">Mulai Latihan Soal AI</h4>
+                                            <p class="text-xs text-slate-300 mt-0.5">Uji pemahaman materi Anda sekarang</p>
+                                        </div>
+                                    </div>
+                                </button>
                             </div>
-                        </button>
+                        </div>
                     </div>
                 </div>
                 @endif
@@ -480,11 +507,11 @@
 
                     <!-- AI Message Bubble -->
                     <div class="flex items-start gap-3 group">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-emerald-600/10">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 to-emerald-950 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                             <i class="fa-solid fa-robot text-sm"></i>
                         </div>
                         <div class="flex flex-col items-start max-w-[92%] sm:max-w-[85%] w-full">
-                            <div class="bg-white p-5 sm:p-6 rounded-3xl rounded-tl-xs shadow-md border-2 border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl rounded-tl-xs shadow-2xs border border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
                                 <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 not-prose">
                                     <div class="flex items-center gap-2">
                                         <span class="text-xs font-extrabold text-[#008546] flex items-center gap-1.5">
@@ -499,16 +526,25 @@
                                 <div class="rendered-content">Memuat format...</div>
                                 @if($chat->reviewed_at)<p class="text-sm text-emerald-800 mt-3">Nilai guru: {{ $chat->score }}/100 ? {{ $chat->review_note }}</p>@endif
                                 @if($chat->sources)
-                                    <details class="mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600 chat-sources-block">
-                                        <summary class="font-semibold text-slate-700 cursor-pointer hover:text-[#008546] transition-colors inline-flex items-center gap-2 py-1">
-                                            <i class="fa-solid fa-book-open-reader text-xs text-[#008546]"></i>
-                                            <span>Sumber materi ({{ count($chat->sources) }})</span>
+                                    <details class="not-prose mt-4 pt-3 border-t border-slate-100 text-slate-700 chat-sources-block group/details">
+                                        <summary class="font-semibold text-slate-700 cursor-pointer hover:text-slate-900 transition-colors inline-flex items-center gap-2 py-1 select-none">
+                                            <i class="fa-solid fa-book-bookmark text-xs text-slate-500"></i>
+                                            <span class="text-xs sm:text-sm font-semibold">Sumber materi referensi</span>
+                                            <span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-md border border-slate-200">{{ count($chat->sources) }} bagian</span>
+                                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1 transition-transform group-open/details:rotate-180"></i>
                                         </summary>
-                                        <div class="mt-2.5 space-y-2.5 pl-1">
+                                        <div class="mt-3 space-y-2.5">
                                             @foreach($chat->sources as $source)
-                                                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs sm:text-sm">
-                                                    <p class="font-bold text-slate-800">[{{ $loop->iteration }}] {{ $source['judul'] }} <span class="font-normal text-slate-500">— {{ $source['mapel'] }} / {{ $source['kb_nomor'] }}</span></p>
-                                                    <blockquote class="whitespace-pre-wrap mt-1 text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">{{ $source['text'] }}</blockquote>
+                                                <div class="p-3 bg-slate-50/90 rounded-xl border border-slate-200/90 text-xs sm:text-sm">
+                                                    <div class="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                                                        <p class="font-bold text-slate-800 text-xs sm:text-sm">
+                                                            <span class="text-slate-500 font-semibold mr-1">[{{ $loop->iteration }}]</span>{{ $source['judul'] }}
+                                                        </p>
+                                                        <span class="text-[11px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded border border-slate-200">
+                                                            {{ $source['mapel'] }} {{ !empty($source['kb_nomor']) ? '• ' . $source['kb_nomor'] : '' }}
+                                                        </span>
+                                                    </div>
+                                                    <div class="source-excerpt whitespace-pre-wrap text-slate-700 not-italic bg-white p-3 rounded-lg border border-slate-200 text-xs sm:text-[13px] leading-relaxed max-h-56 overflow-y-auto">{{ $source['text'] }}</div>
                                                 </div>
                                             @endforeach
                                         </div>
@@ -527,7 +563,7 @@
 
                 <!-- Typing indicator -->
                 <div id="typing-indicator" class="hidden flex items-start gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-emerald-600/10">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 to-emerald-950 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                         <i class="fa-solid fa-robot text-sm animate-bounce"></i>
                     </div>
                     <div class="bg-white px-5 py-3.5 rounded-2xl rounded-tl-xs shadow-sm border border-slate-200/80 flex items-center gap-2">
@@ -546,7 +582,7 @@
         <!-- Input Bar Section -->
         <div class="bg-white border-t-2 border-slate-100 shrink-0 px-4 sm:px-6 py-4 shadow-xl">
             <div class="max-w-4xl mx-auto space-y-3">
-                
+
                 <!-- Quick Tools & Filter Bar -->
                 <div class="flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
                     <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1">
@@ -575,7 +611,7 @@
                     </div>
 
                     <!-- Quiz Button -->
-                    <button type="button" id="btn-kuis" class="inline-flex items-center gap-2 text-xs font-extrabold text-white bg-gradient-to-r from-[#008546] to-emerald-600 hover:from-[#00703c] hover:to-emerald-700 px-4 py-2 rounded-xl border border-emerald-500 shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 group">
+                    <button type="button" id="btn-kuis" class="inline-flex items-center gap-2 text-xs font-extrabold text-white bg-[#008546] hover:bg-[#00703c] px-4 py-2 rounded-xl border border-emerald-500 shadow-sm hover:shadow-md transition-all active:scale-95 shrink-0 group">
                         <i class="fa-solid fa-brain group-hover:rotate-12 transition-transform text-xs"></i>
                         <span>Latihan Soal AI</span>
                     </button>
@@ -586,7 +622,7 @@
                         $activeScopeMod = $modules->firstWhere('id', $selectedModule);
                     @endphp
                     @if($activeScopeMod)
-                        <div class="flex items-center justify-between gap-2 px-3.5 py-2 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 animate-fade-in shadow-2xs">
+                        <div class="flex items-center justify-between gap-2 px-4 py-2.5 bg-emerald-50/90 rounded-2xl border border-emerald-200/90 text-xs text-emerald-900 animate-fade-in shadow-xs">
                             <div class="flex items-center gap-2 truncate">
                                 <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse shrink-0"></span>
                                 <span class="truncate">Fokus Tanya Jawab AI: <strong>{{ $activeScopeMod->kb_nomor }}</strong> — {{ $activeScopeMod->judul }}</span>
@@ -606,7 +642,7 @@
                 <form id="chat-form" class="relative flex items-center">
                     <input type="text" id="pertanyaan" maxlength="1000" autocomplete="off" placeholder="Ketik pertanyaan seputar materi TKJ..."
                            class="w-full bg-slate-50 border-2 border-slate-200 text-slate-900 rounded-2xl pl-5 pr-14 py-3.5 text-base sm:text-lg focus:bg-white focus:border-[#008546] focus:ring-4 focus:ring-emerald-500/15 transition-all outline-none placeholder-slate-400 font-medium shadow-xs">
-                    
+
                     <button type="submit" id="submit-btn" 
                             class="absolute right-2.5 top-2.5 bottom-2.5 bg-[#008546] hover:bg-[#00703c] text-white rounded-xl px-4 transition-all flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed shadow-sm hover:scale-105 active:scale-95" title="Kirim Pertanyaan">
                         <i class="fa-solid fa-paper-plane text-sm"></i>
@@ -743,10 +779,10 @@
             chatForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 if (inFlight) return;
-                
+
                 const question = inputField.value.trim();
                 const selectedMapel = mapelSelect ? mapelSelect.value : 'Semua';
-                
+
                 if (!question) return;
                 inFlight = true;
                 const action = question === '[LATIHAN_SOAL]' ? 'quiz' : (activeQuizId ? 'quiz_answer' : 'ask');
@@ -770,16 +806,16 @@
                 } else {
                     appendUserMessage(question);
                 }
-                
+
                 setTimeout(scrollToBottom, 50);
 
                 // Show typing indicator
                 typingIndicator.classList.remove('hidden');
                 setTimeout(scrollToBottom, 50);
-                
+
                 try {
                     const token = document.querySelector('meta[name="csrf-token"]').content;
-                    
+
                     const response = await fetch("{{ route('siswa.chat.ask') }}", {
                         method: 'POST',
                         signal: AbortSignal.timeout(65000),
@@ -798,7 +834,7 @@
                     });
 
                     const result = await response.json();
-                    
+
                     typingIndicator.classList.add('hidden');
 
                     if (result.success) {
@@ -886,16 +922,25 @@
 
                 const htmlContent = window.renderRagMarkdown(markdownText);
                 const sourceHtml = sources?.length ? `
-                    <details class="mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600 chat-sources-block">
-                        <summary class="font-semibold text-slate-700 cursor-pointer hover:text-[#008546] transition-colors inline-flex items-center gap-2 py-1">
-                            <i class="fa-solid fa-book-open-reader text-xs text-[#008546]"></i>
-                            <span>Sumber materi (${sources.length})</span>
+                    <details class="not-prose mt-4 pt-3 border-t border-slate-100 text-slate-700 chat-sources-block group/details">
+                        <summary class="font-semibold text-slate-700 cursor-pointer hover:text-slate-900 transition-colors inline-flex items-center gap-2 py-1 select-none">
+                            <i class="fa-solid fa-book-bookmark text-xs text-slate-500"></i>
+                            <span class="text-xs sm:text-sm font-semibold">Sumber materi referensi</span>
+                            <span class="bg-slate-100 text-slate-600 text-[11px] font-bold px-2 py-0.5 rounded-md border border-slate-200">${sources.length} bagian</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 ml-1 transition-transform group-open/details:rotate-180"></i>
                         </summary>
-                        <div class="mt-2.5 space-y-2.5 pl-1">
+                        <div class="mt-3 space-y-2.5">
                             ${sources.map((source, index) => `
-                                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs sm:text-sm">
-                                    <p class="font-bold text-slate-800">[${index + 1}] ${escapeHtml(source.judul)} <span class="font-normal text-slate-500">— ${escapeHtml(source.mapel)} / ${escapeHtml(source.kb_nomor || '')}</span></p>
-                                    <blockquote class="whitespace-pre-wrap mt-1 text-slate-600 italic bg-white p-2 rounded-lg border border-slate-100">${escapeHtml(source.text)}</blockquote>
+                                <div class="p-3 bg-slate-50/90 rounded-xl border border-slate-200/90 text-xs sm:text-sm">
+                                    <div class="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                                        <p class="font-bold text-slate-800 text-xs sm:text-sm">
+                                            <span class="text-slate-500 font-semibold mr-1">[${index + 1}]</span>${escapeHtml(source.judul)}
+                                        </p>
+                                        <span class="text-[11px] text-slate-500 font-medium bg-white px-2 py-0.5 rounded border border-slate-200">
+                                            ${escapeHtml(source.mapel)}${source.kb_nomor ? ' • ' + escapeHtml(source.kb_nomor) : ''}
+                                        </span>
+                                    </div>
+                                    <div class="source-excerpt whitespace-pre-wrap text-slate-700 not-italic bg-white p-3 rounded-lg border border-slate-200 text-xs sm:text-[13px] leading-relaxed max-h-56 overflow-y-auto">${escapeHtml(source.text)}</div>
                                 </div>
                             `).join('')}
                         </div>
@@ -903,11 +948,11 @@
 
                 const html = `
                     <div class="flex items-start gap-3 group animate-fade-in">
-                        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 shadow-md shadow-emerald-600/10">
+                        <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-900 to-emerald-950 text-emerald-400 border border-emerald-500/30 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
                             <i class="fa-solid fa-robot text-sm"></i>
                         </div>
                         <div class="flex flex-col items-start max-w-[92%] sm:max-w-[85%] w-full">
-                            <div class="bg-white p-5 sm:p-6 rounded-3xl rounded-tl-xs shadow-md border-2 border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
+                            <div class="bg-white p-5 sm:p-6 rounded-2xl rounded-tl-xs shadow-2xs border border-slate-200/90 text-slate-800 prose prose-emerald max-w-none w-full relative">
                                 <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 not-prose">
                                     <div class="flex items-center gap-2">
                                         <span class="text-xs font-extrabold text-[#008546] flex items-center gap-1.5">

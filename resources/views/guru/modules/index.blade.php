@@ -6,13 +6,13 @@
             <h2 class="font-bold text-2xl text-gray-800 tracking-tight">
                 {{ __('Manajemen Modul') }}
             </h2>
-            <a href="{{ route('guru.modules.create') }}" class="inline-flex items-center px-5 py-2.5 bg-[#008546] hover:bg-[#006e39] text-white text-sm font-semibold rounded-full shadow-md transition-colors gap-2">
+            <a href="{{ route('guru.modules.create') }}" class="inline-flex items-center px-5 py-2.5 bg-[#008546] hover:bg-[#006e39] text-white text-sm font-semibold rounded-lg shadow-xs transition-colors gap-2">
                 <i class="fa-solid fa-cloud-arrow-up"></i> Upload Modul Baru
             </a>
         </div>
         
         <!-- Main Content Section -->
-        <div class="flex-1 flex flex-col min-h-0 bg-white rounded-3xl border-2 border-gray-100 shadow-sm p-6 overflow-hidden">
+        <div class="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-slate-200/90 shadow-2xs p-6 overflow-hidden">
             
             @if(session('success'))
                 <div class="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-semibold" role="alert">
@@ -85,7 +85,7 @@
                                     {{ $modules->firstItem() + $index }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold bg-emerald-50 text-[#008546] border border-emerald-200">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono font-bold bg-emerald-50 text-[#008546] border border-emerald-200">
                                         <i class="fa-solid fa-layer-group text-[10px]"></i> {{ $module->kb_nomor ?? 'KB 1' }}
                                     </span>
                                 </td>

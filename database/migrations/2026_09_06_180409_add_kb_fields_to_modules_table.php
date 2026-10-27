@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('modules', function (Blueprint $table) {
             $table->string('kb_nomor')->default('KB 1')->after('mapel');
-            $table->text('tp')->nullable()->after('kb_nomor');
+            $table->mediumText('tp')->nullable()->after('kb_nomor');
             $table->string('video_url')->nullable()->after('file_path');
             $table->string('kuis_url')->nullable()->after('video_url');
 

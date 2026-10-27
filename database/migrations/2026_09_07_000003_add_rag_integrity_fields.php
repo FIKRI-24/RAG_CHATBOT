@@ -18,9 +18,9 @@ return new class extends Migration
             $table->unsignedInteger('chunk_index')->nullable();
         });
         Schema::table('chat_histories', function (Blueprint $table) {
-            $table->string('mapel')->nullable();
-            $table->string('kind')->default('answer');
-            $table->string('quiz_status')->nullable();
+            $table->string('mapel', 255)->nullable();
+            $table->string('kind', 30)->default('answer');
+            $table->string('quiz_status', 30)->nullable();
             $table->json('sources')->nullable();
             $table->text('retrieval_query')->nullable();
             $table->index(['siswa_id', 'kind', 'mapel']);

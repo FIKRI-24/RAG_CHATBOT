@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('siswa_id')->constrained('users')->onDelete('cascade');
             $table->text('pertanyaan');
-            $table->text('jawaban');
+            $table->mediumText('jawaban');
             $table->foreignId('referensi_chunk_id')->nullable()->constrained('module_chunks')->nullOnDelete();
             $table->timestamps();
         });

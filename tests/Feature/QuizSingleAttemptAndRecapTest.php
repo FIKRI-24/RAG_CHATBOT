@@ -93,6 +93,52 @@ class QuizSingleAttemptAndRecapTest extends TestCase
         $this->assertEquals(100, $attempt->fresh()->score);
     }
 
+    public function test_database_unique_index_rejects_duplicate_module_quiz_attempt(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $module = $this->createQuizModule($guru, 'KB 3');
+        $quiz = $module->quiz;
+
+        $siswa = User::factory()->create([
+            'role' => 'siswa',
+            'name' => 'Doni Saputra',
+            'class_name' => 'XII TKJ 1',
+        ]);
+
+        ModuleQuizAttempt::create([
+            'module_quiz_id' => $quiz->id,
+            'module_id' => $module->id,
+            'user_id' => $siswa->id,
+            'module_title' => $module->judul,
+            'quiz_title' => $quiz->title,
+            'quiz_version' => $quiz->version,
+            'answers' => ['A', 'B'],
+            'questions_snapshot' => $quiz->questions,
+            'correct_count' => 2,
+            'question_count' => 2,
+            'score' => 100,
+        ]);
+
+        $this->assertDatabaseCount('module_quiz_attempts', 1);
+
+        // Percobaan insert kedua langsung di tingkat database wajib ditolak oleh unique index (module_id, user_id)
+        $this->expectException(\Illuminate\Database\QueryException::class);
+
+        ModuleQuizAttempt::create([
+            'module_quiz_id' => $quiz->id,
+            'module_id' => $module->id,
+            'user_id' => $siswa->id,
+            'module_title' => $module->judul,
+            'quiz_title' => $quiz->title,
+            'quiz_version' => $quiz->version,
+            'answers' => ['A', 'A'],
+            'questions_snapshot' => $quiz->questions,
+            'correct_count' => 1,
+            'question_count' => 2,
+            'score' => 50,
+        ]);
+    }
+
     public function test_module_detail_displays_completed_quiz_card_with_score(): void
     {
         $guru = User::factory()->create(['role' => 'guru']);

@@ -2,8 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\RagException;
 use Exception;
-use InvalidArgumentException;
 use PhpOffice\PhpWord\Element\Table;
 use PhpOffice\PhpWord\Element\Text;
 use PhpOffice\PhpWord\IOFactory;
@@ -19,17 +19,17 @@ class DocumentExtractorService
     public function extract(string $filePath): string
     {
         if (! file_exists($filePath)) {
-            throw new Exception("File tidak ditemukan: {$filePath}");
+            throw new RagException('Berkas dokumen tidak ditemukan di penyimpanan server.');
         }
 
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
         if (filesize($filePath) > 10 * 1024 * 1024) {
-            throw new Exception('Dokumen melebihi batas 10 MB.');
+            throw new RagException('Dokumen melebihi batas 10 MB.');
         }
         if ($extension === 'docx') {
             $zip = new \ZipArchive;
             if ($zip->open($filePath, \ZipArchive::RDONLY) !== true) {
-                throw new Exception('Arsip DOCX tidak valid.');
+                throw new RagException('Arsip DOCX tidak valid.');
             }
             try {
                 $size = 0;
@@ -37,7 +37,7 @@ class DocumentExtractorService
                     $entry = $zip->statIndex($i);
                     $size += $entry['size'];
                     if ($size > 50 * 1024 * 1024 || $zip->numFiles > 5000) {
-                        throw new Exception('DOCX terlalu besar setelah dibuka. Pisahkan dokumen.');
+                        throw new RagException('DOCX terlalu besar setelah dibuka. Pisahkan dokumen.');
                     }
                 }
             } finally {
@@ -51,10 +51,12 @@ class DocumentExtractorService
             } elseif (in_array($extension, ['doc', 'docx'])) {
                 return $this->extractFromWord($filePath);
             } else {
-                throw new InvalidArgumentException("Format file tidak didukung: {$extension}");
+                throw new RagException("Format file tidak didukung: {$extension}");
             }
+        } catch (RagException $e) {
+            throw $e;
         } catch (Exception $e) {
-            throw new Exception('Gagal mengekstrak dokumen: '.$e->getMessage());
+            throw new RagException('Gagal mengekstrak dokumen. Pastikan berkas PDF atau DOCX tidak rusak.');
         }
     }
 

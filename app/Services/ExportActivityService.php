@@ -427,6 +427,265 @@ class ExportActivityService
     }
 
     /**
+     * Generate berkas Excel (.xlsx) khusus Rekapitulasi Pertanyaan Siswa pada Asisten AI (Periode 7 Hari Terakhir / 1 Minggu)
+     */
+    public function exportWeeklyQuestions(?string $search = null): StreamedResponse
+    {
+        Carbon::setLocale('id');
+
+        $spreadsheet = new Spreadsheet;
+        $spreadsheet->setValueBinder((new StringValueBinder)->setNumericConversion(false));
+
+        // Terapkan Font Global: Times New Roman 12pt
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Times New Roman');
+        $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
+
+        $guru = Auth::user();
+        $namaGuru = $guru?->name ?? '-';
+        $nipGuru = $guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-');
+        $waktuCetak = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB';
+        $tanggalPengesahan = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y');
+
+        $endDate = Carbon::now(config('app.display_timezone'));
+        $startDate = (clone $endDate)->subDays(7)->startOfDay();
+
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Rekap Pertanyaan Mingguan');
+        $sheet->setShowGridLines(true);
+
+        // Styling Palette
+        $greenHeaderBg = '107C41'; // Classic Excel Academic Green
+        $softGreenBg = 'E8F5E9';
+        $borderGray = 'A1A1AA';
+
+        $thinBorder = [
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => $borderGray],
+                ],
+            ],
+        ];
+
+        // --- ROW 1 - 3: KOP LAPORAN RESMI ---
+        $sheet->mergeCells('A1:H1');
+        $sheet->setCellValue('A1', 'PEMERINTAH PROVINSI SUMATERA BARAT • DINAS PENDIDIKAN');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(12);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+
+        $sheet->mergeCells('A2:H2');
+        $sheet->setCellValue('A2', 'SMK NEGERI 1 KINALI — KABUPATEN PASAMAN BARAT');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(13);
+        $sheet->getStyle('A2')->getFont()->getColor()->setRGB('107C41');
+        $sheet->getStyle('A2')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A2')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($softGreenBg);
+
+        $sheet->mergeCells('A3:H3');
+        $sheet->setCellValue('A3', 'REKAPITULASI AKTIVITAS PERTANYAAN SISWA PADA ASISTEN AI (PERIODE 7 HARI TERAKHIR)');
+        $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12);
+        $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new Color('52525B'));
+
+        // Query data pertanyaan 7 hari terakhir
+        $query = ChatHistory::with(['siswa:id,name,email,student_number,class_name', 'referensiChunk:id,module_id', 'referensiChunk.module:id,judul,mapel,kb_nomor'])
+            ->where('created_at', '>=', $startDate)
+            ->questions()
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc');
+
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('pertanyaan', 'like', "%{$search}%")
+                    ->orWhere('jawaban', 'like', "%{$search}%")
+                    ->orWhereHas('siswa', function ($sq) use ($search) {
+                        $sq->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('student_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        $chats = $query->get();
+        $totalPertanyaan = $chats->count();
+        $totalSiswaBertanya = $chats->pluck('siswa_id')->filter()->unique()->count();
+
+        // --- ROW 5 - 8: METADATA RESMI LAPORAN ---
+        $periodeText = $startDate->translatedFormat('d F Y').' s/d '.$endDate->translatedFormat('d F Y');
+        $metadata = [
+            ['Nama Sekolah', ': SMK Negeri 1 Kinali', 'Guru Pengampu', ": {$namaGuru} (Akun Login)"],
+            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'NIP / ID Guru', ": {$nipGuru}"],
+            ['Periode Rekapitulasi', ": {$periodeText} (7 Hari)", 'Total Pertanyaan Terdata', ": {$totalPertanyaan} pertanyaan ({$totalSiswaBertanya} siswa aktif)"],
+            ['Waktu Cetak Berkas', ": {$waktuCetak}", 'Mesin Asisten AI', ': E-Modul RAG Assistant ('.config('gemini.model').')'],
+        ];
+
+        $r = 5;
+        foreach ($metadata as $row) {
+            $sheet->setCellValue("A{$r}", $row[0]);
+            $sheet->mergeCells("B{$r}:D{$r}");
+            $sheet->setCellValue("B{$r}", $row[1]);
+
+            $sheet->setCellValue("E{$r}", $row[2]);
+            $sheet->mergeCells("F{$r}:H{$r}");
+            $sheet->setCellValue("F{$r}", $row[3]);
+
+            $sheet->getStyle("A{$r}")->getFont()->setBold(true)->setSize(11);
+            $sheet->getStyle("B{$r}")->getFont()->setSize(11);
+            $sheet->getStyle("E{$r}")->getFont()->setBold(true)->setSize(11);
+            $sheet->getStyle("F{$r}")->getFont()->setSize(11);
+            $r++;
+        }
+
+        // --- ROW 10: HEADER TABEL ---
+        $tableStartRow = 10;
+        $headers = [
+            'A' => 'NO',
+            'B' => 'WAKTU & TANGGAL (WIB)',
+            'C' => 'NAMA SISWA',
+            'D' => 'KELAS / NISN',
+            'E' => 'RUANG LINGKUP MODUL',
+            'F' => 'PERTANYAAN SISWA',
+            'G' => 'JAWABAN ASISTEN AI',
+            'H' => 'RUJUKAN SUMBER (RETRIEVAL)',
+        ];
+
+        foreach ($headers as $col => $title) {
+            $sheet->setCellValue("{$col}{$tableStartRow}", $title);
+        }
+
+        $headerRange = "A{$tableStartRow}:H{$tableStartRow}";
+        $sheet->getStyle($headerRange)->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle($headerRange)->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle($headerRange)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($greenHeaderBg);
+        $sheet->getStyle($headerRange)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle($headerRange)->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle($headerRange)->applyFromArray($thinBorder);
+        $sheet->getRowDimension($tableStartRow)->setRowHeight(26);
+
+        // Data Rows
+        $currentRow = $tableStartRow + 1;
+        $no = 1;
+
+        if ($chats->isEmpty()) {
+            $sheet->mergeCells("A{$currentRow}:H{$currentRow}");
+            $sheet->setCellValue("A{$currentRow}", 'Tidak ada aktivitas pertanyaan siswa yang tercatat dalam 7 hari terakhir.');
+            $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("A{$currentRow}")->getFont()->setItalic(true)->setSize(11);
+            $sheet->getStyle("A{$currentRow}:H{$currentRow}")->applyFromArray($thinBorder);
+            $currentRow++;
+        } else {
+            foreach ($chats as $chat) {
+                $waktu = $chat->created_at
+                    ? $chat->created_at->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i')
+                    : '-';
+                $namaSiswa = $chat->siswa?->name ?? 'Siswa Anonim';
+                $kelasNisn = trim(($chat->siswa?->class_name ?? '').' '.($chat->siswa?->student_number ? '('.$chat->siswa->student_number.')' : ''));
+                if (empty($kelasNisn)) {
+                    $kelasNisn = '-';
+                }
+
+                $modulName = implode(', ', $chat->sourceLabels()) ?: 'Umum / Katalog';
+                $pertanyaan = (string) $chat->pertanyaan;
+                $jawaban = (string) $chat->jawaban;
+
+                // Ekstrak rujukan sumber
+                $sources = $chat->sources ?? [];
+                $rujukan = '-';
+                if (!empty($sources) && is_array($sources)) {
+                    $rujukanList = [];
+                    foreach ($sources as $s) {
+                        $judul = $s['judul'] ?? ($s['mapel'] ?? '');
+                        $kb = $s['kb_nomor'] ?? '';
+                        if ($kb || $judul) {
+                            $rujukanList[] = trim("{$kb} {$judul}");
+                        }
+                    }
+                    if (!empty($rujukanList)) {
+                        $rujukan = implode("; ", array_unique($rujukanList));
+                    }
+                }
+
+                $sheet->setCellValue("A{$currentRow}", $no);
+                $sheet->setCellValue("B{$currentRow}", $waktu);
+                $sheet->setCellValue("C{$currentRow}", $namaSiswa);
+                $sheet->setCellValue("D{$currentRow}", $kelasNisn);
+                $sheet->setCellValue("E{$currentRow}", $modulName);
+                $sheet->setCellValue("F{$currentRow}", $pertanyaan);
+                $sheet->setCellValue("G{$currentRow}", $jawaban);
+                $sheet->setCellValue("H{$currentRow}", $rujukan);
+
+                $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("D{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_TOP);
+                $sheet->getStyle("F{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+                $sheet->getStyle("G{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+                $sheet->getStyle("H{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_TOP)->setWrapText(true);
+
+                $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getFont()->setSize(10.5);
+
+                if ($currentRow % 2 == 1) {
+                    $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FAFAFA');
+                }
+
+                $sheet->getStyle("A{$currentRow}:H{$currentRow}")->applyFromArray($thinBorder);
+
+                $currentRow++;
+                $no++;
+            }
+        }
+
+        // Tanda Tangan Guru Pengampu di Bawah Tabel
+        $signRow = $currentRow + 2;
+        $sheet->mergeCells("F{$signRow}:H{$signRow}");
+        $sheet->setCellValue("F{$signRow}", "Kinali, {$tanggalPengesahan}");
+        $sheet->getStyle("F{$signRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $signRowTitle = $signRow + 1;
+        $sheet->mergeCells("F{$signRowTitle}:H{$signRowTitle}");
+        $sheet->setCellValue("F{$signRowTitle}", 'Guru Pengampu Mata Pelajaran,');
+        $sheet->getStyle("F{$signRowTitle}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $signRowName = $signRow + 4;
+        $sheet->mergeCells("F{$signRowName}:H{$signRowName}");
+        $sheet->setCellValue("F{$signRowName}", $namaGuru);
+        $sheet->getStyle("F{$signRowName}")->getFont()->setBold(true)->setUnderline(true);
+        $sheet->getStyle("F{$signRowName}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        $signRowNip = $signRowName + 1;
+        $sheet->mergeCells("F{$signRowNip}:H{$signRowNip}");
+        $sheet->setCellValue("F{$signRowNip}", "NIP. {$nipGuru}");
+        $sheet->getStyle("F{$signRowNip}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Lebar Kolom
+        $sheet->getColumnDimension('A')->setWidth(7);
+        $sheet->getColumnDimension('B')->setWidth(20);
+        $sheet->getColumnDimension('C')->setWidth(25);
+        $sheet->getColumnDimension('D')->setWidth(18);
+        $sheet->getColumnDimension('E')->setWidth(22);
+        $sheet->getColumnDimension('F')->setWidth(40);
+        $sheet->getColumnDimension('G')->setWidth(55);
+        $sheet->getColumnDimension('H')->setWidth(25);
+
+        $filename = 'REKAP_PERTANYAAN_MINGGUAN_SMKN1_KINALI_'.Carbon::now(config('app.display_timezone'))->format('Ymd_His').'.xlsx';
+
+        return new StreamedResponse(function () use ($spreadsheet) {
+            $writer = new Xlsx($spreadsheet);
+            try {
+                $writer->save('php://output');
+            } finally {
+                $spreadsheet->disconnectWorksheets();
+            }
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'private, no-store',
+            'Pragma' => 'no-cache',
+        ]);
+    }
+
+    /**
      * Membangun Lembar Rekapitulasi Nilai Kuis Siswa (Format Matriks Modul KB 1, KB 2, dst.)
      */
     public function buildQuizRecapSheet(

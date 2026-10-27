@@ -6,7 +6,7 @@
     <div class="space-y-6 max-w-7xl mx-auto pb-12">
 
         <!-- Top Header & Action Banner -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-3xl border-2 border-slate-100 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 sm:p-7 rounded-xl border border-slate-200/90 shadow-2xs">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-[#008546] border border-emerald-200/60 flex items-center justify-center text-xl shrink-0">
                     <i class="fa-solid fa-square-poll-vertical"></i>
@@ -29,49 +29,49 @@
 
         <!-- 4 KPI Summary Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-4">
                 <div class="w-11 h-11 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-lg shrink-0">
                     <i class="fa-solid fa-users"></i>
                 </div>
                 <div>
                     <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Siswa</p>
-                    <p class="text-xl font-extrabold text-slate-900 mt-0.5">{{ $metrics['total_students'] }} <span class="text-xs font-medium text-slate-400">orang</span></p>
+                    <p class="text-xl font-mono font-bold tabular-nums text-slate-900 mt-0.5">{{ $metrics['total_students'] }} <span class="text-xs font-medium text-slate-400">orang</span></p>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-700 border border-purple-100 flex items-center justify-center text-lg shrink-0">
+            <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-4">
+                <div class="w-11 h-11 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/60 flex items-center justify-center text-lg shrink-0">
                     <i class="fa-solid fa-book-bookmark"></i>
                 </div>
                 <div>
                     <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Kuis KB Aktif</p>
-                    <p class="text-xl font-extrabold text-slate-900 mt-0.5">{{ $metrics['total_quizzes'] }} <span class="text-xs font-medium text-slate-400">modul</span></p>
+                    <p class="text-xl font-mono font-bold tabular-nums text-slate-900 mt-0.5">{{ $metrics['total_quizzes'] }} <span class="text-xs font-medium text-slate-400">modul</span></p>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4">
-                <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-700 border border-blue-100 flex items-center justify-center text-lg shrink-0">
+            <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-4">
+                <div class="w-11 h-11 rounded-lg bg-slate-100 text-slate-700 border border-slate-200/60 flex items-center justify-center text-lg shrink-0">
                     <i class="fa-solid fa-user-check"></i>
                 </div>
                 <div>
                     <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Partisipasi Siswa</p>
-                    <p class="text-xl font-extrabold text-slate-900 mt-0.5">{{ $metrics['participating_students'] }} <span class="text-xs font-medium text-slate-400">siswa</span></p>
+                    <p class="text-xl font-mono font-bold tabular-nums text-slate-900 mt-0.5">{{ $metrics['participating_students'] }} <span class="text-xs font-medium text-slate-400">siswa</span></p>
                 </div>
             </div>
 
-            <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-4">
+            <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs flex items-center gap-4">
                 <div class="w-11 h-11 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-100 flex items-center justify-center text-lg shrink-0">
                     <i class="fa-solid fa-award"></i>
                 </div>
                 <div>
                     <p class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Rata-Rata Kelas</p>
-                    <p class="text-xl font-extrabold text-[#008546] mt-0.5">{{ $metrics['average_score'] }} <span class="text-xs font-medium text-slate-400">/ 100</span></p>
+                    <p class="text-xl font-mono font-bold tabular-nums text-[#008546] mt-0.5">{{ $metrics['average_score'] }} <span class="text-xs font-medium text-slate-400">/ 100</span></p>
                 </div>
             </div>
         </div>
 
         <!-- Filter & Search Controls -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs">
+        <div class="bg-white p-5 rounded-xl border border-slate-200/90 shadow-2xs">
             <form method="GET" action="{{ route('guru.quiz-recap.index') }}" class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div class="flex-1 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                     <div class="relative flex-1">
@@ -109,7 +109,7 @@
         </div>
 
         <!-- Matrix Table Card -->
-        <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div class="p-5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-2">
                     <span class="w-2.5 h-2.5 rounded-full bg-[#008546]"></span>

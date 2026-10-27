@@ -29,7 +29,7 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: composer audit
-      - run: npm audit
+      - run: npm audit --audit-level=high
       - run: php artisan test
       - run: npm run test:rag-ui
       - name: PostgreSQL suite (dedicated disposable database)

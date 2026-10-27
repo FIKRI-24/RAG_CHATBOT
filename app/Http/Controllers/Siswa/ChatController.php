@@ -137,6 +137,7 @@ class ChatController extends Controller
                     ->where('mapel', $mapel)->where('created_at', '>=', now()->subMinutes(30))
                     ->where('scope_module_id', $moduleId)
                     ->latest('id')->limit(config('rag.history_turns', 3))->get()->reverse()
+                    ->reject(fn ($chat) => $this->isGreeting($chat->pertanyaan) || $this->handleCatalogInquiry($chat->pertanyaan, $mapel, $moduleId) !== null)
                     ->map(fn ($chat) => ['pertanyaan' => $chat->retrieval_query ?: $chat->pertanyaan,
                         'jawaban' => mb_substr($chat->jawaban, 0, 1500)])->values()->all();
                 $queryText = $gemini->rewriteQuestion($question, $history);
@@ -335,14 +336,17 @@ class ChatController extends Controller
             $kbNum = $matches[2];
             $kbLabel = "KB {$kbNum}";
 
-            $isMetaQuestion = preg_match('/(ada|tersedia|aktif|tentang apa|bahas apa|materi apa|penjelasan|judul)/i', $normalized);
+            $isMetaQuestion = preg_match(
+                '/^[\s?.,!]*((apakah|apa|sudah|tolong|info|cek)\s+)*(sudah\s+)?(ada|tersedia|aktif|judul|materi|topik|pembahasan|isi)?\s*(materi|modul|topik|judul)?\s*(di|pada|untuk|tentang)?\s*(kb|kegiatan belajar)\s*[1-9]\d*\s*(itu\s+)?(sudah\s+)?(\b(ada|tersedia|aktif|tentang apa|bahas apa|materi apa|membahas apa|apa saja|judulnya apa|apa)\b)?\s*(\s+(di|pada)\s+(sistem|aplikasi|sini|modul))?[\s?.,!]*$/i',
+                $normalized
+            ) && preg_match('/\b(ada|tersedia|aktif|tentang apa|bahas apa|materi apa|membahas apa|judul|judulnya)\b/i', $normalized);
+
             if ($isMetaQuestion) {
                 $module = Module::available()
                     ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
                     ->where(function ($q) use ($kbLabel, $kbNum) {
                         $q->where('kb_nomor', $kbLabel)
-                            ->orWhere('kb_nomor', "KB-{$kbNum}")
-                            ->orWhere('judul', 'like', "%{$kbLabel}%");
+                            ->orWhere('kb_nomor', "KB-{$kbNum}");
                     })->first();
 
                 if ($module) {

@@ -32,6 +32,7 @@ return new class extends Migration
             $table->unsignedInteger('question_count');
             $table->unsignedTinyInteger('score');
             $table->timestamps();
+            $table->unique(['module_id', 'user_id']);
             $table->index(['module_id', 'created_at']);
             $table->index(['user_id', 'created_at']);
         });

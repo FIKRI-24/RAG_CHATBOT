@@ -13,7 +13,7 @@ class GrokService
 
     public function __construct()
     {
-        $this->apiKey = env('GROK_API_KEY', '');
+        $this->apiKey = (string) config('services.grok.key', '');
     }
 
     /**

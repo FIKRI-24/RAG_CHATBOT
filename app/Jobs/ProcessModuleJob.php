@@ -38,18 +38,25 @@ class ProcessModuleJob implements ShouldQueue
 
     public string $filePath;
 
-    public function __construct(Module $module)
+    public ?string $oldFilePath;
+
+    public function __construct(Module $module, ?string $oldFilePath = null)
     {
         $this->moduleId = $module->id;
         $this->version = $module->indexing_version;
         $this->filePath = $module->file_path;
+        $this->oldFilePath = $oldFilePath;
         $this->onConnection('rag')->onQueue('rag')->afterCommit();
     }
 
     private function current()
     {
         return Module::whereKey($this->moduleId)->where('indexing_version', $this->version)
-            ->where('file_path', $this->filePath)->where('status_indexing', '!=', 'completed');
+            ->where('file_path', $this->filePath)
+            ->where(function ($query) {
+                $query->where('status_indexing', '!=', 'completed')
+                    ->orWhereDoesntHave('chunks');
+            });
     }
 
     public function handle(DocumentExtractorService $extractor, ChunkingService $chunker, GeminiService $gemini): void
@@ -113,6 +120,9 @@ class ProcessModuleJob implements ShouldQueue
                 }
                 $module->update(['status_indexing' => 'completed', 'indexing_error' => null]);
             });
+            if ($this->oldFilePath && $this->oldFilePath !== $this->filePath) {
+                app(\App\Services\StoredFileService::class)->delete($this->oldFilePath, 'local');
+            }
         } catch (Throwable $e) {
             $this->markFailed($e);
             throw $e;

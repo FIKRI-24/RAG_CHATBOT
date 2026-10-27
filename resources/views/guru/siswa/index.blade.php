@@ -5,7 +5,7 @@
     <div class="space-y-6">
         
         <!-- Header Section -->
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border-2 border-slate-100 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200/90 shadow-2xs">
             <div>
                 <h1 class="text-xl font-bold text-slate-800 flex items-center gap-2">
                     <i class="fa-solid fa-user-graduate text-[#008546]"></i> Manajemen Data & Login Siswa
@@ -54,7 +54,7 @@
         @endif
 
         <!-- Filter & Search Bar -->
-        <div class="bg-white p-4 rounded-2xl border-2 border-slate-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200/90 shadow-2xs flex flex-col sm:flex-row items-center justify-between gap-4">
             <form method="GET" action="{{ route('guru.siswa.index') }}" class="flex items-center gap-2 w-full sm:w-auto">
                 <div class="relative w-full sm:w-72">
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama atau email..." class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 pl-9 pr-3 outline-none focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/20">
@@ -74,7 +74,7 @@
         </div>
 
         <!-- Table Data Siswa -->
-        <div class="bg-white rounded-3xl border-2 border-slate-100 shadow-sm overflow-hidden">
+        <div class="bg-white rounded-xl border border-slate-200/90 shadow-2xs overflow-hidden">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse text-xs">
                     <thead>
@@ -94,7 +94,7 @@
                                 </td>
                                 <td class="py-4 px-6">
                                     <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#008546] to-emerald-500 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+                                        <div class="w-8 h-8 rounded-lg bg-slate-800 text-white font-bold flex items-center justify-center text-xs">
                                             {{ strtoupper(substr($siswa->name, 0, 1)) }}
                                         </div>
                                         <div>
@@ -106,7 +106,7 @@
                                 <td class="py-4 px-6 font-medium text-slate-700">
                                     <i class="fa-regular fa-envelope text-slate-400 mr-1"></i>
                                     {{ $siswa->email }}
-                                    <p>{{ $siswa->class_name ?: 'Kelas belum diisi' }} ? {{ $siswa->student_number ?: 'NIS belum diisi' }} ? {{ $siswa->is_active ? 'Aktif' : 'Nonaktif' }}</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">{{ $siswa->class_name ?: 'Kelas belum diisi' }} • {{ $siswa->student_number ?: 'NIS belum diisi' }} • {{ $siswa->is_active ? 'Aktif' : 'Nonaktif' }}</p>
                                 </td>
                                 <td class="py-4 px-6 text-slate-500">
                                     {{ $siswa->created_at->timezone(config('app.display_timezone'))->format('d M Y, H:i') }}
@@ -155,7 +155,7 @@
 
     <!-- MODAL TAMBAH SISWA -->
     <div id="addModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in relative">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-fade-in relative">
             <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                     <i class="fa-solid fa-user-plus text-[#008546]"></i> Tambah Akun Siswa Baru
@@ -197,7 +197,7 @@
 
     <!-- MODAL EDIT & RESET PASSWORD SISWA -->
     <div id="editModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 animate-fade-in relative">
+        <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-slate-200 animate-fade-in relative">
             <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                 <h3 class="font-bold text-slate-800 text-base flex items-center gap-2">
                     <i class="fa-solid fa-user-pen text-[#008546]"></i> Edit & Reset Password Siswa

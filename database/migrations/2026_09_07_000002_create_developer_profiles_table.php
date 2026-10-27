@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('produk')->default('E-Modul terintegrasi Chatbot berbasis Web');
             $table->string('email')->default('putrarudi238@gmail.com');
             $table->string('foto')->nullable();
-            $table->text('deskripsi')->nullable();
+            $table->mediumText('deskripsi')->nullable();
             $table->timestamps();
         });
     }

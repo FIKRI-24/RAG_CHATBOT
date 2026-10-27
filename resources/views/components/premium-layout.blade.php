@@ -11,7 +11,6 @@
     <!-- Scripts & Styles (bundled via Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-
     <style>
         body { font-family: 'Inter', sans-serif; }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
@@ -26,17 +25,17 @@
     <div id="mobile-backdrop" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 hidden md:hidden transition-opacity"></div>
 
     <!-- Sidebar (Desktop & Mobile Drawer) -->
-    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-64 bg-slate-900 text-white flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+    <aside id="sidebar" class="fixed md:static inset-y-0 left-0 w-64 bg-slate-900 text-white flex flex-col h-full z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-out border-r border-slate-800">
         
         <!-- Brand Header -->
         <div class="h-16 flex items-center justify-between px-5 border-b border-slate-800 bg-slate-900">
             <div class="flex items-center gap-3">
-                <div class="w-9 h-9 bg-gradient-to-tr from-[#008546] to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 text-white">
-                    <i class="fa-solid fa-chalkboard-user text-sm"></i>
+                <div class="w-9 h-9 bg-[#008546] rounded-lg flex items-center justify-center border border-emerald-500/30 text-white shrink-0">
+                    <i class="fa-solid fa-network-wired text-xs"></i>
                 </div>
                 <div>
                     <h1 class="font-bold text-white tracking-tight leading-tight text-sm">Panel Guru TKJ</h1>
-                    <p class="text-[10px] text-emerald-400 font-semibold uppercase">SMK N 1 Kinali</p>
+                    <p class="text-[10px] text-slate-400 font-mono uppercase tracking-wider">SMK N 1 Kinali</p>
                 </div>
             </div>
             <button id="close-sidebar-btn" class="md:hidden text-slate-400 hover:text-white p-1 rounded-lg">
@@ -45,18 +44,18 @@
         </div>
 
         <!-- Teacher Profile Card -->
-        <div class="p-4 border-b border-slate-800 bg-slate-800/50">
+        <div class="p-4 border-b border-slate-800 bg-slate-900/60">
             <div class="flex items-center gap-3">
                 @if(auth()->user()?->avatar_url)
-                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-10 h-10 rounded-xl object-cover shadow-sm border border-emerald-400/30 shrink-0">
+                    <img src="{{ auth()->user()->avatar_url }}" alt="{{ auth()->user()->name }}" class="w-9 h-9 rounded-lg object-cover border border-slate-700 shrink-0">
                 @else
-                    <div class="w-10 h-10 rounded-xl bg-[#008546] text-white flex items-center justify-center font-bold text-sm shadow-sm border border-emerald-400/30 shrink-0">
+                    <div class="w-9 h-9 rounded-lg bg-slate-800 text-emerald-400 flex items-center justify-center font-bold text-xs border border-slate-700 shrink-0">
                         {{ strtoupper(substr(auth()->user()?->name ?? 'G', 0, 1)) }}
                     </div>
                 @endif
                 <div class="flex-1 overflow-hidden">
                     <p class="text-xs font-bold text-white truncate">{{ auth()->user()?->name ?? 'Pengajar' }}</p>
-                    <p class="text-[10px] text-emerald-400 font-semibold truncate flex items-center gap-1">
+                    <p class="text-[10px] text-slate-400 font-medium truncate flex items-center gap-1.5 mt-0.5">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span> Pengajar TKJ
                     </p>
                 </div>
@@ -64,52 +63,58 @@
         </div>
         
         <!-- Navigation Links -->
-        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
-            <a href="{{ route('guru.dashboard') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.dashboard') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-chart-pie text-sm w-5 text-center"></i>
-                <span class="notranslate" translate="no">Dashboard</span>
-            </a>
-
-            <a href="{{ route('guru.modules.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.modules.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-book-bookmark text-sm w-5 text-center"></i>
-                <span>Kelola Modul RAG</span>
-            </a>
-
-            <a href="{{ route('guru.siswa.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.siswa.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-user-graduate text-sm w-5 text-center"></i>
-                <span>Data & Login Siswa</span>
-            </a>
-
-            <a href="{{ route('guru.quiz-reviews.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.quiz-reviews.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-clipboard-check text-sm w-5 text-center"></i><span>Tinjauan kuis</span>
-            </a>
-
-            <a href="{{ route('guru.quiz-recap.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.quiz-recap.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-square-poll-vertical text-sm w-5 text-center"></i>
-                <span>Rekap Nilai Kuis</span>
-            </a>
-            <a href="{{ route('guru.petunjuk') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('guru.petunjuk') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-circle-question text-sm w-5 text-center"></i>
-                <span>Petunjuk Guru</span>
-            </a>
-
-            <a href="{{ route('pengembang') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('pengembang') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                <i class="fa-solid fa-address-card text-sm w-5 text-center"></i>
+        <nav class="flex-1 p-3.5 space-y-1 overflow-y-auto">
+            <a href="{{ route('pengembang') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('pengembang') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-address-card text-xs w-4 text-center"></i>
                 <span>Profil Pengembang</span>
             </a>
 
-            <div class="pt-4 border-t border-slate-800 mt-4">
-                <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block px-3 mb-2">Pengaturan</span>
+            <a href="{{ route('guru.petunjuk') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.petunjuk') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-circle-question text-xs w-4 text-center"></i>
+                <span>Petunjuk Guru</span>
+            </a>
+
+            <a href="{{ route('guru.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.dashboard') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-chart-pie text-xs w-4 text-center"></i>
+                <span class="notranslate" translate="no">Dashboard</span>
+            </a>
+
+            <a href="{{ route('guru.chat-activities.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.chat-activities.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-comments text-xs w-4 text-center"></i>
+                <span>Aktivitas Tanya Jawab</span>
+            </a>
+
+            <a href="{{ route('guru.modules.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.modules.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-book-bookmark text-xs w-4 text-center"></i>
+                <span>Kelola Modul RAG</span>
+            </a>
+
+            <a href="{{ route('guru.quiz-reviews.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.quiz-reviews.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-clipboard-check text-xs w-4 text-center"></i><span>Tinjauan kuis</span>
+            </a>
+
+            <a href="{{ route('guru.quiz-recap.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.quiz-recap.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-square-poll-vertical text-xs w-4 text-center"></i>
+                <span>Rekap Nilai Kuis</span>
+            </a>
+
+            <a href="{{ route('guru.siswa.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.siswa.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-user-graduate text-xs w-4 text-center"></i>
+                <span>Data & Login Siswa</span>
+            </a>
+
+            <div class="pt-3 border-t border-slate-800 mt-3">
+                <span class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block px-3 mb-1.5">Akun & Sesi</span>
                 
-                <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all {{ request()->routeIs('profile.*') ? 'bg-[#008546] text-white shadow-md' : 'text-slate-400 hover:bg-slate-800 hover:text-white' }}">
-                    <i class="fa-solid fa-user-gear text-sm w-5 text-center"></i>
+                <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('profile.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                    <i class="fa-solid fa-user-gear text-xs w-4 text-center"></i>
                     <span>Profil Saya</span>
                 </a>
 
                 <form method="POST" action="{{ route('logout') }}" class="mt-1">
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-all text-left">
-                        <i class="fa-solid fa-right-from-bracket text-sm w-5 text-center"></i>
+                    <button type="submit" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 transition-colors text-left">
+                        <i class="fa-solid fa-right-from-bracket text-xs w-4 text-center"></i>
                         <span>Keluar (Logout)</span>
                     </button>
                 </form>
@@ -117,8 +122,8 @@
         </nav>
 
         <!-- Sidebar Footer -->
-        <div class="p-4 border-t border-slate-800 text-center">
-            <span class="text-[10px] text-slate-500">RAG AI System v2.0 • SMK N 1 Kinali</span>
+        <div class="p-3.5 border-t border-slate-800 text-left px-5">
+            <span class="text-[10px] font-mono text-slate-500">E-Modul TKJ • SMK N 1 Kinali</span>
         </div>
     </aside>
 
@@ -126,20 +131,20 @@
     <div class="flex-1 flex flex-col h-full bg-slate-50 overflow-hidden relative">
         
         <!-- Header Topbar -->
-        <header class="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20 shadow-xs">
+        <header class="h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-8 shrink-0 z-20">
             <div class="flex items-center gap-3">
                 <button id="open-sidebar-btn" class="md:hidden text-slate-600 p-2 rounded-lg hover:bg-slate-100">
-                    <i class="fa-solid fa-bars text-lg"></i>
+                    <i class="fa-solid fa-bars text-base"></i>
                 </button>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-[#008546]"></span>
-                    <h2 class="text-sm sm:text-base font-bold text-slate-800">Panel Kendali Guru</h2>
+                <div class="flex items-center gap-2.5">
+                    <span class="w-1.5 h-4 rounded-xs bg-[#008546]"></span>
+                    <h2 class="text-sm font-bold text-slate-900 tracking-tight">Panel Kendali Guru</h2>
                 </div>
             </div>
 
             <div class="flex items-center gap-3">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-[#008546] border border-emerald-200/60">
-                    <i class="fa-solid fa-shield-halved text-xs"></i> Mode Pengajar
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                    <i class="fa-solid fa-chalkboard-user text-[10px] text-[#008546]"></i> Mode Pengajar
                 </span>
             </div>
         </header>
