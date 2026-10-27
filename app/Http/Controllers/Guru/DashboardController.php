@@ -43,8 +43,6 @@ class DashboardController extends Controller
         $siswaAktifPersen = $metrics['active_percent'];
         $avgChatPerSiswa = $metrics['questions_per_student'];
 
-        $activeAiModel = config('gemini.model', 'gemini-2.5-flash');
-
         // 3. Data Grafik Batang Bulanan (Jan - Des Tahun Ini)
         $chartChats = $this->monthlyCounts(ChatHistory::questions(), $year);
         $chartModules = $this->monthlyCounts(Module::where('guru_id', $guruId), $year);
@@ -74,7 +72,6 @@ class DashboardController extends Controller
             'siswaAktifCount',
             'siswaAktifPersen',
             'avgChatPerSiswa',
-            'activeAiModel',
             'year',
             'chartChats',
             'chartModules',

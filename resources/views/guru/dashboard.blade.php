@@ -192,22 +192,6 @@
                             Rata-rata {{ $avgChatPerSiswa }} pertanyaan diajukan per siswa
                         </span>
                     </div>
-
-                    <!-- Metric 4: AI Engine Info -->
-                    <div class="p-3.5 rounded-lg bg-slate-900 text-white space-y-1.5">
-                        <div class="flex items-center justify-between text-xs">
-                            <span class="font-semibold text-slate-300">Model AI Aktif</span>
-                            <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#008546] text-white">
-                                AKTIF
-                            </span>
-                        </div>
-                        <p class="text-xs text-emerald-300 font-mono truncate">
-                            {{ $activeAiModel }}
-                        </p>
-                        <span class="text-[10px] text-slate-400 block">
-                            Strict RAG Grounding aktif (berbasis dokumen guru)
-                        </span>
-                    </div>
                 </div>
             </div>
 
