@@ -25,8 +25,11 @@
                 <a href="{{ route('guru.modules.edit', $module->id) }}" class="inline-flex items-center px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg transition-colors gap-1.5 border border-slate-200">
                     <i class="fa-solid fa-pen-to-square"></i> Edit Modul
                 </a>
-                @if(in_array($module->status_indexing, ['pending', 'failed', 'completed']))
-                <form action="{{ route('guru.modules.reindex', $module->id) }}" method="POST" class="inline">
+                @if(in_array($module->status_indexing, ['pending', 'processing', 'failed', 'completed']))
+                <form action="{{ route('guru.modules.reindex', $module->id) }}" method="POST" class="inline"
+                      @if($module->status_indexing === 'processing' || $module->isReindexing())
+                          onsubmit="return confirm('Proses indexing AI masih berjalan. Yakin ingin menjadwalkan indexing ulang?')"
+                      @endif>
                     @csrf
                     <button type="submit" class="inline-flex items-center px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-lg transition-colors gap-1.5">
                         <i class="fa-solid fa-rotate-right"></i> Coba Index Ulang
@@ -98,15 +101,24 @@
 
                     <div class="p-3.5 bg-slate-50 rounded-lg border border-slate-200/80">
                         <dt class="text-[11px] font-medium text-slate-500">Status Indexing AI</dt>
-                        <dd class="mt-1 text-xs">
-                            @if($module->status_indexing === 'completed')
-                                <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-emerald-50 text-[#008546] border border-emerald-200">Selesai (Siap Tanya AI)</span>
-                            @elseif($module->status_indexing === 'processing')
-                                <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-amber-50 text-amber-800 border border-amber-200">Sedang Diekstrak</span>
-                            @elseif($module->status_indexing === 'failed')
-                                <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-rose-50 text-rose-800 border border-rose-200">Gagal Index</span>
-                            @else
-                                <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-slate-200 text-slate-800">Menunggu Antrian</span>
+                        <dd class="mt-1 text-xs space-y-1">
+                            <div>
+                                @if($module->status_indexing === 'completed')
+                                    <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-emerald-50 text-[#008546] border border-emerald-200">Selesai (Siap Tanya AI)</span>
+                                @elseif($module->status_indexing === 'processing')
+                                    <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-amber-50 text-amber-800 border border-amber-200">Sedang Diekstrak</span>
+                                @elseif($module->status_indexing === 'failed')
+                                    <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-rose-50 text-rose-800 border border-rose-200">Gagal Index</span>
+                                @else
+                                    <span class="px-2 py-0.5 inline-flex font-semibold rounded bg-slate-200 text-slate-800">Menunggu Antrian</span>
+                                @endif
+                            </div>
+                            @if($module->reindexing_status === 'pending')
+                                <div><span class="px-2 py-0.5 inline-flex font-semibold rounded bg-blue-50 text-blue-800 border border-blue-200">Re-index: Menunggu Antrian</span></div>
+                            @elseif($module->reindexing_status === 'processing')
+                                <div><span class="px-2 py-0.5 inline-flex font-semibold rounded bg-amber-50 text-amber-800 border border-amber-200">Re-index: Sedang Diproses</span></div>
+                            @elseif($module->reindexing_status === 'failed')
+                                <div><span class="px-2 py-0.5 inline-flex font-semibold rounded bg-rose-50 text-rose-800 border border-rose-200">Re-index Gagal (Indeks Lama Aktif)</span></div>
                             @endif
                         </dd>
                     </div>

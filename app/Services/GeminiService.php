@@ -84,7 +84,7 @@ class GeminiService
 
     public function rewriteQuestion(string $question, array $history): string
     {
-        if (! $history) {
+        if (! $history || ! $this->needsFollowupRewrite($question)) {
             return $question;
         }
         $result = $this->generate(
@@ -97,6 +97,31 @@ class GeminiService
         }
 
         return $result;
+    }
+
+    public function needsFollowupRewrite(string $question): bool
+    {
+        $clean = trim(preg_replace('/\s+/u', ' ', $question));
+        if ($clean === '' || mb_strlen($clean) < 25) {
+            return true;
+        }
+
+        $words = preg_split('/\s+/u', $clean, -1, PREG_SPLIT_NO_EMPTY);
+        if (! is_array($words) || count($words) < 4) {
+            return true;
+        }
+
+        // Starts with a conversational follow-up connector
+        if (preg_match('/^(lalu|terus|kemudian|jadi|kalau|jika\s+begitu|bagaimana\s+dengan|gimana\s+kalau|gimana\s+dengan|kenapa\s+bisa|mengapa\s+demikian|apakah\s+itu|apa\s+itu\s+saja)\b/iu', $clean)) {
+            return true;
+        }
+
+        // Contains anaphoric pronouns or suffix references that depend on prior turn context
+        if (preg_match('/\b(itu|ini|tersebut|tsb|tadi|sebelumnya|di\s+atas|diatas|lanjut|lanjutkan|lanjutan|contohnya|maksudnya|bedanya|perbedaannya|kelebihannya|kekurangannya|kelemahannya|fungsinya|langkahnya|caranya|dampaknya|jenisnya|bagiannya|alasannya|penyebabnya|solusinya|tujuannya|manfaatnya|pengertiannya|penjelasannya)\b/iu', $clean)) {
+            return true;
+        }
+
+        return false;
     }
 
     public function generateQuiz(string $context): string
@@ -146,12 +171,16 @@ class GeminiService
         if ($this->apiKey === '') {
             throw new RagException('Layanan AI belum dikonfigurasi. Hubungi guru atau pengelola.');
         }
+        $initialRemaining = $this->deadline === null ? (int) config('rag.http_timeout', 25) : $this->deadline - microtime(true);
+        if ($initialRemaining < 1) {
+            throw new RagException('Waktu pemrosesan AI habis. Silakan coba kembali.');
+        }
+        app(AiUsageService::class)->reserve();
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             $remaining = $this->deadline === null ? (int) config('rag.http_timeout', 25) : $this->deadline - microtime(true);
             if ($remaining < 1) {
                 throw new RagException('Waktu pemrosesan AI habis. Silakan coba kembali.');
             }
-            app(AiUsageService::class)->reserve();
             $delay = (int) config('rag.retry_delay_ms', 1000) * $attempt;
             try {
                 $response = Http::withHeaders(['x-goog-api-key' => $this->apiKey])

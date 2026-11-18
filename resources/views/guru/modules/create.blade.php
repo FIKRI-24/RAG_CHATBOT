@@ -46,7 +46,8 @@
         @endif
 
         <!-- Formulir Upload Modul (Alur Langkah Berurutan & Mudah Dipahami) -->
-        <form id="uploadForm" method="POST" action="{{ route('guru.modules.store') }}" enctype="multipart/form-data" class="space-y-6">
+        <form id="uploadForm" method="POST" action="{{ route('guru.modules.store') }}" enctype="multipart/form-data" class="space-y-6"
+              onsubmit="const btn = document.getElementById('submitBtn'); if (btn && btn.disabled) return false; if (btn) { btn.disabled = true; btn.classList.add('opacity-75', 'cursor-wait'); }">
             @csrf
 
             <!-- ========================================== -->
@@ -124,6 +125,7 @@
                             </p>
                         </div>
                     </div>
+                    <p id="fileClientError" class="hidden mt-2 text-sm font-bold text-rose-700" role="alert"></p>
                     <x-input-error class="mt-2 text-sm font-bold text-rose-700" :messages="$errors->get('file')" />
                 </div>
             </div>
@@ -363,13 +365,39 @@
     <!-- Script Interaktif UI Pratinjau Berkas -->
     <script>
         function handleFileSelect(input) {
+            const prompt = document.getElementById('uploadPrompt');
+            const preview = document.getElementById('filePreview');
+            const nameEl = document.getElementById('fileName');
+            const sizeEl = document.getElementById('fileSize');
+            const iconEl = document.getElementById('fileIcon');
+            const clientError = document.getElementById('fileClientError');
+            if (clientError) {
+                clientError.classList.add('hidden');
+                clientError.textContent = '';
+            }
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const prompt = document.getElementById('uploadPrompt');
-                const preview = document.getElementById('filePreview');
-                const nameEl = document.getElementById('fileName');
-                const sizeEl = document.getElementById('fileSize');
-                const iconEl = document.getElementById('fileIcon');
+                const lower = file.name.toLowerCase();
+                if (!lower.endsWith('.pdf') && !lower.endsWith('.docx')) {
+                    input.value = '';
+                    preview.classList.add('hidden');
+                    prompt.classList.remove('hidden');
+                    if (clientError) {
+                        clientError.textContent = 'Format file harus PDF (.pdf) atau Word (.docx).';
+                        clientError.classList.remove('hidden');
+                    }
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    input.value = '';
+                    preview.classList.add('hidden');
+                    prompt.classList.remove('hidden');
+                    if (clientError) {
+                        clientError.textContent = 'Ukuran file melebihi batas maksimal 10 MB (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB). Pilih file lain.';
+                        clientError.classList.remove('hidden');
+                    }
+                    return;
+                }
 
                 nameEl.textContent = file.name;
                 
@@ -382,9 +410,9 @@
                 }
 
                 // Ikon jenis berkas
-                if (file.name.toLowerCase().endsWith('.pdf')) {
+                if (lower.endsWith('.pdf')) {
                     iconEl.className = 'fa-solid fa-file-pdf text-red-600';
-                } else if (file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')) {
+                } else if (lower.endsWith('.docx')) {
                     iconEl.className = 'fa-solid fa-file-word text-blue-600';
                 } else {
                     iconEl.className = 'fa-solid fa-file-lines text-emerald-700';

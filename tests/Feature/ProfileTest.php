@@ -91,12 +91,41 @@ class ProfileTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account(): void
+    public function test_siswa_cannot_see_or_delete_their_own_account(): void
     {
-        $user = User::factory()->create();
+        $siswa = User::factory()->create(['role' => 'siswa']);
+
+        $this->actingAs($siswa)
+            ->get('/profile')
+            ->assertOk()
+            ->assertDontSee('Status & Keamanan')
+            ->assertDontSee('Enkripsi Bcrypt')
+            ->assertDontSee('Zona Bahaya: Hapus Akun')
+            ->assertDontSee('Hapus Akun Saya');
 
         $response = $this
-            ->actingAs($user)
+            ->actingAs($siswa)
+            ->delete('/profile', [
+                'password' => 'password',
+            ]);
+
+        $response->assertForbidden();
+        $this->assertAuthenticatedAs($siswa);
+        $this->assertNotNull($siswa->fresh());
+    }
+
+    public function test_guru_can_delete_their_account_when_another_guru_exists(): void
+    {
+        User::factory()->create(['role' => 'guru']);
+        $guru = User::factory()->create(['role' => 'guru']);
+
+        $this->actingAs($guru)
+            ->get('/profile')
+            ->assertOk()
+            ->assertSee('Zona Bahaya: Hapus Akun');
+
+        $response = $this
+            ->actingAs($guru)
             ->delete('/profile', [
                 'password' => 'password',
             ]);
@@ -106,15 +135,15 @@ class ProfileTest extends TestCase
             ->assertRedirect(route('login'));
 
         $this->assertGuest();
-        $this->assertNull($user->fresh());
+        $this->assertNull($guru->fresh());
     }
 
     public function test_correct_password_must_be_provided_to_delete_account(): void
     {
-        $user = User::factory()->create();
+        $guru = User::factory()->create(['role' => 'guru']);
 
         $response = $this
-            ->actingAs($user)
+            ->actingAs($guru)
             ->from('/profile')
             ->delete('/profile', [
                 'password' => 'wrong-password',
@@ -124,6 +153,6 @@ class ProfileTest extends TestCase
             ->assertSessionHasErrorsIn('userDeletion', 'password')
             ->assertRedirect('/profile');
 
-        $this->assertNotNull($user->fresh());
+        $this->assertNotNull($guru->fresh());
     }
 }

@@ -73,6 +73,8 @@ class ProfileController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        abort_unless($request->user()?->isGuru(), 403, 'Hanya guru yang memiliki akses untuk menghapus akun.');
+
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
             'transfer_to' => 'nullable|integer',

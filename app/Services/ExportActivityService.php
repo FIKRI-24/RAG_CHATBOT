@@ -359,7 +359,8 @@ class ExportActivityService
         // =====================================================================
         // SHEET 3: REKAPITULASI HASIL KUIS OBJEKTIF SISWA
         // =====================================================================
-        $this->buildQuizRecapSheet($spreadsheet, null, null, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, true);
+        $scopedGuruId = $guru && $guru->isGuru() ? (int) $guru->id : null;
+        $this->buildQuizRecapSheet($spreadsheet, null, null, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, true, $scopedGuruId);
 
         // Set active sheet back to Sheet 1
         $spreadsheet->setActiveSheetIndex(0);
@@ -385,9 +386,19 @@ class ExportActivityService
     /**
      * Generate file Excel (.xlsx) khusus Rekapitulasi Nilai Kuis Siswa
      */
-    public function exportQuizRecap(?string $className = null, ?string $search = null): StreamedResponse
-    {
+    public function exportQuizRecap(
+        ?string $className = null,
+        ?string $search = null,
+        ?int $guruId = null,
+        ?string $mapel = null,
+        ?string $topik = null
+    ): StreamedResponse {
         Carbon::setLocale('id');
+
+        $maxRows = max(1, (int) config('reports.max_export_rows', 20000));
+        if (User::where('role', 'siswa')->count() + ModuleQuizAttempt::count() > $maxRows) {
+            throw ValidationException::withMessages(['export' => 'Laporan terlalu besar untuk satu berkas. Hubungi pengelola untuk ekspor bertahap atau penyesuaian batas laporan.']);
+        }
 
         $spreadsheet = new Spreadsheet;
         $spreadsheet->setValueBinder((new StringValueBinder)->setNumericConversion(false));
@@ -397,16 +408,17 @@ class ExportActivityService
         $spreadsheet->getDefaultStyle()->getFont()->setSize(12);
 
         $guru = Auth::user();
+        $scopedGuruId = $guruId ?? ($guru && $guru->isGuru() ? (int) $guru->id : null);
         $namaGuru = $guru?->name ?? '-';
         $nipGuru = $guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-');
         $waktuCetak = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB';
         $tanggalPengesahan = Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y');
 
         // Sheet 1: Rekap Nilai Kuis Matrix Siswa
-        $this->buildQuizRecapSheet($spreadsheet, $className, $search, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, false);
+        $this->buildQuizRecapSheet($spreadsheet, $className, $search, $namaGuru, $nipGuru, $waktuCetak, $tanggalPengesahan, false, $scopedGuruId, $mapel, $topik);
 
         // Sheet 2: Log Detail Percobaan Kuis
-        $this->buildQuizAttemptLogSheet($spreadsheet, $className, $search);
+        $this->buildQuizAttemptLogSheet($spreadsheet, $className, $search, $scopedGuruId, $mapel, $topik);
 
         // Aktifkan kembali Sheet 1
         $spreadsheet->setActiveSheetIndex(0);
@@ -431,7 +443,7 @@ class ExportActivityService
     /**
      * Generate berkas Excel (.xlsx) khusus Rekapitulasi Pertanyaan Siswa pada Asisten AI (Periode 7 Hari Terakhir / 1 Minggu)
      */
-    public function exportWeeklyQuestions(?string $search = null): StreamedResponse
+    public function exportWeeklyQuestions(?string $search = null, ?int $moduleId = null): StreamedResponse
     {
         Carbon::setLocale('id');
 
@@ -496,7 +508,7 @@ class ExportActivityService
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc');
 
-        if (!empty($search)) {
+        if (! empty($search)) {
             $query->where(function ($q) use ($search) {
                 $q->where('pertanyaan', 'like', "%{$search}%")
                     ->orWhere('jawaban', 'like', "%{$search}%")
@@ -505,6 +517,13 @@ class ExportActivityService
                             ->orWhere('email', 'like', "%{$search}%")
                             ->orWhere('student_number', 'like', "%{$search}%");
                     });
+            });
+        }
+
+        if ($moduleId) {
+            $query->where(function ($q) use ($moduleId) {
+                $q->where('scope_module_id', $moduleId)
+                    ->orWhereHas('referensiChunk', fn ($rq) => $rq->where('module_id', $moduleId));
             });
         }
 
@@ -698,11 +717,15 @@ class ExportActivityService
         ?string $nipGuru = null,
         ?string $waktuCetak = null,
         ?string $tanggalPengesahan = null,
-        bool $isNewSheet = true
+        bool $isNewSheet = true,
+        ?int $guruId = null,
+        ?string $mapel = null,
+        ?string $topik = null
     ): void {
         Carbon::setLocale('id');
 
         $guru = Auth::user();
+        $scopedGuruId = $guruId ?? ($guru && $guru->isGuru() ? (int) $guru->id : null);
         $namaGuru = $namaGuru ?? ($guru?->name ?? '-');
         $nipGuru = $nipGuru ?? ($guru?->teacher_number ?: (config('reports.teacher_ids', [])[$guru?->email ?? ''] ?? '-'));
         $waktuCetak = $waktuCetak ?? (Carbon::now(config('app.display_timezone'))->translatedFormat('d F Y, H:i:s').' WIB');
@@ -726,12 +749,8 @@ class ExportActivityService
             ],
         ];
 
-        // Modul dengan kuis aktif
-        $modules = Module::available()
-            ->whereHas('quiz', fn ($q) => $q->where('is_published', true))
-            ->orderBy('kb_nomor')
-            ->orderBy('id')
-            ->get(['id', 'judul', 'kb_nomor', 'mapel']);
+        // Seluruh modul relevan (terbit atau memiliki riwayat pengerjaan siswa)
+        $modules = Module::quizRecapModules($scopedGuruId, $mapel, $topik);
 
         $moduleIds = $modules->pluck('id');
 
@@ -790,7 +809,7 @@ class ExportActivityService
         ];
 
         $midColIndex = max(4, (int) floor($totalColumns / 2) + 1);
-        $colBLetter = Coordinate::stringFromColumnIndex(min(3, $midColIndex - 1));
+        $colBLetter = Coordinate::stringFromColumnIndex($midColIndex - 1);
         $colCLetter = Coordinate::stringFromColumnIndex($midColIndex);
         $colDLetter = $lastColLetter;
 
@@ -813,36 +832,47 @@ class ExportActivityService
             $r++;
         }
 
-        // Mini KPI Baris 10 - 11
+        // Mini KPI Baris 10 - 11 (diseragamkan dengan UI Web: rata-rata dari seluruh attempt)
         $totalSiswa = $students->count();
         $participatingSiswa = 0;
-        $totalScoreSum = 0;
-        $totalAttemptsCount = 0;
+        $attemptsScoreSum = 0.0;
+        $attemptsScoreCount = 0;
         $tuntasCount = 0;
 
         foreach ($students as $s) {
             if ($s->quizAttempts->isNotEmpty()) {
                 $participatingSiswa++;
                 $studentAvg = $s->quizAttempts->avg('score');
-                $totalScoreSum += $studentAvg;
-                $totalAttemptsCount++;
+                $attemptsScoreSum += (float) $s->quizAttempts->sum('score');
+                $attemptsScoreCount += $s->quizAttempts->count();
                 if ($studentAvg >= 75) {
                     $tuntasCount++;
                 }
             }
         }
 
-        $avgClassScore = $totalAttemptsCount > 0 ? round($totalScoreSum / $totalAttemptsCount, 1) : 0;
+        $avgClassScore = $attemptsScoreCount > 0 ? round($attemptsScoreSum / $attemptsScoreCount, 1) : 0;
         $ketuntasanPersen = $participatingSiswa > 0 ? round(($tuntasCount / $participatingSiswa) * 100, 1) : 0;
 
         $sheet->mergeCells('A10:B10')->setCellValue('A10', 'TOTAL SISWA TERDAFTAR');
-        $sheet->mergeCells('C10:D10')->setCellValue('C10', 'SISWA MENGERJAKAN');
-        $kpiCol3Start = Coordinate::stringFromColumnIndex(min(5, $totalColumns - 1));
-        $kpiCol3End = Coordinate::stringFromColumnIndex(min(6, $totalColumns));
-        $sheet->mergeCells("{$kpiCol3Start}10:{$kpiCol3End}10")->setCellValue($kpiCol3Start.'10', 'RATA-RATA NILAI');
-        $kpiCol4Start = Coordinate::stringFromColumnIndex(min(7, $totalColumns));
-        if ($totalColumns >= 7) {
-            $sheet->mergeCells("{$kpiCol4Start}10:{$lastColLetter}10")->setCellValue($kpiCol4Start.'10', 'KETUNTASAN (>= 75)');
+        $sheet->mergeCells('A11:B11')->setCellValue('A11', "{$totalSiswa} Siswa");
+
+        if ($totalColumns === 6) {
+            $sheet->setCellValue('C10', 'SISWA MENGERJAKAN');
+            $sheet->setCellValue('D10', 'RATA-RATA NILAI');
+            $sheet->mergeCells('E10:F10')->setCellValue('E10', 'KETUNTASAN (>= 75)');
+
+            $sheet->setCellValue('C11', "{$participatingSiswa} Siswa");
+            $sheet->setCellValue('D11', "{$avgClassScore} / 100");
+            $sheet->mergeCells('E11:F11')->setCellValue('E11', "{$ketuntasanPersen}% ({$tuntasCount} Siswa)");
+        } else {
+            $sheet->mergeCells('C10:D10')->setCellValue('C10', 'SISWA MENGERJAKAN');
+            $sheet->mergeCells('E10:F10')->setCellValue('E10', 'RATA-RATA NILAI');
+            $sheet->mergeCells("G10:{$lastColLetter}10")->setCellValue('G10', 'KETUNTASAN (>= 75)');
+
+            $sheet->mergeCells('C11:D11')->setCellValue('C11', "{$participatingSiswa} Siswa");
+            $sheet->mergeCells('E11:F11')->setCellValue('E11', "{$avgClassScore} / 100");
+            $sheet->mergeCells("G11:{$lastColLetter}11")->setCellValue('G11', "{$ketuntasanPersen}% ({$tuntasCount} Siswa)");
         }
 
         $sheet->getStyle("A10:{$lastColLetter}10")->getFont()->setBold(true);
@@ -850,13 +880,6 @@ class ExportActivityService
         $sheet->getStyle("A10:{$lastColLetter}10")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle("A10:{$lastColLetter}10")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1B5E20');
         $sheet->getStyle("A10:{$lastColLetter}10")->applyFromArray($thinBorder);
-
-        $sheet->mergeCells('A11:B11')->setCellValue('A11', "{$totalSiswa} Siswa");
-        $sheet->mergeCells('C11:D11')->setCellValue('C11', "{$participatingSiswa} Siswa");
-        $sheet->mergeCells("{$kpiCol3Start}11:{$kpiCol3End}11")->setCellValue($kpiCol3Start.'11', "{$avgClassScore} / 100");
-        if ($totalColumns >= 7) {
-            $sheet->mergeCells("{$kpiCol4Start}11:{$lastColLetter}11")->setCellValue($kpiCol4Start.'11', "{$ketuntasanPersen}% ({$tuntasCount} Siswa)");
-        }
 
         $sheet->getStyle("A11:{$lastColLetter}11")->getFont()->setBold(true);
         $sheet->getStyle("A11:{$lastColLetter}11")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -869,9 +892,11 @@ class ExportActivityService
         $sheet->setCellValue('C13', 'NAMA LENGKAP SISWA');
         $sheet->setCellValue('D13', 'KELAS');
 
+        $labelCounts = $modules->map(fn ($m) => $m->kb_nomor ? strtoupper($m->kb_nomor) : "MODUL #{$m->id}")->countBy();
         $curCol = 5;
         foreach ($modules as $mod) {
-            $label = $mod->kb_nomor ? strtoupper($mod->kb_nomor) : "MODUL #{$mod->id}";
+            $baseLabel = $mod->kb_nomor ? strtoupper($mod->kb_nomor) : "MODUL #{$mod->id}";
+            $label = ($labelCounts->get($baseLabel, 0) > 1 && $mod->kb_nomor) ? "{$baseLabel} (#{$mod->id})" : $baseLabel;
             $colLet = Coordinate::stringFromColumnIndex($curCol);
             $sheet->setCellValue("{$colLet}13", $label);
             $curCol++;
@@ -984,17 +1009,12 @@ class ExportActivityService
         $sheet->getStyle("A{$summaryRow}")->getFont()->setBold(true);
 
         $col = 5;
-        $totalAllKbAvg = 0;
-        $totalKbWithAttempts = 0;
-
         foreach ($modules as $mod) {
             $colLet = Coordinate::stringFromColumnIndex($col);
             $modStat = $moduleScoresSum[$mod->id] ?? ['sum' => 0, 'count' => 0];
             if ($modStat['count'] > 0) {
                 $modAvg = round($modStat['sum'] / $modStat['count'], 1);
                 $sheet->setCellValue("{$colLet}{$summaryRow}", number_format($modAvg, 1));
-                $totalAllKbAvg += $modAvg;
-                $totalKbWithAttempts++;
             } else {
                 $sheet->setCellValue("{$colLet}{$summaryRow}", '-');
             }
@@ -1003,11 +1023,10 @@ class ExportActivityService
             $col++;
         }
 
-        // Rata-rata total
+        // Rata-rata total (sama dengan KPI Rata-Rata Kelas)
         $colLet = Coordinate::stringFromColumnIndex($col);
-        if ($totalKbWithAttempts > 0) {
-            $grandAvg = round($totalAllKbAvg / $totalKbWithAttempts, 1);
-            $sheet->setCellValue("{$colLet}{$summaryRow}", number_format($grandAvg, 1));
+        if ($attemptsScoreCount > 0) {
+            $sheet->setCellValue("{$colLet}{$summaryRow}", number_format($avgClassScore, 1));
         } else {
             $sheet->setCellValue("{$colLet}{$summaryRow}", '-');
         }
@@ -1058,7 +1077,10 @@ class ExportActivityService
     public function buildQuizAttemptLogSheet(
         Spreadsheet $spreadsheet,
         ?string $className = null,
-        ?string $search = null
+        ?string $search = null,
+        ?int $guruId = null,
+        ?string $mapel = null,
+        ?string $topik = null
     ): void {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Log Detail Percobaan Kuis');
@@ -1107,7 +1129,25 @@ class ExportActivityService
         $sheet->getStyle('A3:J3')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB($greenHeaderBg);
         $sheet->getStyle('A3:J3')->applyFromArray($thinBorder);
 
+        $guru = Auth::user();
+        $scopedGuruId = $guruId ?? ($guru && $guru->isGuru() ? (int) $guru->id : null);
+
         $query = ModuleQuizAttempt::with(['user', 'module'])->orderBy('created_at', 'desc');
+
+        if ($scopedGuruId !== null) {
+            $query->where(function ($mq) use ($scopedGuruId) {
+                $mq->whereHas('module', fn ($m) => $m->where('guru_id', $scopedGuruId))
+                    ->orWhereNull('module_id');
+            });
+        }
+
+        if ($mapel) {
+            $query->whereHas('module', fn ($m) => $m->where('mapel', $mapel));
+        }
+
+        if ($topik) {
+            $query->whereHas('module', fn ($m) => $m->where('topik', $topik));
+        }
 
         if ($className) {
             $query->whereHas('user', fn ($q) => $q->where('class_name', $className));
@@ -1129,10 +1169,13 @@ class ExportActivityService
         foreach ($attempts as $att) {
             $user = $att->user;
             $module = $att->module;
-            $waktu = $att->created_at ? $att->created_at->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i:s') : '-';
-            $modulName = $module ? ($module->kb_nomor ? "{$module->kb_nomor} - {$module->judul}" : $module->judul) : '-';
+            $waktu = ($att->adjusted_at ?? $att->updated_at ?? $att->created_at)
+                ? ($att->adjusted_at ?? $att->updated_at ?? $att->created_at)->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i:s')
+                : '-';
+            $modulName = $module ? ($module->kb_nomor ? "{$module->kb_nomor} - {$module->judul}" : $module->judul) : ($att->module_title ?: '-');
             $score = (float) $att->score;
-            $statusText = $score >= 75 ? 'TUNTAS' : 'REMEDIAL';
+            $statusBase = $score >= 75 ? 'TUNTAS' : 'REMEDIAL';
+            $statusText = $att->hasRemedialHistory() ? "{$statusBase} (REMEDIAL #{$att->attempt_number})" : $statusBase;
 
             $sheet->setCellValue("A{$r}", $no);
             $sheet->setCellValue("B{$r}", $waktu);

@@ -173,9 +173,9 @@
                 </div>
 
                 <div x-show="step === 4" x-cloak class="space-y-2">
-                    <h3 class="text-base font-bold text-slate-900">4. Kerjakan Kuis Objektif &amp; Latihan Soal AI</h3>
+                    <h3 class="text-base font-bold text-slate-900">4. Kerjakan Kuis Objektif, Lalu Gunakan Chatbot AI sebagai Asisten Tambahan</h3>
                     <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                        Setelah memahami materi, kerjakan <strong>Kuis Objektif</strong> pada halaman detail modul (perlu diperhatikan: kuis objektif hanya dapat dikerjakan <strong>1 kali</strong> dan hasilnya langsung tercatat di rekap nilai guru). Kamu juga bisa berlatih soal esai kapan saja melalui tombol <strong>Latihan Soal AI</strong> di ruang tanya jawab.
+                        Setelah memahami materi dan video, kerjakan <strong>Kuis Objektif</strong> pada halaman detail modul (kuis dikerjakan <strong>1 kali</strong> kecuali mendapat izin remedial guru, dan nilainya tercatat di rekap guru). Setelah selesai — atau kapan pun kamu butuh pendamping tambahan — gunakan <strong>Asisten AI (Chatbot)</strong> untuk bertanya materi dari KB mana pun yang sudah dimasukkan guru maupun mencoba <strong>Latihan Soal AI</strong>.
                     </p>
                 </div>
             </div>

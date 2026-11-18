@@ -525,7 +525,7 @@
                                 </div>
                                 <div class="markdown-content hidden">{{ $chat->jawaban }}</div>
                                 <div class="rendered-content">Memuat format...</div>
-                                @if($chat->reviewed_at)<p class="text-sm text-emerald-800 mt-3">Nilai guru: {{ $chat->score }}/100 ? {{ $chat->review_note }}</p>@endif
+                                @if($chat->reviewed_at)<p class="text-sm text-emerald-800 mt-3">Nilai guru: {{ $chat->score }}/100 — {{ $chat->review_note }}</p>@endif
                                 @if($chat->sources)
                                     <details class="not-prose mt-4 pt-3 border-t border-slate-100 text-slate-700 chat-sources-block group/details">
                                         <summary class="font-semibold text-slate-700 cursor-pointer hover:text-slate-900 transition-colors inline-flex items-center gap-2 py-1 select-none">
@@ -708,7 +708,12 @@
                         signal: AbortSignal.timeout(65000),
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content },
-                        body: JSON.stringify({ action: 'cancel_quiz' })
+                        body: JSON.stringify({
+                            action: 'cancel_quiz',
+                            quiz_id: activeQuizId,
+                            mapel: mapelSelect.value,
+                            module_id: moduleSelect.value || null
+                        })
                     });
                     const result = await response.json();
                     if (!response.ok || !result.success) throw new Error();
@@ -834,22 +839,47 @@
                         })
                     });
 
-                    const result = await response.json();
+                    let result = null;
+                    try {
+                        result = await response.json();
+                    } catch {
+                        result = null;
+                    }
 
                     typingIndicator.classList.add('hidden');
 
-                    if (result.success) {
+                    if (response.ok && result && result.success) {
                         appendAIMessage(result.data.jawaban, result.data.created_at, result.data.sources);
                         updateQuizState(result.data.quiz_id);
                     } else {
                         inputField.value = question === '[LATIHAN_SOAL]' ? '' : question;
                         if (response.status === 409 && action === 'quiz_answer') updateQuizState(null);
-                        appendAIMessage('**Terjadi kesalahan:** ' + (result.message || 'Gagal memproses jawaban.'));
+                        let errMsg = result?.message;
+                        if (!errMsg && result?.errors) {
+                            const firstErr = Object.values(result.errors).flat()[0];
+                            if (firstErr) errMsg = firstErr;
+                        }
+                        if (!errMsg) {
+                            if (response.status === 419) {
+                                errMsg = 'Sesi halaman telah berakhir. Silakan muat ulang (refresh) halaman ini.';
+                            } else if (response.status === 429) {
+                                errMsg = 'Terlalu banyak permintaan dalam waktu singkat. Mohon tunggu beberapa detik lalu coba lagi.';
+                            } else if (response.status >= 500) {
+                                errMsg = 'Layanan AI atau server sedang sibuk. Silakan coba lagi beberapa saat.';
+                            } else {
+                                errMsg = 'Gagal memproses jawaban.';
+                            }
+                        }
+                        appendAIMessage('**Terjadi kesalahan:** ' + errMsg);
                     }
                 } catch (error) {
                     inputField.value = question === '[LATIHAN_SOAL]' ? '' : question;
                     typingIndicator.classList.add('hidden');
-                    appendAIMessage('**Error koneksi ke server.** Mohon coba lagi beberapa saat.');
+                    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+                        appendAIMessage('**Waktu tunggu habis (Timeout).** Layanan AI sedang memproses banyak permintaan; silakan kirim kembali pertanyaan Anda.');
+                    } else {
+                        appendAIMessage('**Error koneksi ke server.** Mohon coba lagi beberapa saat.');
+                    }
                     console.error('Error:', error);
                 } finally {
                     inFlight = false;
@@ -964,7 +994,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                ${htmlContent}
+                                <div class="rendered-content">${htmlContent}</div>
                                 ${sourceHtml}
                                 <button onclick="copyResponse(this)" class="absolute top-3 right-3 text-slate-400 hover:text-[#008546] bg-slate-50 hover:bg-emerald-50 p-2 rounded-lg border border-slate-200 text-xs transition-colors opacity-0 group-hover:opacity-100" title="Salin jawaban">
                                     <i class="fa-regular fa-copy"></i>
@@ -988,14 +1018,42 @@
         });
 
         function copyResponse(btn) {
-            const textToCopy = btn.parentElement.innerText;
-            navigator.clipboard.writeText(textToCopy).then(() => {
+            const container = btn.parentElement;
+            const answerEl = container?.querySelector('.rendered-content') || container;
+            const textToCopy = (answerEl?.innerText || answerEl?.textContent || '').trim();
+            if (!textToCopy) return;
+
+            const showCopiedFeedback = () => {
                 const icon = btn.querySelector('i');
+                if (!icon) return;
                 icon.className = 'fa-solid fa-check text-emerald-600';
                 setTimeout(() => {
                     icon.className = 'fa-regular fa-copy';
                 }, 2000);
-            });
+            };
+
+            const fallbackCopy = () => {
+                const textarea = document.createElement('textarea');
+                textarea.value = textToCopy;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    if (document.execCommand('copy')) {
+                        showCopiedFeedback();
+                    }
+                } finally {
+                    document.body.removeChild(textarea);
+                }
+            };
+
+            if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                navigator.clipboard.writeText(textToCopy).then(showCopiedFeedback).catch(fallbackCopy);
+            } else {
+                fallbackCopy();
+            }
         }
     </script>
 </body>

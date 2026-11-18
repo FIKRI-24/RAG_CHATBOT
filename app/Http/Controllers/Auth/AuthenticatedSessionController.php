@@ -34,7 +34,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->intended(route('guru.dashboard', absolute: false));
         }
 
-        return redirect()->intended(route('siswa.dashboard', absolute: false));
+        return redirect()->intended(route('siswa.modules.index', absolute: false));
     }
 
     /**

@@ -13,7 +13,7 @@
             </div>
             
             <div class="flex items-center gap-3 shrink-0">
-                <a href="{{ route('guru.chat-activities.export-weekly', ['search' => request('search')]) }}" 
+                <a href="{{ route('guru.chat-activities.export-weekly', ['search' => request('search'), 'module_id' => request('module_id')]) }}" 
                    class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors shadow-2xs"
                    title="Unduh rekapitulasi data 7 hari terakhir dalam format Excel">
                     <i class="fa-solid fa-file-excel text-sm"></i>

@@ -62,10 +62,17 @@
                 <span>Katalog E-Modul</span>
             </a>
 
-            <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold {{ request()->routeIs('siswa.dashboard') ? 'bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }} transition-colors">
-                <i class="fa-solid fa-robot {{ request()->routeIs('siswa.dashboard') ? 'text-[#008546]' : 'text-slate-400' }} text-xs w-4 text-center"></i>
-                <span>Tanya Jawab AI (Chatbot)</span>
-            </a>
+            @unless(request()->routeIs('siswa.modules.quiz.show'))
+                <a href="{{ route('siswa.dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold {{ request()->routeIs('siswa.dashboard') ? 'bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900' }} transition-colors">
+                    <i class="fa-solid fa-robot {{ request()->routeIs('siswa.dashboard') ? 'text-[#008546]' : 'text-slate-400' }} text-xs w-4 text-center"></i>
+                    <span>Tanya Jawab AI (Chatbot)</span>
+                </a>
+            @else
+                <div class="px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200 text-[11px] text-amber-800 font-medium flex items-center gap-2">
+                    <i class="fa-solid fa-lock text-amber-600 text-xs w-4 text-center"></i>
+                    <span>Mode Fokus Kuis (Chatbot nonaktif saat ujian)</span>
+                </div>
+            @endunless
         </nav>
         
         <!-- User Profile Area -->

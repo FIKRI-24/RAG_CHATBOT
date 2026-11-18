@@ -37,14 +37,28 @@
                 </p>
 
                 <!-- Warning Notice Pill -->
-                <div class="pt-2">
-                    <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/15 border border-amber-400/25 text-amber-200 text-xs leading-relaxed">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-400 shrink-0 text-sm"></i>
-                        <span><strong>Peringatan Kejujuran:</strong> Kuis ini hanya dapat dikerjakan <strong>1 (satu) kali</strong>. Periksa kembali jawaban Anda dengan teliti sebelum menekan tombol Kirim Jawaban.</span>
-                    </div>
+                <div class="pt-2 space-y-2">
+                    @if(isset($remedialAttempt) && $remedialAttempt)
+                        <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-blue-500/20 border border-blue-400/35 text-blue-100 text-xs leading-relaxed">
+                            <i class="fa-solid fa-rotate-right text-blue-300 shrink-0 text-sm"></i>
+                            <span><strong>Mode Ujian Ulang Remedial (Percobaan #{{ $remedialAttempt->attempt_number + 1 }}):</strong> Izin remedial telah disetujui guru. Nilai terbaru akan menggantikan nilai sebelumnya ({{ $remedialAttempt->score }}/100).</span>
+                        </div>
+                    @else
+                        <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-amber-500/15 border border-amber-400/25 text-amber-200 text-xs leading-relaxed">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-400 shrink-0 text-sm"></i>
+                            <span><strong>Peringatan Kejujuran:</strong> Kuis ini hanya dapat dikerjakan <strong>1 (satu) kali</strong> kecuali mendapat izin remedial guru. Periksa kembali jawaban Anda dengan teliti sebelum menekan tombol Kirim Jawaban.</span>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>
+
+        @if($errors->has('quiz_version'))
+            <div role="alert" class="p-4 bg-amber-50 text-amber-900 rounded-2xl border border-amber-300 text-xs sm:text-sm space-y-1">
+                <p class="font-bold flex items-center gap-2"><i class="fa-solid fa-rotate text-amber-600"></i> Soal Kuis Baru Saja Diperbarui Guru</p>
+                <p>Halaman otomatis memuat versi soal terbaru agar penilaian tetap akurat. Silakan pilih kembali jawaban Anda sebelum mengirim.</p>
+            </div>
+        @endif
 
         @if($errors->any())
             <div role="alert" class="p-4 bg-rose-50 text-rose-800 rounded-2xl border border-rose-200 text-xs sm:text-sm">
@@ -60,7 +74,8 @@
             </div>
         @endif
 
-        <form method="POST" action="{{ route('siswa.modules.quiz.submit', $module) }}" class="space-y-6">
+        <form method="POST" action="{{ route('siswa.modules.quiz.submit', $module) }}" class="space-y-6"
+              onsubmit="const btn = document.getElementById('quizSubmitBtn'); if (btn && btn.disabled) return false; if (btn) { btn.disabled = true; btn.classList.add('opacity-70', 'cursor-wait'); }">
             @csrf
             <input type="hidden" name="quiz_id" value="{{ $quiz->id }}">
             <input type="hidden" name="quiz_version" value="{{ $quiz->version }}">
@@ -111,7 +126,7 @@
                 <a href="{{ route('siswa.modules.show', $module) }}" class="px-5 py-3 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 font-bold text-xs transition-all">
                     Batal
                 </a>
-                <button type="submit" class="inline-flex items-center gap-2 px-7 py-3.5 bg-[#008546] hover:bg-emerald-800 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95">
+                <button type="submit" id="quizSubmitBtn" class="inline-flex items-center gap-2 px-7 py-3.5 bg-[#008546] hover:bg-emerald-800 disabled:opacity-60 text-white font-bold text-sm rounded-xl shadow-md hover:shadow-lg transition-all active:scale-95">
                     <i class="fa-solid fa-paper-plane text-xs"></i>
                     <span>Kirim Jawaban Kuis</span>
                 </button>

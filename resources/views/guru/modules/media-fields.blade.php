@@ -1,6 +1,6 @@
 @php
     /** @var \App\Models\Module|null $module */
-    $media = old('additional_videos', isset($module) ? array_map(fn ($video) => ['title' => $video['title'], 'url' => $video['url']], $module->additionalVideos()) : []);
+    $media = array_values((array) old('additional_videos', isset($module) ? array_map(fn ($video) => ['title' => $video['title'], 'url' => $video['url']], $module->additionalVideos()) : []));
 @endphp
 
 <div class="mt-8 pt-6 border-t-2 border-slate-200" x-data="{ videos: {{ Illuminate\Support\Js::from($media) }} }">

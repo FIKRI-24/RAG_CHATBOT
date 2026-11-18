@@ -32,11 +32,32 @@
                 </div>
             @endif
 
+            @if(session('warning'))
+                <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl flex items-center justify-between text-xs font-semibold" role="status">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-600 text-base"></i>
+                        <span>{{ session('warning') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if(($unreadyModuleCount ?? 0) > 0)
+                <div class="mb-4 bg-amber-50 border border-amber-200 text-amber-900 px-4 py-3 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs font-semibold">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-amber-600 text-base"></i>
+                        <span>Ada {{ $unreadyModuleCount }} modul yang masih menunggu antrean, sedang diproses, atau gagal indexing AI.</span>
+                    </div>
+                    <a href="{{ route('guru.system') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold transition-colors">
+                        <i class="fa-solid fa-server"></i> Pantau Antrean AI &rarr;
+                    </a>
+                </div>
+            @endif
+
             <div class="flex flex-col h-full">
                 
                 <form method="GET" action="{{ route('guru.modules.index') }}" class="mb-6 flex flex-wrap gap-3">
                     <div class="w-full sm:w-80 relative">
-                        <select name="mapel" id="mapel" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="this.form.submit()">
+                        <select name="mapel" id="mapel" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="const topik = this.form.querySelector('[name=topik]'); if (topik) topik.value = ''; this.form.submit();">
                             <option value="">Semua Mata Pelajaran (Elemen)</option>
                             @foreach($mapelList as $mapel)
                                 <option value="{{ $mapel }}" {{ request('mapel') == $mapel ? 'selected' : '' }}>{{ $mapel }}</option>
@@ -130,17 +151,31 @@
                                     </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    @if($module->isExpired())
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">Diarsipkan</span>
-                                    @elseif($module->status_indexing === 'completed')
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-emerald-100 text-emerald-800">Aktif</span>
-                                    @elseif($module->status_indexing === 'processing')
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-blue-100 text-blue-800 animate-pulse">Diproses</span>
-                                    @elseif($module->status_indexing === 'failed')
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">Gagal</span>
-                                    @else
-                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
-                                    @endif
+                                    <div class="flex flex-col items-start gap-1">
+                                        @if($module->isExpired())
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-gray-100 text-gray-800">Diarsipkan</span>
+                                        @elseif($module->status_indexing === 'completed')
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-emerald-100 text-emerald-800">Aktif</span>
+                                        @elseif($module->status_indexing === 'processing')
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-blue-100 text-blue-800 animate-pulse">Diproses</span>
+                                        @elseif($module->status_indexing === 'failed')
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">Gagal</span>
+                                        @else
+                                            <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-yellow-100 text-yellow-800">Pending</span>
+                                        @endif
+
+                                        @if($module->isReindexing())
+                                            <span class="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded-md bg-blue-50 text-blue-700 border border-blue-200">Re-index berjalan</span>
+                                        @elseif($module->reindexingFailed())
+                                            <span class="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded-md bg-rose-50 text-rose-700 border border-rose-200">Re-index gagal</span>
+                                        @endif
+
+                                        @if($module->quiz)
+                                            <span class="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded-md {{ $module->quiz->is_published ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'bg-slate-100 text-slate-600 border border-slate-200' }}">
+                                                {{ $module->quiz->is_published ? 'Kuis Terbit' : 'Kuis Draf' }}
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <div class="flex items-center gap-1.5">

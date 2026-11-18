@@ -66,10 +66,15 @@ php artisan view:clear >nul 2>&1
 echo [3/4] Menyiapkan antrean pemrosesan RAG (Queue Worker)...
 start "Worker Antrean AI (RAG)" /D "%~dp0" cmd /k "php artisan queue:work rag --queue=rag --sleep=3 --tries=3"
 
-echo [4/4] Membuka browser & menjalankan server aplikasi di http://127.0.0.1:8000 ...
+echo [4/4] Menjalankan server aplikasi (Lokal ^& Jaringan LAN Kelas)...
+echo ----------------------------------------------------------------
+echo  * Akses Lokal / Demo         : http://127.0.0.1:8000
+echo  * Akses Kelas 30 Siswa (Apache XAMPP Multi-Thread, Disarankan):
+echo    http://localhost/RAG_CHATBOT/public  atau  http://[IP-LAN-SERVER]/RAG_CHATBOT/public
+echo ----------------------------------------------------------------
 echo (CATATAN: Jangan tutup jendela ini selama aplikasi sedang digunakan)
 echo.
 timeout /t 2 /nobreak >nul
 start http://127.0.0.1:8000
-php artisan serve --host=127.0.0.1 --port=8000
+php artisan serve --host=0.0.0.0 --port=8000
 pause

@@ -83,12 +83,36 @@
                     </div>
 
                     @if($classList->isNotEmpty())
-                        <div class="sm:w-48">
+                        <div class="sm:w-44">
                             <select name="class_name" onchange="this.form.submit()"
                                     class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] transition-all">
                                 <option value="">Semua Kelas</option>
                                 @foreach($classList as $c)
                                     <option value="{{ $c }}" @selected(request('class_name') === $c)>{{ $c }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    @if($mapelList->isNotEmpty())
+                        <div class="sm:w-52">
+                            <select name="mapel" onchange="const topik = this.form.querySelector('[name=topik]'); if (topik) topik.value = ''; this.form.submit();"
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] transition-all">
+                                <option value="">Semua Elemen / Mapel</option>
+                                @foreach($mapelList as $mName)
+                                    <option value="{{ $mName }}" @selected(request('mapel') === $mName)>{{ Str::limit($mName, 36) }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+
+                    @if($topikList->isNotEmpty())
+                        <div class="sm:w-48">
+                            <select name="topik" onchange="this.form.submit()"
+                                    class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] transition-all">
+                                <option value="">Semua Topik</option>
+                                @foreach($topikList as $tName)
+                                    <option value="{{ $tName }}" @selected(request('topik') === $tName)>{{ Str::limit($tName, 32) }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -99,7 +123,7 @@
                     <button type="submit" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold transition-all">
                         Terapkan
                     </button>
-                    @if(request()->hasAny(['search', 'class_name']))
+                    @if(request()->hasAny(['search', 'class_name', 'mapel', 'topik']))
                         <a href="{{ route('guru.quiz-recap.index') }}" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold transition-colors" title="Reset Filter">
                             <i class="fa-solid fa-rotate-left"></i>
                         </a>
@@ -117,7 +141,7 @@
                     <span class="text-xs text-slate-400">({{ $students->total() }} siswa ditemukan)</span>
                 </div>
                 <div class="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
-                    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> $\ge$ 75 (Tuntas)</span>
+                    <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> &ge; 75 (Tuntas)</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> &lt; 75 (Perlu Remedial)</span>
                     <span class="inline-flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-slate-300"></span> Belum Mengerjakan</span>
                 </div>
@@ -134,6 +158,11 @@
                                 <th class="py-3.5 px-4 font-bold text-center" title="{{ $m->judul }}">
                                     <span class="text-slate-900 font-extrabold">{{ $m->kb_nomor ?? 'KB' }}</span>
                                     <span class="block text-[9px] font-normal text-slate-400 truncate max-w-[110px] mx-auto">{{ Str::limit($m->judul, 16) }}</span>
+                                    @if($m->isExpired() || ! $m->quiz?->is_published)
+                                        <span class="inline-block mt-0.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-500">
+                                            {{ $m->isExpired() ? 'Arsip' : 'Draf' }}
+                                        </span>
+                                    @endif
                                 </th>
                             @endforeach
                             <th class="py-3.5 px-4 font-bold text-center bg-emerald-50/40 text-[#008546]">Rata-Rata</th>
@@ -179,9 +208,14 @@
                                             @endphp
                                             <a href="{{ route('guru.quiz-recap.show-attempt', $att) }}"
                                                class="inline-flex flex-col items-center justify-center px-2.5 py-1 rounded-xl text-xs font-bold transition-all hover:scale-105 {{ $isPassed ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100' }}"
-                                               title="Klik untuk melihat rincian jawaban (Benar {{ $att->correct_count }}/{{ $att->question_count }})">
+                                               title="Klik untuk lihat rincian & kelola remedial (Benar {{ $att->correct_count }}/{{ $att->question_count }})">
                                                 <span>{{ $att->score }}</span>
                                                 <span class="text-[9px] font-normal opacity-80">{{ $att->correct_count }}/{{ $att->question_count }}</span>
+                                                @if($att->hasApprovedRemedial())
+                                                    <span class="mt-0.5 text-[8px] font-extrabold uppercase tracking-wide px-1 rounded bg-blue-100 text-blue-800">Izin Ulang</span>
+                                                @elseif($att->hasRemedialHistory())
+                                                    <span class="mt-0.5 text-[8px] font-extrabold uppercase tracking-wide px-1 rounded bg-slate-200 text-slate-700">Remedial</span>
+                                                @endif
                                             </a>
                                         @else
                                             <span class="text-slate-300 font-bold" title="Belum mengerjakan kuis ini">—</span>

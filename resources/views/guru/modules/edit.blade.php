@@ -54,7 +54,8 @@
         @endif
 
         <!-- Formulir Edit Modul -->
-        <form id="editForm" method="POST" action="{{ route('guru.modules.update', $module->id) }}" enctype="multipart/form-data" class="space-y-6">
+        <form id="editForm" method="POST" action="{{ route('guru.modules.update', $module->id) }}" enctype="multipart/form-data" class="space-y-6"
+              onsubmit="const btn = document.getElementById('editSubmitBtn'); if (btn && btn.disabled) return false; if (btn) { btn.disabled = true; btn.classList.add('opacity-75', 'cursor-wait'); }">
             @csrf
             @method('PUT')
 
@@ -85,9 +86,35 @@
                             <p class="text-base sm:text-lg font-black text-slate-900 truncate mt-0.5" title="{{ basename($module->file_path) }}">
                                 {{ basename($module->file_path) }}
                             </p>
-                            <p class="text-xs sm:text-sm font-semibold text-emerald-800 mt-0.5">
-                                <i class="fa-solid fa-check-circle mr-1"></i> Materi ini sudah aktif dipelajari oleh Asisten AI siswa
-                            </p>
+                            @if($module->isExpired())
+                                <p class="text-xs sm:text-sm font-semibold text-slate-700 mt-0.5">
+                                    <i class="fa-solid fa-box-archive mr-1"></i> Modul ini sudah melewati masa berlaku (diarsipkan dari daftar siswa)
+                                </p>
+                            @elseif($module->reindexingFailed())
+                                <p class="text-xs sm:text-sm font-semibold text-amber-800 mt-0.5">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> Materi sebelumnya tetap aktif di AI siswa, namun re-index berkas baru terakhir gagal
+                                </p>
+                            @elseif($module->isReindexing())
+                                <p class="text-xs sm:text-sm font-semibold text-blue-800 mt-0.5">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Materi sebelumnya tetap aktif di AI siswa selama berkas pengganti diproses
+                                </p>
+                            @elseif($module->status_indexing === 'completed')
+                                <p class="text-xs sm:text-sm font-semibold text-emerald-800 mt-0.5">
+                                    <i class="fa-solid fa-check-circle mr-1"></i> Materi ini sudah aktif dipelajari oleh Asisten AI siswa
+                                </p>
+                            @elseif($module->status_indexing === 'processing')
+                                <p class="text-xs sm:text-sm font-semibold text-blue-800 mt-0.5">
+                                    <i class="fa-solid fa-spinner fa-spin mr-1"></i> Materi sedang diekstrak oleh antrean AI dan belum aktif di siswa
+                                </p>
+                            @elseif($module->status_indexing === 'failed')
+                                <p class="text-xs sm:text-sm font-semibold text-rose-700 mt-0.5">
+                                    <i class="fa-solid fa-circle-xmark mr-1"></i> Indexing gagal. Materi belum aktif di siswa; unggah ulang atau jalankan index ulang
+                                </p>
+                            @else
+                                <p class="text-xs sm:text-sm font-semibold text-amber-800 mt-0.5">
+                                    <i class="fa-solid fa-clock mr-1"></i> Materi sedang menunggu antrean indexing AI dan belum aktif di siswa
+                                </p>
+                            @endif
                         </div>
                     </div>
                     <a href="{{ route('modules.download', $module->id) }}" 
@@ -140,6 +167,7 @@
                             </p>
                         </div>
                     </div>
+                    <p id="fileClientError" class="hidden mt-2 text-sm font-bold text-rose-700" role="alert"></p>
                     <x-input-error class="mt-2 text-sm font-bold text-rose-700" :messages="$errors->get('file')" />
                 </div>
             </div>
@@ -373,8 +401,8 @@
                     <i class="fa-solid fa-arrow-left mr-2"></i> Batal dan Kembali
                 </a>
 
-                <button type="submit" 
-                        class="w-full sm:w-auto order-1 sm:order-2 py-4 px-10 bg-emerald-700 hover:bg-emerald-800 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer">
+                <button type="submit" id="editSubmitBtn"
+                        class="w-full sm:w-auto order-1 sm:order-2 py-4 px-10 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-60 text-white font-black text-base sm:text-lg rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-3 cursor-pointer">
                     <i class="fa-solid fa-floppy-disk text-xl"></i>
                     <span>Simpan Seluruh Perubahan Modul</span>
                 </button>
@@ -387,13 +415,39 @@
     <!-- Script Interaktif UI Pratinjau Berkas -->
     <script>
         function handleFileSelect(input) {
+            const prompt = document.getElementById('uploadPrompt');
+            const preview = document.getElementById('filePreview');
+            const nameEl = document.getElementById('fileName');
+            const sizeEl = document.getElementById('fileSize');
+            const iconEl = document.getElementById('fileIcon');
+            const clientError = document.getElementById('fileClientError');
+            if (clientError) {
+                clientError.classList.add('hidden');
+                clientError.textContent = '';
+            }
             if (input.files && input.files[0]) {
                 const file = input.files[0];
-                const prompt = document.getElementById('uploadPrompt');
-                const preview = document.getElementById('filePreview');
-                const nameEl = document.getElementById('fileName');
-                const sizeEl = document.getElementById('fileSize');
-                const iconEl = document.getElementById('fileIcon');
+                const lower = file.name.toLowerCase();
+                if (!lower.endsWith('.pdf') && !lower.endsWith('.docx')) {
+                    input.value = '';
+                    preview.classList.add('hidden');
+                    prompt.classList.remove('hidden');
+                    if (clientError) {
+                        clientError.textContent = 'Format berkas harus PDF (.pdf) atau Word (.docx).';
+                        clientError.classList.remove('hidden');
+                    }
+                    return;
+                }
+                if (file.size > 10 * 1024 * 1024) {
+                    input.value = '';
+                    preview.classList.add('hidden');
+                    prompt.classList.remove('hidden');
+                    if (clientError) {
+                        clientError.textContent = 'Ukuran berkas melebihi batas maksimal 10 MB (' + (file.size / (1024 * 1024)).toFixed(2) + ' MB).';
+                        clientError.classList.remove('hidden');
+                    }
+                    return;
+                }
 
                 nameEl.textContent = file.name;
                 
@@ -404,9 +458,9 @@
                     sizeEl.textContent = 'Ukuran berkas baru: ' + sizeInKb + ' KB';
                 }
 
-                if (file.name.toLowerCase().endsWith('.pdf')) {
+                if (lower.endsWith('.pdf')) {
                     iconEl.className = 'fa-solid fa-file-pdf text-red-600';
-                } else if (file.name.toLowerCase().endsWith('.docx') || file.name.toLowerCase().endsWith('.doc')) {
+                } else if (lower.endsWith('.docx')) {
                     iconEl.className = 'fa-solid fa-file-word text-blue-600';
                 } else {
                     iconEl.className = 'fa-solid fa-file-lines text-emerald-700';

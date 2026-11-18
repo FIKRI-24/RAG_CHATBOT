@@ -55,14 +55,29 @@ class ProcessModuleJob implements ShouldQueue
             ->where('file_path', $this->filePath)
             ->where(function ($query) {
                 $query->where('status_indexing', '!=', 'completed')
+                    ->orWhereIn('reindexing_status', ['pending', 'processing', 'failed'])
                     ->orWhereDoesntHave('chunks');
             });
     }
 
     public function handle(DocumentExtractorService $extractor, ChunkingService $chunker, GeminiService $gemini): void
     {
-        if (! $this->current()->update(['status_indexing' => 'processing', 'indexing_error' => null])) {
-            return;
+        $startedLiveReindex = $this->current()
+            ->where('status_indexing', 'completed')
+            ->whereHas('chunks')
+            ->update(['reindexing_status' => 'processing', 'indexing_error' => null]);
+
+        if (! $startedLiveReindex) {
+            $startedInitial = $this->current()
+                ->where(function ($query) {
+                    $query->where('status_indexing', '!=', 'completed')
+                        ->orWhereDoesntHave('chunks');
+                })
+                ->update(['status_indexing' => 'processing', 'reindexing_status' => null, 'indexing_error' => null]);
+
+            if (! $startedInitial) {
+                return;
+            }
         }
         $staged = null;
         try {
@@ -98,11 +113,13 @@ class ProcessModuleJob implements ShouldQueue
                 }
             }
             // Publish only a complete index. Stale/repeated jobs cannot replace it.
-            DB::transaction(function () use ($staged) {
+            $previousIndexedPath = null;
+            DB::transaction(function () use ($staged, &$previousIndexedPath) {
                 $module = $this->current()->lockForUpdate()->first();
                 if (! $module) {
                     return;
                 }
+                $previousIndexedPath = $module->indexed_file_path;
                 // Preserve the known reference of legacy chats before removing old IDs.
                 foreach ($module->chunks()->with('module')->lazyById(100) as $oldChunk) {
                     ChatHistory::where('referensi_chunk_id', $oldChunk->id)->whereNull('sources')
@@ -118,10 +135,18 @@ class ProcessModuleJob implements ShouldQueue
                 if (! feof($staged)) {
                     throw new RagException('Pembacaan indeks sementara terhenti.');
                 }
-                $module->update(['status_indexing' => 'completed', 'indexing_error' => null]);
+                $module->update([
+                    'status_indexing' => 'completed',
+                    'reindexing_status' => null,
+                    'indexing_error' => null,
+                    'indexed_file_path' => $this->filePath,
+                ]);
             });
-            if ($this->oldFilePath && $this->oldFilePath !== $this->filePath) {
-                app(\App\Services\StoredFileService::class)->delete($this->oldFilePath, 'local');
+            $storageCleanup = app(\App\Services\StoredFileService::class);
+            foreach (array_unique(array_filter([$this->oldFilePath, $previousIndexedPath])) as $stalePath) {
+                if ($stalePath !== $this->filePath) {
+                    $storageCleanup->delete($stalePath, 'local');
+                }
             }
         } catch (Throwable $e) {
             $this->markFailed($e);
@@ -141,7 +166,22 @@ class ProcessModuleJob implements ShouldQueue
     private function markFailed(?Throwable $exception): void
     {
         $message = $exception instanceof RagException ? $exception->getMessage() : 'Indexing gagal atau melewati batas waktu. Periksa koneksi API; untuk dokumen besar, pecah menjadi modul lebih kecil lalu jalankan indexing ulang.';
-        $this->current()->update(['status_indexing' => 'failed', 'indexing_error' => mb_substr($message, 0, 500)]);
+        $truncated = mb_substr($message, 0, 500);
+
+        $updatedLiveReindex = $this->current()
+            ->where('status_indexing', 'completed')
+            ->whereHas('chunks')
+            ->update(['reindexing_status' => 'failed', 'indexing_error' => $truncated]);
+
+        if (! $updatedLiveReindex) {
+            $this->current()
+                ->where(function ($query) {
+                    $query->where('status_indexing', '!=', 'completed')
+                        ->orWhereDoesntHave('chunks');
+                })
+                ->update(['status_indexing' => 'failed', 'reindexing_status' => null, 'indexing_error' => $truncated]);
+        }
+
         Log::warning('RAG indexing failed', ['module_id' => $this->moduleId, 'error_type' => $exception ? get_class($exception) : 'timeout']);
     }
 }

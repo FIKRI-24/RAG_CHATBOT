@@ -26,6 +26,30 @@ class ModuleQuizController extends Controller
     public function update(Request $request, Module $module)
     {
         $this->authorizeModule($module);
+
+        $rawQuestions = $request->input('questions');
+        if (is_array($rawQuestions)) {
+            $request->merge([
+                'questions' => array_map(function ($question) {
+                    if (! is_array($question)) {
+                        return $question;
+                    }
+                    if (isset($question['text']) && is_string($question['text'])) {
+                        $question['text'] = str_replace(["\r\n", "\r"], "\n", $question['text']);
+                    }
+                    if (isset($question['options']) && is_array($question['options'])) {
+                        foreach ($question['options'] as $key => $opt) {
+                            if (is_string($opt)) {
+                                $question['options'][$key] = str_replace(["\r\n", "\r"], "\n", $opt);
+                            }
+                        }
+                    }
+
+                    return $question;
+                }, array_values($rawQuestions)),
+            ]);
+        }
+
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'is_published' => 'sometimes|boolean',
@@ -38,6 +62,18 @@ class ModuleQuizController extends Controller
             'questions.*.options.C' => 'required|string|max:500',
             'questions.*.options.D' => 'required|string|max:500',
             'questions.*.correct_answer' => 'required|in:A,B,C,D',
+        ], [
+            'title.required' => 'Judul kuis wajib diisi.',
+            'title.max' => 'Judul kuis maksimal 255 karakter.',
+            'questions.required' => 'Kuis minimal harus memiliki 1 soal.',
+            'questions.min' => 'Kuis minimal harus memiliki 1 soal.',
+            'questions.max' => 'Jumlah soal maksimal 50 butir per kuis.',
+            'questions.*.text.required' => 'Teks pertanyaan pada salah satu soal wajib diisi.',
+            'questions.*.text.max' => 'Teks pertanyaan maksimal 2000 karakter.',
+            'questions.*.options.*.required' => 'Semua pilihan jawaban (A, B, C, D) wajib diisi.',
+            'questions.*.options.*.max' => 'Setiap pilihan jawaban maksimal 500 karakter.',
+            'questions.*.correct_answer.required' => 'Kunci jawaban pada setiap soal wajib dipilih.',
+            'questions.*.correct_answer.in' => 'Kunci jawaban harus salah satu dari A, B, C, atau D.',
         ]);
         $data['questions'] = array_values($data['questions']);
         $data['is_published'] = $request->boolean('is_published');

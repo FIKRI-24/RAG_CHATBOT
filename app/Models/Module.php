@@ -20,9 +20,11 @@ class Module extends Model
         'kb_nomor',
         'tp',
         'file_path',
+        'indexed_file_path',
         'video_url',
         'kuis_url',
         'status_indexing',
+        'reindexing_status',
         'indexing_version',
         'indexing_error',
         'berlaku_sampai',
@@ -112,6 +114,74 @@ class Module extends Model
     public function quiz(): HasOne
     {
         return $this->hasOne(ModuleQuiz::class);
+    }
+
+    public function quizAttempts(): HasMany
+    {
+        return $this->hasMany(ModuleQuizAttempt::class);
+    }
+
+    /**
+     * Check whether an already-published module has an active background re-index.
+     */
+    public function isReindexing(): bool
+    {
+        return in_array($this->reindexing_status, ['pending', 'processing'], true);
+    }
+
+    /**
+     * Check whether the latest background re-index failed while keeping the old index live.
+     */
+    public function reindexingFailed(): bool
+    {
+        return $this->reindexing_status === 'failed';
+    }
+
+    /**
+     * Compare two modules naturally by kb_nomor, title, and id (so KB 2 comes before KB 10).
+     */
+    public static function compareNaturalKb(self $a, self $b): int
+    {
+        $cmp = strnatcasecmp((string) $a->kb_nomor, (string) $b->kb_nomor);
+        if ($cmp !== 0) {
+            return $cmp;
+        }
+        $titleCmp = strnatcasecmp((string) $a->judul, (string) $b->judul);
+
+        return $titleCmp !== 0 ? $titleCmp : ($a->id <=> $b->id);
+    }
+
+    /**
+     * Sort a collection of modules using natural KB ordering.
+     *
+     * @return \Illuminate\Support\Collection<int, self>
+     */
+    public static function sortNaturallyByKb(iterable $modules): \Illuminate\Support\Collection
+    {
+        return collect($modules)
+            ->sort(fn (self $a, self $b): int => self::compareNaturalKb($a, $b))
+            ->values();
+    }
+
+    /**
+     * Retrieve modules relevant to quiz score recaps (published quizzes or recorded attempts).
+     *
+     * @return \Illuminate\Support\Collection<int, self>
+     */
+    public static function quizRecapModules(?int $guruId = null, ?string $mapel = null, ?string $topik = null): \Illuminate\Support\Collection
+    {
+        return static::sortNaturallyByKb(
+            static::query()
+                ->when($guruId !== null, fn ($q) => $q->where('guru_id', $guruId))
+                ->when($mapel !== null && $mapel !== '', fn ($q) => $q->where('mapel', $mapel))
+                ->when($topik !== null && $topik !== '', fn ($q) => $q->where('topik', $topik))
+                ->where(function ($q) {
+                    $q->whereHas('quiz', fn ($quiz) => $quiz->where('is_published', true))
+                        ->orWhereHas('quizAttempts');
+                })
+                ->with('quiz:id,module_id,is_published')
+                ->get(['id', 'guru_id', 'judul', 'kb_nomor', 'mapel', 'topik', 'berlaku_sampai', 'status_indexing', 'reindexing_status'])
+        );
     }
 
     public static function ensureKb4Module(?int $guruId = null): ?self

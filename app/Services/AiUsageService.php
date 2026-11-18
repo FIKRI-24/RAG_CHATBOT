@@ -7,11 +7,11 @@ use Illuminate\Support\Facades\DB;
 
 class AiUsageService
 {
-    /** Count each outgoing API attempt, including retries, under a daily budget. */
+    /** Count each logical outgoing API operation under a daily WIB school budget. */
     public function reserve(): void
     {
         DB::transaction(function () {
-            $day = now()->toDateString();
+            $day = now(config('app.display_timezone', 'Asia/Jakarta'))->toDateString();
             $budgets = ['global' => (int) config('rag.daily_global_limit', 2000)];
             if ($userId = auth()->id()) {
                 $budgets['user:'.$userId] = (int) config('rag.daily_user_limit', 100);

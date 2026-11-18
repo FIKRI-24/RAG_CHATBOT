@@ -26,7 +26,7 @@ Route::get('/dashboard', function () {
         return redirect()->route('guru.dashboard');
     }
 
-    return redirect()->route('siswa.dashboard');
+    return redirect()->route('siswa.modules.index');
 })->middleware(['auth', 'active', 'auth.session', 'school.verified'])->name('dashboard');
 
 // Routes khusus Guru
@@ -52,6 +52,9 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:gu
     Route::get('/rekap-kuis', [QuizRecapController::class, 'index'])->name('quiz-recap.index');
     Route::get('/rekap-kuis/export', [QuizRecapController::class, 'export'])->name('quiz-recap.export');
     Route::get('/rekap-kuis/attempt/{attempt}', [QuizRecapController::class, 'showAttempt'])->name('quiz-recap.show-attempt');
+    Route::post('/rekap-kuis/attempt/{attempt}/approve-remedial', [QuizRecapController::class, 'approveRemedial'])->name('quiz-recap.approve-remedial');
+    Route::delete('/rekap-kuis/attempt/{attempt}/approve-remedial', [QuizRecapController::class, 'revokeRemedial'])->name('quiz-recap.revoke-remedial');
+    Route::patch('/rekap-kuis/attempt/{attempt}/remedial-score', [QuizRecapController::class, 'updateRemedialScore'])->name('quiz-recap.update-remedial-score');
     Route::get('/system', [SystemController::class, 'index'])->name('system');
     Route::resource('siswa', SiswaController::class)->except(['create', 'edit', 'show']);
 });
@@ -79,7 +82,7 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:si
 Route::middleware(['auth', 'active', 'auth.session'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->middleware('role:guru')->name('profile.destroy');
 });
 
 // Halaman Profil Pengembang (Khusus Role Guru)

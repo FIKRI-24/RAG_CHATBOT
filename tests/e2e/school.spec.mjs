@@ -7,7 +7,7 @@ async function login(page, email) {
     await page.locator('input[name="email"]').fill(email);
     await page.locator('input[name="password"]').fill('E2e-password-2026');
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL('**/dashboard');
+    await page.waitForURL(/\/(guru\/dashboard|siswa\/modules)$/);
 }
 
 test('registration policy and real CSRF protection', async ({ request }) => {
@@ -37,6 +37,8 @@ test('teacher modal clears credentials, account deactivation preserves history, 
 test('student RAG, quiz persistence, teacher review, and access control', async ({ page, browser }) => {
     test.setTimeout(60000);
     await login(page, 'siswa1@e2e.test');
+    await page.getByRole('link', { name: 'Tanya Jawab AI (Chatbot)' }).click();
+    await page.waitForURL('**/dashboard');
     await page.locator('#mapel-select').selectOption('Jaringan');
     await page.waitForURL('**/dashboard?mapel=Jaringan');
     await page.locator('#module-select').selectOption('1');

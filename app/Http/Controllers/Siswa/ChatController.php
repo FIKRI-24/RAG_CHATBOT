@@ -20,13 +20,14 @@ class ChatController extends Controller
 {
     public function index(Request $request)
     {
-        $request->validate(['mapel' => 'nullable|string|max:255', 'module_id' => 'nullable|integer|exists:modules,id']);
+        $request->validate(['mapel' => 'nullable|string|max:255', 'module_id' => 'nullable|integer|min:1']);
         $historyPages = ChatHistory::where('siswa_id', auth()->id())->latest('id')->cursorPaginate(30)->withQueryString();
         $chats = $historyPages->getCollection()->reverse();
-        $modules = Module::available()->with('quiz')->orderBy('kb_nomor')->orderBy('id')->get();
+        $modules = Module::sortNaturallyByKb(Module::available()->with('quiz')->get());
         $mapels = $modules->pluck('mapel')->unique();
         $selectedMapel = $request->query('mapel', 'Semua');
-        $selectedModule = $request->integer('module_id') ?: null;
+        $requestedModule = $request->integer('module_id') ?: null;
+        $selectedModule = ($requestedModule && $modules->contains('id', $requestedModule)) ? $requestedModule : null;
         $activeQuiz = ChatHistory::where('siswa_id', auth()->id())->where('kind', 'quiz')
             ->where('quiz_status', 'pending')->where('mapel', $selectedMapel)
             ->where('scope_module_id', $selectedModule)
@@ -67,13 +68,16 @@ class ChatController extends Controller
         $started = microtime(true);
         try {
             if ($action === 'cancel_quiz') {
-                $this->cancelQuizzes();
+                $this->cancelQuizzes($mapel, $moduleId, $request->integer('quiz_id') ?: null);
 
                 return response()->json(['success' => true, 'data' => ['quiz_id' => null]]);
             }
             if ($action === 'quiz') {
-                $chunk = $retrieval->eligible($mapel)->with('module')->inRandomOrder()->cursor()
-                    ->first(fn ($chunk) => VectorService::valid($chunk->embedding_vector));
+                $candidates = $retrieval->eligible($mapel)->with('module')->inRandomOrder()->get()
+                    ->filter(fn ($chunk) => VectorService::valid($chunk->embedding_vector));
+                $chunk = $candidates->first(fn ($c) => mb_strlen(trim($c->chunk_text)) >= 120 && $c->chunk_index > 0)
+                    ?? $candidates->first(fn ($c) => mb_strlen(trim($c->chunk_text)) >= 80)
+                    ?? $candidates->first();
                 if (! $chunk) {
                     return $this->error('Belum ada materi yang siap untuk dijadikan soal.', 422);
                 }
@@ -85,7 +89,7 @@ class ChatController extends Controller
                     if (! $chunk) {
                         return null;
                     }
-                    $this->cancelQuizzes();
+                    $this->cancelQuizzes($mapel, $moduleId);
 
                     return ChatHistory::create([
                         'siswa_id' => auth()->id(), 'pertanyaan' => '[LATIHAN_SOAL]',
@@ -104,7 +108,7 @@ class ChatController extends Controller
             }
 
             // Normal questions never implicitly become quiz answers.
-            $this->cancelQuizzes();
+            $this->cancelQuizzes($mapel, $moduleId);
 
             // 1. Tangani sapaan ramah (Greetings / Chitchat)
             if ($this->isGreeting($question)) {
@@ -141,17 +145,18 @@ class ChatController extends Controller
                     ->map(fn ($chat) => ['pertanyaan' => $chat->retrieval_query ?: $chat->pertanyaan,
                         'jawaban' => mb_substr($chat->jawaban, 0, 1500)])->values()->all();
                 $queryText = $gemini->rewriteQuestion($question, $history);
-                $matches = $retrieval->search($gemini->embedText($queryText), $mapel);
+                $lexicalQuery = $queryText === $question ? $question : ($queryText.' '.$question);
+                $matches = $retrieval->search($gemini->embedText($queryText), $mapel, $lexicalQuery);
                 $sources = $retrieval->sources($matches, $mapel);
             }
             $answer = ! $sources
                 ? 'Materi untuk menjawab pertanyaan tersebut belum ditemukan dalam modul yang tersedia.'
                 : $gemini->generateAnswer($queryText, $retrieval->context($sources));
             $chat = DB::transaction(function () use ($question, $answer, $sources, $mapel, $moduleId, $queryText, $retrieval) {
-                // Lock every source module in stable order, then verify the complete source window.
+                // Verify every source module and source window optimistically without locking shared module/chunk rows across students.
                 $moduleIds = array_values(array_unique(array_column($sources, 'module_id')));
                 sort($moduleIds);
-                $available = Module::available()->whereIn('id', $moduleIds)->orderBy('id')->lockForUpdate()->get();
+                $available = Module::available()->whereIn('id', $moduleIds)->orderBy('id')->get();
                 if ($available->count() !== count($moduleIds)) {
                     return null;
                 }
@@ -160,7 +165,7 @@ class ChatController extends Controller
                     $chunkIds = array_merge($chunkIds, $source['chunk_ids'] ?? [$source['chunk_id']]);
                 }
                 $chunkIds = array_values(array_unique($chunkIds));
-                $current = $retrieval->eligible($mapel)->whereIn('id', $chunkIds)->orderBy('id')->lockForUpdate()->get();
+                $current = $retrieval->eligible($mapel)->whereIn('id', $chunkIds)->orderBy('id')->get();
                 if ($current->count() !== count($chunkIds)) {
                     return null;
                 }
@@ -249,12 +254,12 @@ class ChatController extends Controller
 
     private function lockSource(ModuleChunk $chunk, string $mapel, RetrievalService $retrieval): ?ModuleChunk
     {
-        // Same lock order as reindex: module, then chunk, then chat. No API call holds a DB lock.
-        $module = Module::available()->whereKey($chunk->module_id)->lockForUpdate()->first();
+        // Verify module availability and chunk integrity without holding exclusive DB locks on shared curriculum rows.
+        $module = Module::available()->whereKey($chunk->module_id)->first();
         if (! $module) {
             return null;
         }
-        $current = $retrieval->eligible($mapel)->whereKey($chunk->id)->lockForUpdate()->first();
+        $current = $retrieval->eligible($mapel)->whereKey($chunk->id)->first();
         if (! $current || $current->chunk_text !== $chunk->chunk_text || ! VectorService::valid($current->embedding_vector)) {
             return null;
         }
@@ -262,10 +267,32 @@ class ChatController extends Controller
         return $current->setRelation('module', $module);
     }
 
-    private function cancelQuizzes(): void
+    private function cancelQuizzes(string $mapel = 'Semua', ?int $moduleId = null, ?int $quizId = null): void
     {
-        ChatHistory::where('siswa_id', auth()->id())->where('kind', 'quiz')
-            ->where('quiz_status', 'pending')->update(['quiz_status' => 'cancelled']);
+        $query = ChatHistory::where('siswa_id', auth()->id())
+            ->where('kind', 'quiz')
+            ->where('quiz_status', 'pending');
+
+        if ($quizId !== null) {
+            $query->whereKey($quizId)->update(['quiz_status' => 'cancelled']);
+
+            return;
+        }
+
+        $query->where(function ($sub) use ($mapel) {
+            $sub->where('mapel', $mapel);
+            if ($mapel === 'Semua') {
+                $sub->orWhereNull('mapel');
+            }
+        })
+            ->where(function ($sub) use ($moduleId) {
+                if ($moduleId !== null) {
+                    $sub->where('scope_module_id', $moduleId);
+                } else {
+                    $sub->whereNull('scope_module_id');
+                }
+            })
+            ->update(['quiz_status' => 'cancelled']);
     }
 
     private function reply(ChatHistory $chat, ?int $quizId = null)
@@ -304,11 +331,11 @@ class ChatController extends Controller
 
     private function buildGreetingResponse(string $mapel, ?int $moduleId): string
     {
-        $modules = Module::available()
-            ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
-            ->orderBy('kb_nomor')
-            ->orderBy('id')
-            ->get(['id', 'judul', 'kb_nomor']);
+        $modules = Module::sortNaturallyByKb(
+            Module::available()
+                ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+                ->get(['id', 'judul', 'kb_nomor'])
+        );
 
         $greeting = "Halo! Saya adalah **Asisten AI Pembelajaran TKJ SMK Negeri 1 Kinali**.\n\n"
             . "Saya siap membantu Anda memahami konsep jaringan komputer, konfigurasi perangkat, dan materi pembelajaran lainnya.";
@@ -342,14 +369,19 @@ class ChatController extends Controller
             ) && preg_match('/\b(ada|tersedia|aktif|tentang apa|bahas apa|materi apa|membahas apa|judul|judulnya)\b/i', $normalized);
 
             if ($isMetaQuestion) {
-                $module = Module::available()
-                    ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
-                    ->where(function ($q) use ($kbLabel, $kbNum) {
-                        $q->where('kb_nomor', $kbLabel)
-                            ->orWhere('kb_nomor', "KB-{$kbNum}");
-                    })->first();
+                $matchingModules = Module::sortNaturallyByKb(
+                    Module::available()
+                        ->with('quiz:id,module_id,is_published')
+                        ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+                        ->when($moduleId !== null, fn ($q) => $q->whereKey($moduleId))
+                        ->where(function ($q) use ($kbLabel, $kbNum) {
+                            $q->where('kb_nomor', $kbLabel)
+                                ->orWhere('kb_nomor', "KB-{$kbNum}");
+                        })->get()
+                );
 
-                if ($module) {
+                if ($matchingModules->count() === 1) {
+                    $module = $matchingModules->first();
                     $hasQuiz = $module->quiz && $module->quiz->is_published;
                     $quizStatus = $hasQuiz ? '✅ Kuis Objektif Tersedia (1x kesempatan pengerjaan)' : '⏳ Kuis Belum Diterbitkan';
                     $response = "Ya, materi **{$module->kb_nomor}: {$module->judul}** sudah **aktif dan tersedia** di sistem E-Modul SMK Negeri 1 Kinali!\n\n";
@@ -360,6 +392,15 @@ class ChatController extends Controller
                     $response .= "Anda dapat membaca materi selengkapnya pada menu **Katalog E-Modul** atau langsung menanyakan konsep teknis seputar materi ini kepada saya!";
 
                     return $response;
+                } elseif ($matchingModules->count() > 1) {
+                    $lines = $matchingModules->map(function ($module) {
+                        $hasQuiz = $module->quiz && $module->quiz->is_published;
+                        $quizTag = $hasQuiz ? 'Kuis Tersedia' : 'Kuis Belum Terbit';
+
+                        return "• **{$module->kb_nomor}** ({$module->mapel}): {$module->judul} — _{$quizTag}_";
+                    })->implode("\n");
+
+                    return "Ditemukan **{$matchingModules->count()} modul {$kbLabel}** yang aktif di sistem E-Modul SMK Negeri 1 Kinali:\n\n{$lines}\n\nSilakan pilih elemen mata pelajaran terkait di bagian atas atau buka menu **Katalog E-Modul** untuk mempelajarinya.";
                 } else {
                     return "Saat ini materi **{$kbLabel}** belum ditemukan atau belum diaktifkan dalam sistem. Silakan periksa daftar Kegiatan Belajar yang tersedia.";
                 }
@@ -370,11 +411,11 @@ class ChatController extends Controller
         $isGeneralCatalog = preg_match('/(ada materi apa( saja)?|apa( saja)? materi yang ada|daftar (materi|modul|kb|kegiatan belajar)|modul apa( saja)? yang (ada|tersedia)|kegiatan belajar apa( saja)?)/i', $normalized);
 
         if ($isGeneralCatalog) {
-            $modules = Module::available()
-                ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
-                ->orderBy('kb_nomor')
-                ->orderBy('id')
-                ->get(['id', 'judul', 'kb_nomor', 'mapel']);
+            $modules = Module::sortNaturallyByKb(
+                Module::available()
+                    ->when($mapel !== 'Semua', fn ($q) => $q->where('mapel', $mapel))
+                    ->get(['id', 'judul', 'kb_nomor', 'mapel'])
+            );
 
             if ($modules->isEmpty()) {
                 return 'Saat ini belum ada modul pembelajaran yang aktif dalam sistem.';

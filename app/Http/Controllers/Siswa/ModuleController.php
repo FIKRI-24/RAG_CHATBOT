@@ -44,7 +44,17 @@ class ModuleController extends Controller
             });
         }
 
-        $modules = $query->orderBy('mapel')->orderBy('topik')->orderBy('kb_nomor')->paginate(9)->withQueryString();
+        $modules = $query->with([
+            'quiz:id,module_id,is_published',
+            'quizAttempts' => fn ($q) => $q->where('user_id', auth()->id())
+                ->select('id', 'module_id', 'user_id', 'score', 'remedial_approved_at'),
+        ])
+            ->orderBy('mapel')
+            ->orderBy('topik')
+            ->orderByRaw("LENGTH(COALESCE(kb_nomor, '')), COALESCE(kb_nomor, '')")
+            ->orderBy('id')
+            ->paginate(9)
+            ->withQueryString();
 
         $mapelList = Module::mergeWithCurriculumElements(
             Module::available()->select('mapel')->distinct()->pluck('mapel')

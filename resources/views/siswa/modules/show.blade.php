@@ -163,15 +163,30 @@
                 </div>
             </div>
 
+            <!-- Panduan Urutan 4 Langkah KB + Asisten AI -->
+            <div class="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-xs flex flex-wrap items-center gap-2 text-xs">
+                <a href="#step-tp" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold hover:bg-emerald-100 transition-colors">1. Pahami TP</a>
+                <span class="text-slate-400">&rarr;</span>
+                <a href="#step-materi" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold hover:bg-emerald-100 transition-colors">2. Pelajari Materi</a>
+                <span class="text-slate-400">&rarr;</span>
+                <a href="#step-video" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold hover:bg-emerald-100 transition-colors">3. Simak Video</a>
+                <span class="text-slate-400">&rarr;</span>
+                <a href="#step-kuis" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold hover:bg-emerald-100 transition-colors">4. Kerjakan Kuis</a>
+                <span class="text-slate-400">&rarr;</span>
+                <a href="#step-chatbot" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 text-white font-semibold hover:bg-slate-800 transition-colors">
+                    <i class="fa-solid fa-robot text-emerald-400 text-[10px]"></i> Asisten Chatbot AI
+                </a>
+            </div>
+
             <!-- 1. TUJUAN PEMBELAJARAN (TP) CARD -->
-            <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-3.5">
+            <div id="step-tp" class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-3.5">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-                    <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold text-xs flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-bullseye text-xs"></i>
+                    <span class="w-8 h-8 rounded-xl bg-[#008546] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        01
                     </span>
                     <div>
                         <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                            Tujuan Pembelajaran (TP)
+                            1. Pahami Tujuan Pembelajaran (TP)
                         </h3>
                         <p class="text-xs text-slate-500">Capaian kompetensi yang diharapkan setelah mempelajari modul</p>
                     </div>
@@ -183,14 +198,14 @@
             </div>
 
             <!-- 2. MATERI DOKUMEN (DOWNLOAD FILE ASLI) CARD -->
-            <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+            <div id="step-materi" class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-                    <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold text-xs flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-file-pdf text-xs"></i>
+                    <span class="w-8 h-8 rounded-xl bg-[#008546] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        02
                     </span>
                     <div>
                         <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                            Materi Pembelajaran & Dokumen
+                            2. Pelajari Materi Pembelajaran & Dokumen
                         </h3>
                         <p class="text-xs text-slate-500">Unduh bahan bacaan resmi dan panduan praktikum guru</p>
                     </div>
@@ -211,14 +226,14 @@
             </div>
 
             <!-- 3. VIDEO PEMBELAJARAN CARD -->
-            <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+            <div id="step-video" class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-                    <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold text-xs flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-play text-xs"></i>
+                    <span class="w-8 h-8 rounded-xl bg-[#008546] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        03
                     </span>
                     <div>
                         <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                            Video Pembelajaran Pendukung
+                            3. Simak Video Pembelajaran Pendukung
                         </h3>
                         <p class="text-xs text-slate-500">Visualisasi konsep, topologi, dan demonstrasi konfigurasi</p>
                     </div>
@@ -226,7 +241,7 @@
 
                 @if($module->video_url)
                     @php
-                        $isYoutube = preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $module->video_url, $matches);
+                        $isYoutube = preg_match('/(?:youtube\.com\/(?:(?:watch\?.*?v=)|(?:embed|v|shorts|live)\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/', $module->video_url, $matches);
                         $youtubeId = $isYoutube ? $matches[1] : null;
 
                         $isDrive = preg_match('/drive\.google\.com\/file\/d\/([a-zA-Z0-9_\-]+)/', $module->video_url, $driveMatches);
@@ -276,14 +291,14 @@
             </div>
 
             <!-- 4. KUIS EVALUASI CARD -->
-            <div class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+            <div id="step-kuis" class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
                 <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
-                    <span class="w-8 h-8 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200/80 font-bold text-xs flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-clipboard-check text-xs"></i>
+                    <span class="w-8 h-8 rounded-xl bg-[#008546] text-white font-bold text-xs flex items-center justify-center shrink-0">
+                        04
                     </span>
                     <div>
                         <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wider">
-                            Kuis Evaluasi Pemahaman
+                            4. Kerjakan Kuis Evaluasi Pemahaman
                         </h3>
                         <p class="text-xs text-slate-500">Uji tingkat pemahaman materi setelah menyelesaikan modul</p>
                     </div>
@@ -296,16 +311,30 @@
                                 <h4 class="font-bold text-sm text-slate-900">
                                     {{ $module->quiz->title }}
                                 </h4>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-[#008546] text-white">
-                                    Sudah Dikerjakan
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold {{ $userAttempt->hasApprovedRemedial() ? 'bg-blue-600 text-white' : 'bg-[#008546] text-white' }}">
+                                    {{ $userAttempt->hasApprovedRemedial() ? 'Remedial Disetujui' : 'Sudah Dikerjakan' }}
                                 </span>
                             </div>
                             <p class="text-xs text-slate-700">
-                                Skor hasil pengerjaan Anda: <strong class="text-[#008546] text-sm">{{ $userAttempt->score }}/100</strong> (Benar {{ $userAttempt->correct_count }} dari {{ $userAttempt->question_count }} butir soal). Sesuai ketentuan, kuis hanya dapat dikerjakan satu kali.
+                                Skor hasil pengerjaan Anda: <strong class="text-[#008546] text-sm">{{ $userAttempt->score }}/100</strong> (Benar {{ $userAttempt->correct_count }} dari {{ $userAttempt->question_count }} butir soal).
+                                @if($userAttempt->hasApprovedRemedial())
+                                    Guru telah menyetujui izin remedial untuk kuis ini{{ $userAttempt->remedial_note ? ' (Catatan: '.$userAttempt->remedial_note.')' : '' }}.
+                                @elseif($userAttempt->score < 75)
+                                    Hubungi guru apabila Anda memerlukan izin remedial untuk memperbaiki nilai ini.
+                                @else
+                                    Sesuai ketentuan, kuis hanya dapat dikerjakan satu kali kecuali ada izin remedial dari guru.
+                                @endif
                             </p>
-                            <a href="{{ route('siswa.quiz-attempts.show', $userAttempt) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-[#008546] text-xs font-bold rounded-xl border border-emerald-300 transition-colors shadow-2xs">
-                                <span>Lihat Rincian Jawaban & Pembahasan →</span>
-                            </a>
+                            <div class="flex flex-wrap items-center gap-2.5">
+                                @if($userAttempt->hasApprovedRemedial())
+                                    <a href="{{ route('siswa.modules.quiz.show', $module) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs">
+                                        <span>Kerjakan Kuis Remedial &rarr;</span>
+                                    </a>
+                                @endif
+                                <a href="{{ route('siswa.quiz-attempts.show', $userAttempt) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-emerald-50 text-[#008546] text-xs font-bold rounded-xl border border-emerald-300 transition-colors shadow-2xs">
+                                    <span>Lihat Rincian Jawaban & Pembahasan →</span>
+                                </a>
+                            </div>
                         </div>
                     @else
                         <div class="p-5 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-3">
@@ -341,15 +370,39 @@
                 @endif
             </div>
 
+            <!-- 5. CHATBOT AI ASISTEN TAMBAHAN CARD -->
+            <div id="step-chatbot" class="bg-white p-6 sm:p-7 rounded-2xl border border-slate-200/90 shadow-xs space-y-4">
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-3.5">
+                    <span class="w-8 h-8 rounded-xl bg-slate-900 text-emerald-400 font-bold text-xs flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-robot text-xs"></i>
+                    </span>
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-900 uppercase tracking-wider">
+                            Asisten Belajar Tambahan: Tanya Jawab AI (Chatbot RAG)
+                        </h3>
+                        <p class="text-xs text-slate-500">Diskusikan materi dari {{ $module->kb_nomor }} atau tanyakan topik dari KB mana pun yang sudah dimasukkan guru</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4.5 bg-slate-50/90 rounded-xl border border-slate-200">
+                    <p class="text-xs text-slate-600 leading-relaxed max-w-2xl">
+                        Masih ada bagian konsep atau praktikum yang belum dipahami setelah membaca modul, menonton video, dan mengerjakan kuis? Gunakan <strong>Asisten AI</strong> untuk bertanya sesuai isi modul resmi guru.
+                    </p>
+                    <div class="flex flex-wrap items-center gap-2 shrink-0">
+                        <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}&amp;module_id={{ $module->id }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs">
+                            <i class="fa-solid fa-robot text-emerald-400"></i>
+                            <span>Tanya AI Mengenai Materi Ini</span>
+                        </a>
+                        <a href="{{ route('siswa.dashboard') }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-emerald-50 text-[#008546] text-xs font-semibold rounded-xl border border-emerald-300 transition-colors">
+                            <span>Tanya Semua KB</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Bottom Back & Discussion Link -->
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2 pb-8">
                 <a href="{{ route('siswa.modules.index') }}" class="text-xs font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-1.5">
                     <i class="fa-solid fa-arrow-left text-[10px]"></i> Kembali ke Katalog E-Modul
-                </a>
-
-                <a href="{{ route('siswa.dashboard') }}?mapel={{ urlencode($module->mapel) }}&amp;module_id={{ $module->id }}" class="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold rounded-xl transition-colors shadow-2xs">
-                    <i class="fa-solid fa-robot text-emerald-400"></i>
-                    <span>Tanya AI Mengenai Materi Ini</span>
                 </a>
             </div>
 

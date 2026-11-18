@@ -41,9 +41,13 @@ class ModuleController extends Controller
             $query->where('kb_nomor', $request->kb_nomor);
         }
 
-        $modules = $query->latest()->paginate(10)->withQueryString();
+        $modules = $query->with('quiz:id,module_id,is_published')->latest()->paginate(10)->withQueryString();
 
         $ownedModules = Module::where('guru_id', Auth::id());
+        $unreadyModuleCount = (clone $ownedModules)->where(function ($q) {
+            $q->whereIn('status_indexing', ['pending', 'processing', 'failed'])
+                ->orWhereIn('reindexing_status', ['pending', 'processing', 'failed']);
+        })->count();
         $mapelList = Module::mergeWithCurriculumElements(
             (clone $ownedModules)->select('mapel')->distinct()->pluck('mapel')
         );
@@ -67,7 +71,7 @@ class ModuleController extends Controller
             (clone $ownedModules)->select('kb_nomor')->distinct()->pluck('kb_nomor')
         );
 
-        return view('guru.modules.index', compact('modules', 'mapelList', 'topikList', 'kbList'));
+        return view('guru.modules.index', compact('modules', 'mapelList', 'topikList', 'kbList', 'unreadyModuleCount'));
     }
 
     public function create()
@@ -89,7 +93,7 @@ class ModuleController extends Controller
             'video_url' => 'nullable|url:http,https|max:255',
             'kuis_url' => 'nullable|url:http,https|max:255',
             'file' => 'required|file|mimes:pdf,docx|max:10240',
-            'berlaku_sampai' => 'nullable|date|after_or_equal:today',
+            'berlaku_sampai' => 'nullable|date|after_or_equal:'.today(config('app.display_timezone', 'Asia/Jakarta'))->toDateString(),
             'additional_videos' => 'nullable|array|max:10',
             'additional_videos.*' => 'array:title,url',
             'additional_videos.*.title' => 'required|string|max:100',
@@ -103,14 +107,21 @@ class ModuleController extends Controller
             'file.max' => 'Ukuran file materi maksimal 10 MB.',
             'video_url.url' => 'Link video harus berupa format URL yang valid (misal: https://youtube.com/...).',
             'kuis_url.url' => 'Link kuis harus berupa format URL yang valid.',
+            'berlaku_sampai.after_or_equal' => 'Batas waktu aktif modul tidak boleh sebelum hari ini.',
+            'additional_videos.*.title.required' => 'Judul video tambahan wajib diisi.',
+            'additional_videos.*.url.required' => 'URL video tambahan wajib diisi.',
+            'additional_videos.*.url.url' => 'URL video tambahan harus berupa format URL yang valid.',
         ]);
 
         $files = app(StoredFileService::class);
         $filePath = $files->store($request->file('file'), 'modules', 'local', 'file');
+        $additionalVideos = is_array($request->input('additional_videos'))
+            ? array_values($request->input('additional_videos'))
+            : $request->input('additional_videos');
 
         try {
 
-            $module = DB::transaction(function () use ($request, $filePath) {
+            $module = DB::transaction(function () use ($request, $filePath, $additionalVideos) {
                 $module = Module::create([
                     'guru_id' => Auth::id(),
                     'judul' => $request->judul,
@@ -122,9 +133,10 @@ class ModuleController extends Controller
                     'kuis_url' => $request->kuis_url,
                     'file_path' => $filePath,
                     'status_indexing' => 'pending',
+                    'reindexing_status' => null,
                     'indexing_version' => (string) Str::uuid(),
                     'berlaku_sampai' => $request->berlaku_sampai,
-                    'additional_videos' => $request->input('additional_videos'),
+                    'additional_videos' => $additionalVideos,
                 ]);
                 app(AuditService::class)->record('module.uploaded', $module);
 
@@ -141,7 +153,14 @@ class ModuleController extends Controller
             return redirect()->route('guru.modules.index')->with('error', 'Modul tersimpan, tetapi antrean AI belum tersedia. Jalankan indexing ulang setelah antrean diperbaiki.');
         }
 
-        return redirect()->route('guru.modules.index')->with('success', 'Modul '.$module->kb_nomor.' berhasil diupload dan sedang diproses AI.');
+        $response = redirect()->route('guru.modules.index')
+            ->with('success', 'Modul '.$module->kb_nomor.' berhasil diupload dan sedang diproses AI.');
+
+        if ($this->hasDuplicateModule($module)) {
+            $response->with('warning', "Catatan: Anda sudah memiliki modul lain pada {$module->mapel} ({$module->kb_nomor}) dengan topik yang sama. Pastikan tidak terjadi duplikasi materi.");
+        }
+
+        return $response;
     }
 
     public function show(Module $module)
@@ -195,15 +214,23 @@ class ModuleController extends Controller
         $newPath = $request->hasFile('file')
             ? $files->store($request->file('file'), 'modules', 'local', 'file') : null;
         $oldPath = null;
+        $intermediateUnindexedPath = null;
         try {
-            DB::transaction(function () use ($request, &$module, $newPath, &$oldPath) {
+            DB::transaction(function () use ($request, &$module, $newPath, &$oldPath, &$intermediateUnindexedPath) {
                 $module = Module::whereKey($module->id)->where('guru_id', Auth::id())->lockForUpdate()->firstOrFail();
-                $module->fill($request->only(['judul', 'mapel', 'kb_nomor', 'tp', 'video_url', 'kuis_url', 'berlaku_sampai', 'additional_videos']));
+                $attributes = $request->only(['judul', 'mapel', 'kb_nomor', 'tp', 'video_url', 'kuis_url', 'berlaku_sampai']);
+                if ($request->has('additional_videos')) {
+                    $attributes['additional_videos'] = array_values($request->input('additional_videos') ?? []);
+                }
+                $module->fill($attributes);
                 $module->topik = $request->filled('topik') ? trim((string) $request->input('topik')) : null;
                 if ($newPath) {
-                    $oldPath = $module->file_path;
-                    $module->fill(['file_path' => $newPath, 'status_indexing' => 'pending',
-                        'indexing_version' => (string) Str::uuid(), 'indexing_error' => null]);
+                    if ($module->reindexing_status !== null) {
+                        $intermediateUnindexedPath = $module->file_path;
+                    } else {
+                        $oldPath = $module->file_path;
+                    }
+                    $module->fill($this->prepareReindexAttributes($module, $newPath));
                 }
                 $module->save();
                 app(AuditService::class)->record('module.updated', $module, ['file_replaced' => (bool) $newPath]);
@@ -214,23 +241,33 @@ class ModuleController extends Controller
 
             return back()->withInput()->withErrors(['file' => 'Perubahan belum dapat disimpan. Dokumen sebelumnya tetap tersedia.']);
         }
+        if ($intermediateUnindexedPath && $intermediateUnindexedPath !== $newPath) {
+            $files->delete($intermediateUnindexedPath, 'local');
+        }
         if ($newPath) {
             if (! $this->schedule($module, $oldPath)) {
                 return back()->with('error', 'Dokumen tersimpan, tetapi antrean AI belum tersedia. Silakan jalankan indexing ulang.');
             }
         }
 
-        return redirect()->route('guru.modules.index')->with('success', 'Data modul berhasil diperbarui.');
+        $response = redirect()->route('guru.modules.index')->with('success', 'Data modul berhasil diperbarui.');
+        if ($this->hasDuplicateModule($module)) {
+            $response->with('warning', "Catatan: Terdapat modul lain pada {$module->mapel} ({$module->kb_nomor}) dengan topik yang sama. Pastikan tidak terjadi duplikasi materi.");
+        }
+
+        return $response;
     }
 
     public function destroy(Module $module)
     {
         abort_unless((int) $module->guru_id === (int) Auth::id(), 403, 'Akses ditolak.');
         $path = null;
+        $indexedPath = null;
         try {
-            DB::transaction(function () use ($module, &$path) {
+            DB::transaction(function () use ($module, &$path, &$indexedPath) {
                 $current = Module::whereKey($module->id)->where('guru_id', Auth::id())->lockForUpdate()->firstOrFail();
                 $path = $current->file_path;
+                $indexedPath = $current->indexed_file_path;
                 foreach ($current->chunks()->with('module')->lazyById(100) as $chunk) {
                     ChatHistory::where('referensi_chunk_id', $chunk->id)->whereNull('sources')
                         ->update(['sources' => json_encode([app(RetrievalService::class)->source($chunk)], JSON_UNESCAPED_UNICODE)]);
@@ -243,11 +280,33 @@ class ModuleController extends Controller
 
             return back()->with('error', 'Modul belum dapat dihapus. Silakan coba lagi.');
         }
-        if (! app(StoredFileService::class)->delete($path, 'local')) {
+        $files = app(StoredFileService::class);
+        $deleteOk = $files->delete($path, 'local');
+        if ($indexedPath && $indexedPath !== $path) {
+            $deleteOk = $files->delete($indexedPath, 'local') && $deleteOk;
+        }
+        if (! $deleteOk) {
             return redirect()->route('guru.modules.index')->with('error', 'Modul telah ditarik. Berkas lama perlu dibersihkan oleh pengelola penyimpanan.');
         }
 
         return redirect()->route('guru.modules.index')->with('success', 'Modul berhasil dihapus.');
+    }
+
+    /**
+     * Check whether the current teacher already owns another module with the same mapel, topik, and KB number.
+     */
+    private function hasDuplicateModule(Module $module): bool
+    {
+        return Module::where('guru_id', $module->guru_id)
+            ->where('id', '!=', $module->id)
+            ->where('mapel', $module->mapel)
+            ->where('kb_nomor', $module->kb_nomor)
+            ->when(
+                $module->topik !== null && $module->topik !== '',
+                fn ($q) => $q->where('topik', $module->topik),
+                fn ($q) => $q->where(fn ($sub) => $sub->whereNull('topik')->orWhere('topik', ''))
+            )
+            ->exists();
     }
 
     public function reindex(Module $module)
@@ -258,11 +317,7 @@ class ModuleController extends Controller
 
         DB::transaction(function () use (&$module) {
             $module = Module::whereKey($module->id)->where('guru_id', Auth::id())->lockForUpdate()->firstOrFail();
-            $module->update([
-                'status_indexing' => 'pending',
-                'indexing_version' => (string) Str::uuid(),
-                'indexing_error' => null,
-            ]);
+            $module->update($this->prepareReindexAttributes($module));
             app(AuditService::class)->record('module.reindex_requested', $module);
         });
 
@@ -300,6 +355,26 @@ class ModuleController extends Controller
         return $disk->download($module->file_path, $cleanName);
     }
 
+    /**
+     * Keep an already-published module and its chunks active during background re-indexing.
+     */
+    private function prepareReindexAttributes(Module $module, ?string $newPath = null): array
+    {
+        $keepLiveIndex = $module->status_indexing === 'completed' && $module->chunks()->exists();
+        $attributes = [
+            'status_indexing' => $keepLiveIndex ? 'completed' : 'pending',
+            'reindexing_status' => $keepLiveIndex ? 'pending' : null,
+            'indexing_version' => (string) Str::uuid(),
+            'indexing_error' => null,
+        ];
+
+        if ($newPath !== null) {
+            $attributes['file_path'] = $newPath;
+        }
+
+        return $attributes;
+    }
+
     private function schedule(Module $module, ?string $oldFilePath = null): bool
     {
         try {
@@ -307,9 +382,15 @@ class ModuleController extends Controller
 
             return true;
         } catch (\Throwable $e) {
-            Module::whereKey($module->id)->where('indexing_version', $module->indexing_version)
-                ->where('status_indexing', 'pending')->update(['status_indexing' => 'failed',
-                    'indexing_error' => 'Antrean AI belum tersedia. Silakan jalankan indexing ulang.']);
+            $error = 'Antrean AI belum tersedia. Silakan jalankan indexing ulang.';
+            $base = Module::whereKey($module->id)->where('indexing_version', $module->indexing_version);
+            $updatedLive = (clone $base)->where('status_indexing', 'completed')
+                ->where('reindexing_status', 'pending')
+                ->update(['reindexing_status' => 'failed', 'indexing_error' => $error]);
+            if (! $updatedLive) {
+                (clone $base)->where('status_indexing', 'pending')
+                    ->update(['status_indexing' => 'failed', 'indexing_error' => $error]);
+            }
             Log::warning('Module dispatch failed', ['module_id' => $module->id, 'error_type' => get_class($e)]);
 
             return false;

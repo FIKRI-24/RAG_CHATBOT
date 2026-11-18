@@ -78,8 +78,12 @@ class ChatActivityController extends Controller
     {
         $request->validate([
             'search' => 'nullable|string|max:255',
+            'module_id' => 'nullable|integer|min:1',
         ]);
 
-        return $exportService->exportWeeklyQuestions($request->input('search'));
+        return $exportService->exportWeeklyQuestions(
+            $request->input('search'),
+            $request->integer('module_id') ?: null
+        );
     }
 }

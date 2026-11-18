@@ -6,7 +6,7 @@ async function login(page, email) {
     await page.locator('[name="email"]').fill(email);
     await page.locator('[name="password"]').fill('E2e-password-2026');
     await page.locator('button[type="submit"]').click();
-    await page.waitForURL('**/dashboard');
+    await page.waitForURL(/\/(guru\/dashboard|siswa\/modules)$/);
 }
 
 test('teacher creates objective quiz, student takes it, results persist after deletion', async ({ page, browser }) => {

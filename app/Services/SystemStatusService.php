@@ -22,7 +22,7 @@ class SystemStatusService
             'worker_heartbeat' => $heartbeat,
             'worker_observed' => $heartbeat !== null && time() - $heartbeat < 390,
             'ai_configured' => (string) config('gemini.api_key') !== '',
-            'api_attempts_today' => DB::table('ai_usage')->where('bucket', 'global')->whereDate('day', today())->value('requests') ?? 0,
+            'api_attempts_today' => DB::table('ai_usage')->where('bucket', 'global')->whereDate('day', today(config('app.display_timezone', 'Asia/Jakarta')))->value('requests') ?? 0,
             'registration_enabled' => (bool) config('security.registration_enabled'),
             'checked_at' => now(config('app.display_timezone'))->toIso8601String(),
         ];

@@ -17,11 +17,17 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustHosts(at: function () {
             $hosts = config('security.trusted_hosts', []);
             $hosts[] = parse_url(config('app.url'), PHP_URL_HOST) ?: 'localhost';
-            if (app()->environment(['local', 'testing'])) {
+            $allowLan = app()->environment(['local', 'testing']) || config('security.allow_lan_hosts', true);
+            if ($allowLan) {
                 $hosts = array_merge($hosts, ['localhost', '127.0.0.1', '::1']);
             }
 
-            return array_map(fn ($host) => '^'.preg_quote($host, '/').'$', array_unique($hosts));
+            $patterns = array_map(fn ($host) => '^'.preg_quote($host, '/').'$', array_unique($hosts));
+            if ($allowLan) {
+                $patterns[] = '^(10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[0-1])(?:\.\d{1,3}){2})$';
+            }
+
+            return $patterns;
         }, subdomains: false);
         $middleware->alias([
             'role' => RoleMiddleware::class,

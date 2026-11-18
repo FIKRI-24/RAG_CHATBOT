@@ -29,6 +29,18 @@
             </div>
         @endif
 
+        @if($attempt->hasApprovedRemedial() && $attempt->module_id)
+            <div role="status" class="p-4 bg-blue-50 text-blue-900 rounded-2xl border border-blue-200 text-xs sm:text-sm flex flex-wrap items-center justify-between gap-3">
+                <div class="space-y-0.5">
+                    <p class="font-bold">Izin Remedial Disetujui Guru</p>
+                    <p class="text-xs text-blue-800">{{ $attempt->remedial_note ?: 'Anda dapat mengerjakan ulang kuis ini sekarang.' }}</p>
+                </div>
+                <a href="{{ route('siswa.modules.quiz.show', $attempt->module_id) }}" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors">
+                    Kerjakan Kuis Remedial &rarr;
+                </a>
+            </div>
+        @endif
+
         <!-- Cyber-Network Glassmorphism Score Hero -->
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950/80 text-white p-6 sm:p-8 shadow-sm">
             <!-- Subtle Cyber Grid Background -->
@@ -43,8 +55,13 @@
                             <span>Hasil Evaluasi Kuis</span>
                         </span>
                         <span class="text-xs text-slate-400 font-medium">
-                            Versi {{ $attempt->quiz_version }}
+                            Versi {{ $attempt->quiz_version }} &bull; Percobaan #{{ $attempt->attempt_number ?? 1 }}
                         </span>
+                        @if($attempt->adjusted_at)
+                            <span class="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-200 border border-amber-400/30 text-[11px] font-semibold">
+                                Nilai Disesuaikan Guru
+                            </span>
+                        @endif
                     </div>
 
                     <h1 class="text-xl sm:text-2xl font-bold tracking-tight text-white">
@@ -134,6 +151,33 @@
                 </div>
             @endforeach
         </div>
+
+        @if($attempt->historyEntries())
+            <div class="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-clock-rotate-left text-[#008546]"></i>
+                    <span>Riwayat Nilai Sebelumnya</span>
+                </h2>
+                <div class="space-y-2">
+                    @foreach($attempt->historyEntries() as $entry)
+                        <div class="flex flex-wrap items-center justify-between gap-2 p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
+                            <div>
+                                <span class="font-bold text-slate-800">
+                                    {{ ($entry['type'] ?? '') === 'manual_adjustment' ? 'Nilai Sebelum Penyesuaian Guru' : 'Percobaan #'.($entry['attempt_number'] ?? 1) }}:
+                                    {{ $entry['score'] ?? '-' }}/100
+                                </span>
+                                @if(! empty($entry['note']))
+                                    <p class="text-[11px] text-slate-500 mt-0.5">{{ $entry['note'] }}</p>
+                                @endif
+                            </div>
+                            <span class="text-[11px] text-slate-400">
+                                {{ ! empty($entry['recorded_at']) ? \Carbon\Carbon::parse($entry['recorded_at'])->timezone(config('app.display_timezone'))->translatedFormat('d M Y, H:i') : '-' }} WIB
+                            </span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
 
         @if($attempt->module_id)
             <div class="pt-2">

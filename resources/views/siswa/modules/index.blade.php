@@ -153,11 +153,33 @@
                             <p class="text-xs text-slate-300">Total Materi</p>
                             <p class="text-xl sm:text-2xl font-extrabold text-white mt-0.5">{{ $modules->total() }} <span class="text-xs font-medium text-emerald-400">KB</span></p>
                         </div>
-                        <div class="p-3.5 px-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md text-center">
-                            <p class="text-xs text-slate-300">AI Terindeks</p>
-                            <p class="text-xl sm:text-2xl font-extrabold text-emerald-400 mt-0.5">100%</p>
-                        </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Alur Belajar Terstruktur (1-4 -> Chatbot Asisten) -->
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2.5">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-route text-[#008546]"></i>
+                        Alur Belajar Setiap Kegiatan Belajar (KB)
+                    </span>
+                    <a href="{{ route('siswa.dashboard') }}" class="text-xs font-semibold text-[#008546] hover:underline">
+                        Tanya AI Lintas Semua KB &rarr;
+                    </a>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-xs">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold">1. Pahami TP</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold">2. Pelajari Materi</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold">3. Simak Video</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 text-[#008546] border border-emerald-200 font-bold">4. Kerjakan Kuis</span>
+                    <i class="fa-solid fa-arrow-right text-[10px] text-slate-400"></i>
+                    <a href="{{ route('siswa.dashboard') }}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold transition-colors">
+                        <i class="fa-solid fa-robot text-emerald-400 text-[11px]"></i> Chatbot AI (Asisten Tambahan)
+                    </a>
                 </div>
             </div>
 
@@ -172,7 +194,7 @@
 
                     <!-- Mapel Filter -->
                     <div class="w-full sm:w-64">
-                        <select name="mapel" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/15 transition-all" onchange="this.form.submit()">
+                        <select name="mapel" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/15 transition-all" onchange="const topik = this.form.querySelector('[name=topik]'); if (topik) topik.value = 'Semua'; this.form.submit();">
                             <option value="Semua">Semua Mata Pelajaran (Elemen)</option>
                             @foreach($mapelList as $mapel)
                                 <option value="{{ $mapel }}" {{ request('mapel') == $mapel ? 'selected' : '' }}>{{ $mapel }}</option>
@@ -253,15 +275,26 @@
 
                         <!-- Media Badges Indicator -->
                         <div class="flex flex-wrap items-center gap-1.5 pt-1">
-                            @if($module->video_url)
+                            @if($module->video_url || ! empty($module->additionalVideos()))
                                 <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                                     <i class="fa-solid fa-play text-[9px] text-emerald-600"></i> Video
                                 </span>
                             @endif
                             @if($module->kuis_url || $module->quiz?->is_published)
-                                <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                                    <i class="fa-solid fa-list-check text-[9px] text-emerald-600"></i> Kuis
-                                </span>
+                                @php $myAttempt = $module->quizAttempts->first(); @endphp
+                                @if($myAttempt && $myAttempt->remedial_approved_at)
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200">
+                                        <i class="fa-solid fa-rotate-right text-[9px]"></i> Izin Remedial ({{ $myAttempt->score }})
+                                    </span>
+                                @elseif($myAttempt)
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold {{ $myAttempt->score >= 75 ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-amber-800 bg-amber-50 border-amber-200' }} px-2 py-0.5 rounded-md border">
+                                        <i class="fa-solid fa-check text-[9px]"></i> Nilai Kuis: {{ $myAttempt->score }}/100
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-medium text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                                        <i class="fa-solid fa-list-check text-[9px] text-emerald-600"></i> Kuis
+                                    </span>
+                                @endif
                             @endif
                             <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
                                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> AI Ready
