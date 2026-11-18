@@ -3,7 +3,6 @@
         
         <!-- Institutional Console Header -->
         <div class="relative bg-slate-900 text-white rounded-xl border border-slate-800 p-6 sm:p-7 shadow-2xs overflow-hidden">
-            <div class="absolute top-0 inset-x-0 h-1 bg-[#008546]"></div>
             
             <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                 <div>
@@ -161,7 +160,7 @@
                             <div class="bg-[#008546] h-1.5 transition-all duration-500" style="width: {{ $modulSiapPersen }}%"></div>
                         </div>
                         <span class="text-[11px] text-slate-500 block">
-                            {{ $totalModul }} materi terindeks & siap dirujuk AI
+                            {{ $modulCompleted }} dari {{ $totalModul }} materi terindeks & siap dirujuk AI
                         </span>
                     </div>
 
@@ -275,7 +274,7 @@
                 @endif
 
                 <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span class="text-slate-400 text-[11px]">Memuat 5 pertanyaan terbaru</span>
+                    <span class="text-slate-400 text-[11px]">Memuat {{ $recentChats->count() }} pertanyaan terbaru</span>
                     <a href="{{ route('guru.chat-activities.index') }}" class="font-semibold text-[#008546] hover:text-emerald-700 inline-flex items-center gap-1.5 transition-colors">
                         <span>Lihat Seluruh Aktivitas & Unduh Rekap Mingguan (.xlsx)</span>
                         <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -301,25 +300,42 @@
                             <div class="p-3.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2 hover:border-slate-300 transition-colors">
                                 <div class="flex items-start justify-between gap-2">
                                     <div>
-                                        <div class="flex items-center gap-2 mb-1">
+                                        <div class="flex flex-wrap items-center gap-1.5 mb-1">
                                             <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-slate-900 text-white">
                                                 {{ $modul->kb_nomor }}
                                             </span>
                                             <span class="text-[11px] font-medium text-slate-500">
                                                 {{ $modul->mapel }}
                                             </span>
+                                            @if($modul->topik)
+                                                <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white text-slate-600 border border-slate-200">
+                                                    {{ $modul->topik }}
+                                                </span>
+                                            @endif
                                         </div>
                                         <h4 class="text-xs font-bold text-slate-900 line-clamp-1">
                                             {{ $modul->judul }}
                                         </h4>
                                     </div>
-                                    @if($modul->status_indexing === 'completed')
+                                    @if($modul->isExpired())
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-700 border border-slate-300 shrink-0">
+                                            Diarsipkan
+                                        </span>
+                                    @elseif($modul->status_indexing === 'completed')
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-[#008546] border border-emerald-200 shrink-0">
                                             Siap
                                         </span>
+                                    @elseif($modul->status_indexing === 'processing')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0">
+                                            Diproses
+                                        </span>
+                                    @elseif($modul->status_indexing === 'failed')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 shrink-0">
+                                            Gagal
+                                        </span>
                                     @else
                                         <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 shrink-0">
-                                            Proses
+                                            Pending
                                         </span>
                                     @endif
                                 </div>

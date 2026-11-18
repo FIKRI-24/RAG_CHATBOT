@@ -6,6 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>Kuis Objektif | {{ config('app.name', 'E-Modul TKJ') }} - SMK N 1 Kinali</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Scripts & Styles (bundled via Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])

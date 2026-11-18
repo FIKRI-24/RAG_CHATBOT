@@ -1,0 +1,65 @@
+========================================================================
+   PANDUAN PEMASANGAN & PENGGUNAAN SISTEM RAG CHATBOT AI DI LAPTOP
+                     SMK NEGERI 1 KINALI
+========================================================================
+
+Aplikasi ini sudah dilengkapi dengan seluruh library (vendor & build),
+dokumen Kegiatan Belajar (KB 1 - KB 4), dan database siap pakai.
+
+------------------------------------------------------------------------
+LANGKAH 1: MENEMPATKAN FOLDER APLIKASI
+------------------------------------------------------------------------
+1. Buka folder hasil ekstrak ZIP ini.
+2. Salin (copy) seluruh folder 'RAG_CHATBOT' ke:
+   C:\xampp\htdocs\
+   (Sehingga lokasinya menjadi: C:\xampp\htdocs\RAG_CHATBOT)
+
+------------------------------------------------------------------------
+LANGKAH 2: IMPORT DATABASE DI XAMPP
+------------------------------------------------------------------------
+1. Buka 'XAMPP Control Panel', lalu klik 'Start' pada Apache dan MySQL.
+2. Buka browser (Chrome / Edge), ketik alamat:
+   http://localhost/phpmyadmin
+3. Di menu sebelah kiri, klik 'New' (Baru):
+   - Masukkan Nama Basis Data: rag_chatbot
+   - Klik tombol 'Create' (Buat).
+4. Klik database 'rag_chatbot' yang baru dibuat, lalu pilih tab 'Import' di bagian atas.
+5. Klik 'Choose File' / 'Pilih File', lalu pilih berkas:
+   C:\xampp\htdocs\RAG_CHATBOT\database_rag_chatbot.sql
+6. Gulir ke bagian paling bawah, lalu klik tombol 'Import' / 'Kirim'.
+7. Tunggu beberapa detik sampai muncul centang hijau (Import sukses).
+
+------------------------------------------------------------------------
+LANGKAH 3: KONFIGURASI API KEY GEMINI (UNTUK FITUR CHATBOT & INDEXING AI)
+------------------------------------------------------------------------
+1. Jika file '.env' belum ada di folder C:\xampp\htdocs\RAG_CHATBOT:
+   - Salin file '.env.example' menjadi '.env' (atau jalankan
+     JALANKAN_APLIKASI.bat sekali agar '.env' dibuat otomatis).
+2. Buka file '.env' menggunakan Notepad, lalu isi baris:
+   GEMINI_API_KEY=ISI_API_KEY_GEMINI_ANDA_DI_SINI
+3. Simpan file '.env'.
+
+------------------------------------------------------------------------
+LANGKAH 4: MENJALANKAN APLIKASI (SEKALI KLIK)
+------------------------------------------------------------------------
+1. Masuk ke folder: C:\xampp\htdocs\RAG_CHATBOT
+2. Klik ganda (dobel-klik) file:
+   JALANKAN_APLIKASI.bat
+3. Sistem akan otomatis:
+   - Memastikan file '.env', tautan 'public\storage', dan migrasi database
+   - Menjalankan Worker AI RAG di latar belakang
+   - Membuka browser ke http://127.0.0.1:8000
+   - Menjalankan server aplikasi
+4. Selamat, aplikasi sudah siap digunakan!
+
+------------------------------------------------------------------------
+INFORMASI AKUN DEMO / PENGUJIAN:
+------------------------------------------------------------------------
+- Akun Guru Pengampu:
+  Email    : guru@tkj.com
+  Password : password
+
+- Akun Siswa Uji Coba:
+  Email    : siswa@tkj.com
+  Password : password
+========================================================================

@@ -63,6 +63,7 @@ class DashboardController extends Controller
         return view('guru.dashboard', compact(
             'totalModul',
             'totalModulAktif',
+            'modulCompleted',
             'totalChunk',
             'totalSiswa',
             'totalChat',

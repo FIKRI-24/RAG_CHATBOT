@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{{ $module->kb_nomor }} - {{ $module->judul }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Scripts & Styles via Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -145,6 +146,11 @@
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/10 text-slate-200 border border-white/15 backdrop-blur-md">
                             {{ $module->mapel }}
                         </span>
+                        @if($module->topik)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/15 text-emerald-200 border border-emerald-400/25 backdrop-blur-md">
+                                {{ $module->topik }}
+                            </span>
+                        @endif
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-white/5 text-slate-300 border border-white/10 backdrop-blur-md">
                             <i class="fa-solid fa-school text-emerald-400 text-[10px]"></i>
                             SMK Negeri 1 Kinali

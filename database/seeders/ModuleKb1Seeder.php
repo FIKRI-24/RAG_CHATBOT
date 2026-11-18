@@ -28,12 +28,13 @@ class ModuleKb1Seeder extends Seeder
             [
                 'guru_id' => $guru->id,
                 'kb_nomor' => 'KB 1',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
             ],
             [
                 'guru_id' => $guru->id,
                 'judul' => 'Pengertian, Prinsip Kerja, serta Kelebihan dan Kelemahan Jaringan Nirkabel',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
+                'topik' => 'Instalasi Jaringan Nirkabel',
                 'kb_nomor' => 'KB 1',
                 'tp' => $tpContent,
                 'file_path' => 'modules/kb1_jaringan_nirkabel.pdf',

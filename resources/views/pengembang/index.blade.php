@@ -35,7 +35,6 @@
         <!-- Academic Monograph Header -->
         <div class="relative bg-stone-900 text-white rounded-2xl border border-stone-800 p-7 sm:p-9 shadow-sm overflow-hidden">
             <!-- Subtle Architectural Accent Line -->
-            <div class="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-600 via-[#008546] to-stone-700"></div>
 
             <div class="relative z-10 max-w-3xl space-y-3">
                 <div class="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-stone-800 text-stone-300 border border-stone-700/80 text-xs font-medium tracking-wide">

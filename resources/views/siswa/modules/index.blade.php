@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Katalog E-Modul - SMK N 1 Kinali</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Scripts & Styles via Vite -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -170,14 +171,26 @@
                     </div>
 
                     <!-- Mapel Filter -->
-                    <div class="w-full sm:w-56">
+                    <div class="w-full sm:w-64">
                         <select name="mapel" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/15 transition-all" onchange="this.form.submit()">
-                            <option value="Semua">Semua Mata Pelajaran</option>
+                            <option value="Semua">Semua Mata Pelajaran (Elemen)</option>
                             @foreach($mapelList as $mapel)
                                 <option value="{{ $mapel }}" {{ request('mapel') == $mapel ? 'selected' : '' }}>{{ $mapel }}</option>
                             @endforeach
                         </select>
                     </div>
+
+                    @if($topikList->isNotEmpty())
+                    <!-- Topik Filter -->
+                    <div class="w-full sm:w-52">
+                        <select name="topik" class="w-full bg-slate-50 border border-slate-200 text-slate-800 text-xs rounded-xl py-2.5 px-3 outline-none focus:bg-white focus:border-[#008546] focus:ring-2 focus:ring-emerald-500/15 transition-all" onchange="this.form.submit()">
+                            <option value="Semua">Semua Topik Materi</option>
+                            @foreach($topikList as $topik)
+                                <option value="{{ $topik }}" {{ request('topik') == $topik ? 'selected' : '' }}>{{ $topik }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
 
                     <!-- KB Filter -->
                     <div class="w-full sm:w-48">
@@ -193,7 +206,7 @@
                         Terapkan
                     </button>
 
-                    @if(request('search') || (request('mapel') && request('mapel') !== 'Semua') || (request('kb_nomor') && request('kb_nomor') !== 'Semua'))
+                    @if(request('search') || (request('mapel') && request('mapel') !== 'Semua') || (request('topik') && request('topik') !== 'Semua') || (request('kb_nomor') && request('kb_nomor') !== 'Semua'))
                         <a href="{{ route('siswa.modules.index') }}" class="text-xs font-semibold text-rose-600 hover:underline px-2">Reset Filter</a>
                     @endif
                 </form>
@@ -222,6 +235,11 @@
                         <h3 class="font-bold text-slate-900 text-sm sm:text-base group-hover:text-[#008546] transition-colors line-clamp-2 leading-snug">
                             {{ $module->judul }}
                         </h3>
+                        @if($module->topik)
+                            <p class="text-xs font-semibold text-[#008546]">
+                                <i class="fa-solid fa-folder-tree text-[10px] mr-1"></i>{{ $module->topik }}
+                            </p>
+                        @endif
 
                         <!-- TP (Tujuan Pembelajaran) Excerpt (Clean neutral card, no green line) -->
                         <div class="bg-slate-50/90 p-3 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-1">

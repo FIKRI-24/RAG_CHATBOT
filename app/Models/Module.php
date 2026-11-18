@@ -16,6 +16,7 @@ class Module extends Model
         'guru_id',
         'judul',
         'mapel',
+        'topik',
         'kb_nomor',
         'tp',
         'file_path',
@@ -46,10 +47,45 @@ class Module extends Model
             && $this->berlaku_sampai->toDateString() < today(config('app.display_timezone'))->toDateString();
     }
 
+    public static function curriculumElements(): array
+    {
+        return config('curriculum.elements', []);
+    }
+
+    public static function defaultTopics(): array
+    {
+        return config('curriculum.default_topics', []);
+    }
+
+    public static function defaultKbOptions(): array
+    {
+        return config('curriculum.kb_options', ['KB 1', 'KB 2', 'KB 3']);
+    }
+
+    public static function mergeWithCurriculumElements(iterable $existing): \Illuminate\Support\Collection
+    {
+        return collect(self::curriculumElements())
+            ->merge(collect($existing)->filter(fn ($v) => is_string($v) && trim($v) !== ''))
+            ->unique()
+            ->values();
+    }
+
+    public static function mergeWithDefaultKbOptions(iterable $existing): \Illuminate\Support\Collection
+    {
+        return collect(self::defaultKbOptions())
+            ->merge(collect($existing)->filter(fn ($v) => is_string($v) && trim($v) !== ''))
+            ->unique()
+            ->sort(fn ($a, $b) => strnatcasecmp((string) $a, (string) $b))
+            ->values();
+    }
+
     public function additionalVideos(): array
     {
         $videos = $this->additional_videos;
-        if ($videos === null && $this->mapel === 'Teknik Komputer dan Jaringan') {
+        if ($videos === null && in_array($this->mapel, [
+            'Teknik Komputer dan Jaringan',
+            'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
+        ], true)) {
             // Config keys contain dots in file names, so access the literal array key.
             $videos = config('module-media', [])[$this->file_path] ?? [];
         }
@@ -105,15 +141,16 @@ class Module extends Model
                 ."4) Membedakan tindakan aturan penyaringan firewall (Action Accept, Drop, Reject)\n"
                 ."5) Mengonfigurasi aturan filtering firewall untuk mengamankan router gateway.";
 
-            $module = self::firstOrCreate(
-                [
-                    'kb_nomor' => 'KB 4',
-                    'mapel' => 'Teknik Komputer dan Jaringan',
-                ],
-                [
+            $module = self::where('kb_nomor', 'KB 4')
+                ->whereIn('mapel', ['Elemen 3: Keamanan Jaringan', 'Teknik Komputer dan Jaringan'])
+                ->first();
+
+            if (! $module) {
+                $module = self::create([
                     'guru_id' => $guruId,
                     'judul' => 'Keamanan Jaringan dan Konfigurasi Firewall Filtering pada Router Gateway',
-                    'mapel' => 'Teknik Komputer dan Jaringan',
+                    'mapel' => 'Elemen 3: Keamanan Jaringan',
+                    'topik' => 'Keamanan Jaringan dan Firewall',
                     'kb_nomor' => 'KB 4',
                     'tp' => $tpContent,
                     'file_path' => 'modules/kb4_keamanan_jaringan.docx',
@@ -122,8 +159,8 @@ class Module extends Model
                     'status_indexing' => 'completed',
                     'indexing_version' => (string) \Illuminate\Support\Str::uuid(),
                     'indexing_error' => null,
-                ]
-            );
+                ]);
+            }
 
             if (! $module->quiz()->exists()) {
                 $questions = [

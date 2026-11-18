@@ -1,335 +1,432 @@
 <x-premium-layout>
-    <div class="space-y-8 max-w-6xl mx-auto pb-12">
-        
-        <!-- Monograph Header Panduan Guru -->
-        <div class="relative bg-slate-900 text-white p-6 sm:p-8 rounded-xl border border-slate-800 overflow-hidden">
-            <div class="absolute top-0 inset-x-0 h-1 bg-[#008546]"></div>
-            
-            <div class="relative z-10 max-w-3xl">
-                <div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono mb-3">
-                    <i class="fa-solid fa-book-open text-emerald-400 text-[10px]"></i>
-                    <span>DOKUMENTASI OPERASIONAL GURU • SMK NEGERI 1 KINALI</span>
+    <div
+        class="max-w-6xl mx-auto pb-14"
+        x-data="{
+            step: 1,
+            copiedTp: false,
+            openFaq: 1,
+            sampleTp: 'Setelah mempelajari modul ini, peserta didik mampu:\n1) Menjelaskan prinsip kerja jaringan nirkabel (IEEE 802.11).\n2) Mengonfigurasi Access Point dan keamanan WPA2 pada topologi TKJ.\n3) Menganalisis gangguan sinyal serta melakukan perbaikan koneksi.'
+        }"
+    >
+        <!-- Editorial Header -->
+        <header class="bg-white rounded-2xl border border-slate-200/90 p-6 sm:p-8 mb-8">
+            <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                <div class="max-w-2xl space-y-2.5">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-[#008546]">
+                        <span class="w-5 h-0.5 bg-[#008546] rounded-full"></span>
+                        <span>Panduan Pengajar • SMK Negeri 1 Kinali</span>
+                    </div>
+                    <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 leading-snug">
+                        Petunjuk Penggunaan Sistem E-Modul & AI RAG
+                    </h1>
+                    <p class="text-sm text-slate-600 leading-relaxed">
+                        Panduan ringkas menyusun modul berbasis 5 Elemen TKJ, menuliskan Tujuan Pembelajaran (TP), melengkapi media ajar, hingga memastikan materi siap dijawab asisten AI.
+                    </p>
                 </div>
-                <h1 class="text-xl sm:text-2xl font-bold tracking-tight leading-tight text-white">
-                    Petunjuk Penggunaan Sistem E-Modul & AI RAG
-                </h1>
-                <p class="text-slate-300 text-xs sm:text-sm mt-2 leading-relaxed">
-                    Panduan teknis bagi Guru pengampu dalam mengelola Kegiatan Belajar (KB), merumuskan Tujuan Pembelajaran (TP), mengunggah dokumen materi ajar, memantau status indeks vektor AI, dan mengatur akses akun siswa TKJ.
-                </p>
 
-                <!-- Quick Action Buttons -->
-                <div class="flex flex-wrap items-center gap-2.5 mt-5">
-                    <a href="{{ route('guru.modules.create') }}" class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition-colors">
-                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                <div class="flex flex-wrap items-center gap-2.5 shrink-0">
+                    <a href="{{ route('guru.modules.create') }}" class="inline-flex items-center gap-2 bg-[#008546] hover:bg-[#00703c] text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-xs">
+                        <i class="fa-solid fa-plus"></i>
                         <span>Upload Modul Baru</span>
                     </a>
-                    <a href="{{ route('guru.modules.index') }}" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2.5 rounded-lg transition-colors border border-slate-700">
-                        <i class="fa-solid fa-book-bookmark"></i>
+                    <a href="{{ route('guru.modules.index') }}" class="inline-flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 transition-colors">
                         <span>Katalog Modul Guru</span>
                     </a>
-                    <a href="{{ route('guru.siswa.index') }}" class="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3.5 py-2.5 rounded-lg transition-colors border border-slate-700">
-                        <i class="fa-solid fa-users-gear"></i>
+                    <a href="{{ route('guru.siswa.index') }}" class="inline-flex items-center gap-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-semibold px-3.5 py-2.5 rounded-xl border border-slate-200 transition-colors">
                         <span>Kelola Akun Siswa</span>
                     </a>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <!-- 4 Langkah Alur Kerja Guru (Unified Engineering Pipeline) -->
-        <div class="space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-slate-200 pb-3">
-                <h3 class="text-base font-bold text-slate-900">
-                    Alur Kerja Guru (4 Tahapan Utama)
-                </h3>
-                <span class="text-xs font-mono text-slate-500">TAHAP 01 — 04</span>
-            </div>
+        <!-- Two-Column Documentation Layout -->
+        <div class="flex flex-col lg:flex-row gap-8 items-start">
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <!-- Tahap 1 -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200/90 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">
-                                01
-                            </span>
-                            <span class="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500">
-                                Unggahan
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-900">
-                            Unggah Materi
-                        </h4>
-                        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Pilih Mata Pelajaran, tentukan <strong>nama atau nomor Kegiatan Belajar (KB)</strong>, dan unggah dokumen PDF atau DOCX resmi (maks. 10MB).
-                        </p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5">
-                        <i class="fa-solid fa-check text-[#008546]"></i> Tersimpan di storage privat
-                    </div>
-                </div>
+            <!-- Left Sticky Navigation -->
+            <aside class="w-full lg:w-56 shrink-0 lg:sticky lg:top-2 space-y-6">
+                <nav aria-label="Daftar isi panduan" class="space-y-1">
+                    <p class="px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">Daftar Isi</p>
+                    <a href="#alur-kerja" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-700 hover:bg-white hover:text-[#008546] transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[#008546]"></span>
+                        <span>Alur Kerja Guru</span>
+                    </a>
+                    <a href="#standar-dokumen" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white hover:text-[#008546] transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        <span>Standar Dokumen AI</span>
+                    </a>
+                    <a href="#status-ai" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white hover:text-[#008546] transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        <span>Status Indeks AI</span>
+                    </a>
+                    <a href="#tanya-jawab" class="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-white hover:text-[#008546] transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        <span>Tanya Jawab & Siswa</span>
+                    </a>
+                </nav>
 
-                <!-- Tahap 2 -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200/90 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">
-                                02
-                            </span>
-                            <span class="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500">
-                                Kurikulum
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-900">
-                            Rumuskan TP
-                        </h4>
-                        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Tuliskan <strong>Tujuan Pembelajaran (TP)</strong> spesifik sesuai Kurikulum Merdeka agar siswa memahami target kompetensi yang harus dicapai.
-                        </p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5">
-                        <i class="fa-solid fa-check text-[#008546]"></i> Acuan kompetensi mandiri
-                    </div>
-                </div>
-
-                <!-- Tahap 3 -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200/90 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2 py-0.5 rounded bg-slate-900 text-white font-mono font-bold text-xs">
-                                03
-                            </span>
-                            <span class="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-500">
-                                Multimedia
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-900">
-                            Video & Kuis
-                        </h4>
-                        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Sematkan tautan <strong>Video Pembelajaran</strong> (YouTube/Google Drive) serta susun <strong>Kuis Objektif</strong> untuk menguji pemahaman siswa.
-                        </p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5">
-                        <i class="fa-solid fa-check text-[#008546]"></i> Evaluasi terintegrasi rekap
-                    </div>
-                </div>
-
-                <!-- Tahap 4 -->
-                <div class="bg-white p-5 rounded-xl border border-slate-200/90 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="px-2 py-0.5 rounded bg-[#008546] text-white font-mono font-bold text-xs">
-                                04
-                            </span>
-                            <span class="text-[10px] font-mono font-semibold uppercase tracking-wider text-[#008546]">
-                                Vektor RAG
-                            </span>
-                        </div>
-                        <h4 class="font-bold text-sm text-slate-900">
-                            AI RAG Indexing
-                        </h4>
-                        <p class="text-xs text-slate-600 mt-1.5 leading-relaxed">
-                            Worker mengekstrak teks dokumen, memecah paragraf (chunking), dan membentuk embedding vektor agar asisten AI siap menjawab berdasarkan modul.
-                        </p>
-                    </div>
-                    <div class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-500 flex items-center gap-1.5">
-                        <i class="fa-solid fa-check text-[#008546]"></i> Grounded pada dokumen guru
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Panduan Rinci Komponen Kegiatan Belajar -->
-        <div class="bg-white p-6 sm:p-7 rounded-xl border border-slate-200/90 space-y-6">
-            <div class="border-b border-slate-100 pb-4">
-                <h3 class="text-base font-bold text-slate-900">
-                    Panduan Pengisian Komponen Modul Pembelajaran
-                </h3>
-                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Spesifikasi komponen pedagogis dan teknis pada setiap modul yang diunggah ke sistem SMK Negeri 1 Kinali:
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- Komponen 1: Pemilihan KB & Mapel -->
-                <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-[#008546]">[A]</span>
-                        <h4 class="text-sm font-bold text-slate-900">Mata Pelajaran & Nomor KB</h4>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Pilih mata pelajaran TKJ yang diampu (misal: <em>Administrasi Infrastruktur Jaringan, Administrasi Sistem Jaringan, Teknologi Jaringan Berbasis Luas, atau Dasar Program Keahlian TJKT</em>).
+                <div class="hidden lg:block p-4 rounded-xl bg-emerald-50/70 border border-emerald-200/70 space-y-2">
+                    <p class="text-xs font-bold text-slate-900">Butuh cek modul gagal?</p>
+                    <p class="text-[11px] text-slate-600 leading-relaxed">
+                        Buka tabel modul lalu klik detail modul untuk menjalankan ulang ekstraksi AI.
                     </p>
-                    <div class="text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600">
-                        <strong>Penamaan KB:</strong> Gunakan kode terstruktur seperti <span class="font-mono font-semibold text-slate-900">KB 1</span>, <span class="font-mono font-semibold text-slate-900">KB 2</span>, atau <span class="font-mono font-semibold text-slate-900">KB 4</span>.
-                    </div>
-                </div>
-
-                <!-- Komponen 2: Tujuan Pembelajaran (TP) -->
-                <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-[#008546]">[B]</span>
-                        <h4 class="text-sm font-bold text-slate-900">Tujuan Pembelajaran (TP)</h4>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Rumuskan TP dengan Kata Kerja Operasional (KKO) yang terukur sesuai capaian Kurikulum Merdeka.
-                    </p>
-                    <div class="text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600">
-                        <strong>Contoh:</strong> <em>"Peserta didik mampu mengkonfigurasi routing dinamis OSPF multi-area pada RouterOS MikroTik dan memverifikasi tabel routing secara tepat."</em>
-                    </div>
-                </div>
-
-                <!-- Komponen 3: Berkas Dokumen (PDF/DOCX) -->
-                <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-[#008546]">[C]</span>
-                        <h4 class="text-sm font-bold text-slate-900">Dokumen Modul Ajar (PDF / DOCX)</h4>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Unggah berkas dokumen asli (maksimal 10 MB). Berkas ini diunduh oleh siswa dan diekstrak menjadi basis pengetahuan asisten AI.
-                    </p>
-                    <div class="text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600">
-                        <strong>Catatan Teknis:</strong> Gunakan dokumen <em>teks digital asli</em> (bukan hasil foto kamera/scan gambar kosong) agar ekstraksi teks berjalan akurat.
-                    </div>
-                </div>
-
-                <!-- Komponen 4: Link Video & Link Kuis -->
-                <div class="p-4 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-mono font-bold text-[#008546]">[D]</span>
-                        <h4 class="text-sm font-bold text-slate-900">Tautan Video & Kuis Evaluasi</h4>
-                    </div>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Mendukung demonstrasi visual praktikum jaringan serta evaluasi pemahaman siswa.
-                    </p>
-                    <div class="text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600 space-y-1">
-                        <div><strong>Link Video:</strong> URL YouTube atau Google Drive demonstrasi praktikum / Packet Tracer.</div>
-                        <div><strong>Kuis Evaluasi:</strong> Soal pilihan ganda internal (1x kesempatan) atau tautan evaluasi eksternal.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Memahami Status Indexing AI & Penanganan Masalah -->
-        <div class="bg-white p-6 sm:p-7 rounded-xl border border-slate-200/90 space-y-6">
-            <div class="border-b border-slate-100 pb-4">
-                <h3 class="text-base font-bold text-slate-900">
-                    Memahami Status Indeks AI & Tombol "Index Ulang"
-                </h3>
-                <p class="text-xs text-slate-500 mt-1 leading-relaxed">
-                    Arti indikator status pemrosesan dokumen pada tabel manajemen modul:
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <!-- Status Completed -->
-                <div class="p-4 rounded-lg border border-slate-200 bg-slate-50/60 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-[#008546] border border-emerald-200">
-                            Selesai (Completed)
-                        </span>
-                        <span class="text-[11px] font-mono font-semibold text-[#008546]">READY</span>
-                    </div>
-                    <h5 class="text-xs font-bold text-slate-900">Modul Siap Digunakan</h5>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Dokumen telah selesai di-chunking dan di-embed ke vektor AI. Chatbot siswa sudah dapat menjawab pertanyaan dari modul ini.
-                    </p>
-                </div>
-
-                <!-- Status Processing / Pending -->
-                <div class="p-4 rounded-lg border border-slate-200 bg-slate-50/60 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200">
-                            Diproses (Processing)
-                        </span>
-                        <span class="text-[11px] font-mono font-semibold text-amber-700">QUEUE</span>
-                    </div>
-                    <h5 class="text-xs font-bold text-slate-900">Sedang Dianalisa</h5>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Sistem sedang mengekstrak teks dan membentuk representasi vektor. Proses ini umumnya memerlukan waktu 10 hingga 60 detik.
-                    </p>
-                </div>
-
-                <!-- Status Failed -->
-                <div class="p-4 rounded-lg border border-slate-200 bg-slate-50/60 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
-                            Gagal (Failed)
-                        </span>
-                        <span class="text-[11px] font-mono font-semibold text-rose-700">ERROR</span>
-                    </div>
-                    <h5 class="text-xs font-bold text-slate-900">Gagal Ekstraksi</h5>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Terjadi kendala pembacaan berkas (misal PDF berisi hasil pindaian gambar tanpa lapisan teks atau gangguan jaringan API).
-                    </p>
-                </div>
-            </div>
-
-            <!-- Panduan Fitur Index Ulang -->
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h4 class="text-xs font-bold text-slate-900">Kapan Menggunakan Tombol "Coba Index Ulang"?</h4>
-                    <p class="text-xs text-slate-600 mt-1 leading-relaxed">
-                        Jika sebuah modul berstatus <strong>Gagal</strong> atau tertahan di antrean, buka halaman detail modul lalu klik <strong>"Coba Index Ulang"</strong> untuk memproses ulang tanpa harus menghapus modul.
-                    </p>
-                </div>
-                <a href="{{ route('guru.modules.index') }}" class="shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition-colors">
-                    <span>Buka Tabel Modul</span>
-                </a>
-            </div>
-        </div>
-
-        <!-- Panduan Manajemen Data Akun Siswa & Tips -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            
-            <!-- Best Practices Modul Ajar -->
-            <div class="bg-white p-6 rounded-xl border border-slate-200/90 space-y-4">
-                <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-                    Pedoman Penyusunan Dokumen Materi RAG
-                </h3>
-                <ul class="space-y-2.5 text-xs text-slate-600">
-                    <li class="flex items-start gap-2.5">
-                        <span class="font-mono font-bold text-[#008546] shrink-0">01.</span>
-                        <span><strong>Penomoran Sub-Bab Konsisten:</strong> Gunakan struktur heading yang jelas (contoh: <em>1.1 Pengertian Subnetting, 1.2 Tabel Prefix CIDR</em>).</span>
-                    </li>
-                    <li class="flex items-start gap-2.5">
-                        <span class="font-mono font-bold text-[#008546] shrink-0">02.</span>
-                        <span><strong>Definisi Istilah Teknis:</strong> Jabarkan singkatan teknis seperti VLAN, DHCP, DNS, NAT, dan Firewall pada awal pembahasan.</span>
-                    </li>
-                    <li class="flex items-start gap-2.5">
-                        <span class="font-mono font-bold text-[#008546] shrink-0">03.</span>
-                        <span><strong>Prosedur Praktikum Berurutan:</strong> Susun langkah konfigurasi MikroTik/Cisco secara berurutan agar AI dapat memandu siswa langkah demi langkah.</span>
-                    </li>
-                    <li class="flex items-start gap-2.5">
-                        <span class="font-mono font-bold text-rose-600 shrink-0">04.</span>
-                        <span><strong>Hindari Dokumen Gambar Murni:</strong> Berkas PDF yang seluruhnya berisi foto tanpa teks digital tidak dapat diekstrak ke dalam indeks vektor.</span>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Manajemen Akun Siswa -->
-            <div class="bg-white p-6 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-4">
-                <div class="space-y-3">
-                    <h3 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-                        Manajemen Akun & Kredensial Siswa
-                    </h3>
-                    <p class="text-xs text-slate-600 leading-relaxed">
-                        Melalui menu <strong>Data & Login Siswa</strong>, Guru memiliki kendali penuh atas akses kelas:
-                    </p>
-                    <ul class="space-y-2 text-xs text-slate-600">
-                        <li>• <strong>Tambah Siswa Baru:</strong> Daftarkan nama, NIS, kelas, dan email login siswa.</li>
-                        <li>• <strong>Reset Password:</strong> Perbarui kata sandi siswa secara langsung saat praktikum di laboratorium.</li>
-                        <li>• <strong>Nonaktifkan Akun:</strong> Cabut akses login siswa tanpa menghapus riwayat nilai dan percakapan.</li>
-                    </ul>
-                </div>
-                <div class="pt-2 border-t border-slate-100">
-                    <a href="{{ route('guru.siswa.index') }}" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#008546] hover:bg-[#00703c] text-white text-xs font-semibold transition-colors">
-                        <span>Buka Menu Data Siswa →</span>
+                    <a href="{{ route('guru.modules.index') }}" class="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#008546] hover:underline pt-1">
+                        <span>Buka Daftar Modul</span>
+                        <span aria-hidden="true">→</span>
                     </a>
                 </div>
+            </aside>
+
+            <!-- Right Flowing Editorial Content -->
+            <div class="flex-1 min-w-0 space-y-10">
+
+                <!-- 1. Interactive 4-Step Pipeline -->
+                <section id="alur-kerja" class="scroll-mt-6 space-y-5">
+                    <div class="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 border-b border-slate-200 pb-3">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Alur Kerja Guru (4 Tahapan Utama)</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Klik salah satu tahapan di bawah untuk melihat rincian pengisian dan contohnya.</p>
+                        </div>
+                        <span class="text-xs font-medium text-slate-500">Langkah <strong class="text-slate-900" x-text="'0' + step">01</strong> dari 04</span>
+                    </div>
+
+                    <!-- Connected Pipeline Selector -->
+                    <div class="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                        <!-- Step 1 -->
+                        <button
+                            type="button"
+                            @click="step = 1"
+                            :aria-pressed="step === 1"
+                            :class="step === 1 ? 'bg-white border-[#008546] ring-2 ring-emerald-500/15 shadow-xs' : 'bg-white/70 border-slate-200 hover:bg-white hover:border-slate-300'"
+                            class="text-left p-4 rounded-xl border transition-all flex sm:flex-col items-center sm:items-start gap-3.5 sm:gap-3"
+                        >
+                            <div class="flex items-center justify-between w-auto sm:w-full">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0" aria-hidden="true">
+                                    <!-- Custom Icon: Module Packet Uplink -->
+                                    <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M9 9.5C9 7.84315 10.3431 6.5 12 6.5H20.5L26.5 12.5V26.5C26.5 28.1569 25.1569 29.5 23.5 29.5H12C10.3431 29.5 9 28.1569 9 26.5V9.5Z" fill="#ECFDF5" stroke="#0F172A" stroke-width="1.65" stroke-linejoin="round"/>
+                                        <path d="M20.5 6.5V11C20.5 11.8284 21.1716 12.5 22 12.5H26.5" fill="#A7F3D0"/>
+                                        <path d="M20.5 6.5V11C20.5 11.8284 21.1716 12.5 22 12.5H26.5" stroke="#0F172A" stroke-width="1.65" stroke-linejoin="round"/>
+                                        <path d="M17.75 23.5V14.5M17.75 14.5L14 18.25M17.75 14.5L21.5 18.25" stroke="#008546" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M13 25.75H22.5" stroke="#008546" stroke-width="1.65" stroke-linecap="round" stroke-dasharray="2.5 2.5"/>
+                                    </svg>
+                                </div>
+                                <span class="hidden sm:inline-block text-[11px] font-semibold" :class="step === 1 ? 'text-[#008546]' : 'text-slate-400'">01</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">Unggah Materi</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Elemen, Topik, KB & PDF/DOCX</div>
+                            </div>
+                        </button>
+
+                        <!-- Step 2 -->
+                        <button
+                            type="button"
+                            @click="step = 2"
+                            :aria-pressed="step === 2"
+                            :class="step === 2 ? 'bg-white border-[#008546] ring-2 ring-emerald-500/15 shadow-xs' : 'bg-white/70 border-slate-200 hover:bg-white hover:border-slate-300'"
+                            class="text-left p-4 rounded-xl border transition-all flex sm:flex-col items-center sm:items-start gap-3.5 sm:gap-3"
+                        >
+                            <div class="flex items-center justify-between w-auto sm:w-full">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0" aria-hidden="true">
+                                    <!-- Custom Icon: Curriculum Blueprint & Milestone -->
+                                    <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="7" y="7" width="18" height="22" rx="3" fill="#ECFDF5" stroke="#0F172A" stroke-width="1.65"/>
+                                        <path d="M11 13H19M11 17.5H17M11 22H15" stroke="#0F172A" stroke-width="1.65" stroke-linecap="round"/>
+                                        <circle cx="24.5" cy="22.5" r="5.5" fill="#A7F3D0" stroke="#008546" stroke-width="1.65"/>
+                                        <path d="M22.2 22.6L23.8 24.2L27 21" stroke="#008546" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M11 9.5L13.5 7H18.5L21 9.5" stroke="#008546" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                                <span class="hidden sm:inline-block text-[11px] font-semibold" :class="step === 2 ? 'text-[#008546]' : 'text-slate-400'">02</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">Rumuskan TP</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Target kompetensi siswa</div>
+                            </div>
+                        </button>
+
+                        <!-- Step 3 -->
+                        <button
+                            type="button"
+                            @click="step = 3"
+                            :aria-pressed="step === 3"
+                            :class="step === 3 ? 'bg-white border-[#008546] ring-2 ring-emerald-500/15 shadow-xs' : 'bg-white/70 border-slate-200 hover:bg-white hover:border-slate-300'"
+                            class="text-left p-4 rounded-xl border transition-all flex sm:flex-col items-center sm:items-start gap-3.5 sm:gap-3"
+                        >
+                            <div class="flex items-center justify-between w-auto sm:w-full">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200/80 flex items-center justify-center shrink-0" aria-hidden="true">
+                                    <!-- Custom Icon: Dual Video Frame & Quiz Matrix -->
+                                    <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <rect x="6" y="7.5" width="18.5" height="14" rx="3" fill="#ECFDF5" stroke="#0F172A" stroke-width="1.65"/>
+                                        <path d="M13.25 11.75L18.5 14.5L13.25 17.25V11.75Z" fill="#008546" stroke="#008546" stroke-width="1.4" stroke-linejoin="round"/>
+                                        <rect x="16" y="17.5" width="14" height="11.5" rx="2.5" fill="#FFFFFF" stroke="#0F172A" stroke-width="1.65"/>
+                                        <rect x="18.75" y="20.25" width="3.5" height="3.5" rx="0.8" fill="#A7F3D0" stroke="#008546" stroke-width="1.2"/>
+                                        <path d="M24 21.5H27.25M18.75 26H27.25" stroke="#0F172A" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
+                                <span class="hidden sm:inline-block text-[11px] font-semibold" :class="step === 3 ? 'text-[#008546]' : 'text-slate-400'">03</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">Video & Kuis</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Praktikum visual & evaluasi</div>
+                            </div>
+                        </button>
+
+                        <!-- Step 4 -->
+                        <button
+                            type="button"
+                            @click="step = 4"
+                            :aria-pressed="step === 4"
+                            :class="step === 4 ? 'bg-white border-[#008546] ring-2 ring-emerald-500/15 shadow-xs' : 'bg-white/70 border-slate-200 hover:bg-white hover:border-slate-300'"
+                            class="text-left p-4 rounded-xl border transition-all flex sm:flex-col items-center sm:items-start gap-3.5 sm:gap-3"
+                        >
+                            <div class="flex items-center justify-between w-auto sm:w-full">
+                                <div class="w-10 h-10 rounded-xl bg-[#008546] border border-emerald-700 flex items-center justify-center shrink-0" aria-hidden="true">
+                                    <!-- Custom Icon: Semantic Vector Network & RAG Core -->
+                                    <svg viewBox="0 0 36 36" class="w-6 h-6" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M18 8.5L26 13.25V22.75L18 27.5L10 22.75V13.25L18 8.5Z" stroke="#A7F3D0" stroke-width="1.5" stroke-linejoin="round"/>
+                                        <path d="M18 8.5V14.5M26 13.25L21 16.25M26 22.75L21 19.75M18 27.5V21.5M10 22.75L15 19.75M10 13.25L15 16.25" stroke="#6EE7B7" stroke-width="1.4" stroke-linecap="round"/>
+                                        <path d="M18 14L21.5 18L18 22L14.5 18L18 14Z" fill="#FFFFFF"/>
+                                        <circle cx="18" cy="8.5" r="2" fill="#FFFFFF"/>
+                                        <circle cx="26" cy="13.25" r="2" fill="#FFFFFF"/>
+                                        <circle cx="26" cy="22.75" r="2" fill="#FFFFFF"/>
+                                        <circle cx="18" cy="27.5" r="2" fill="#FFFFFF"/>
+                                        <circle cx="10" cy="22.75" r="2" fill="#FFFFFF"/>
+                                        <circle cx="10" cy="13.25" r="2" fill="#FFFFFF"/>
+                                    </svg>
+                                </div>
+                                <span class="hidden sm:inline-block text-[11px] font-semibold" :class="step === 4 ? 'text-[#008546]' : 'text-slate-400'">04</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-900">AI RAG Indexing</div>
+                                <div class="text-[11px] text-slate-500 mt-0.5">Ekstraksi & indeks vektor</div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <!-- Focused Detail Panel (Switches cleanly per selected step) -->
+                    <div class="bg-white rounded-2xl border border-slate-200/90 p-5 sm:p-6">
+                        <!-- Panel 1 -->
+                        <div x-show="step === 1" class="space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="text-base font-bold text-slate-900">1. Unggah Materi & Identitas Kurikulum</h3>
+                                <a href="{{ route('guru.modules.create') }}" class="text-xs font-semibold text-[#008546] hover:underline">Buka Form Upload →</a>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Unggah berkas materi resmi dalam format <strong>PDF</strong> atau <strong>DOCX</strong> (maksimal 10 MB). Berkas tersimpan aman di storage privat, dapat diunduh siswa, dan menjadi sumber utama jawaban asisten AI.
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-slate-100 text-xs">
+                                <div>
+                                    <p class="font-bold text-slate-800">5 Elemen TKJ</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed">Pilih Elemen 1 s.d. Elemen 5 Kurikulum Merdeka agar katalog tertata rapi.</p>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800">Topik Materi (Opsional)</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed">Contoh: <em>Instalasi Jaringan Nirkabel</em> untuk mengelompokkan beberapa KB.</p>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800">Kode Kegiatan Belajar</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed">Gunakan format konsisten seperti <strong>KB 1</strong>, <strong>KB 2</strong>, atau <strong>KB 3</strong>.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 2 -->
+                        <div x-show="step === 2" x-cloak class="space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="text-base font-bold text-slate-900">2. Rumuskan Tujuan Pembelajaran (TP)</h3>
+                                <button
+                                    type="button"
+                                    @click="navigator.clipboard?.writeText(sampleTp); copiedTp = true; setTimeout(() => copiedTp = false, 2000)"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors"
+                                    :class="copiedTp ? 'bg-emerald-50 border-emerald-300 text-[#008546]' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'"
+                                >
+                                    <i class="fa-regular" :class="copiedTp ? 'fa-circle-check' : 'fa-copy'"></i>
+                                    <span x-text="copiedTp ? 'Template TP Tersalin' : 'Salin Contoh TP'">Salin Contoh TP</span>
+                                </button>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Tuliskan <strong>Tujuan Pembelajaran (TP)</strong> dengan kata kerja operasional yang terukur sesuai Kurikulum Merdeka. TP ditampilkan di kartu katalog dan halaman belajar siswa sebagai acuan kompetensi.
+                            </p>
+                            <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-4 text-xs text-slate-700 leading-relaxed whitespace-pre-line font-medium" x-text="sampleTp"></div>
+                        </div>
+
+                        <!-- Panel 3 -->
+                        <div x-show="step === 3" x-cloak class="space-y-4">
+                            <h3 class="text-base font-bold text-slate-900">3. Lengkapi Video Pembelajaran & Kuis Evaluasi</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Bagian ini opsional, namun sangat membantu siswa memahami langkah konfigurasi perangkat jaringan dan menguji pemahaman setelah membaca modul.
+                            </p>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100 text-xs">
+                                <div>
+                                    <p class="font-bold text-slate-800">Tautan Video (YouTube / Google Drive)</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed">Anda bisa menambahkan video utama dan beberapa video pendukung (demonstrasi MikroTik, crimping, atau Packet Tracer).</p>
+                                </div>
+                                <div>
+                                    <p class="font-bold text-slate-800">Kuis Objektif Terintegrasi</p>
+                                    <p class="text-slate-500 mt-0.5 leading-relaxed">Susun soal pilihan ganda langsung melalui tombol <strong>Kelola Kuis</strong> di daftar modul (1 kali kesempatan pengerjaan per siswa dengan rekap otomatis).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Panel 4 -->
+                        <div x-show="step === 4" x-cloak class="space-y-4">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <h3 class="text-base font-bold text-slate-900">4. Pemrosesan Otomatis AI RAG Indexing</h3>
+                                <a href="{{ route('guru.modules.index') }}" class="text-xs font-semibold text-[#008546] hover:underline">Pantau Status di Tabel →</a>
+                            </div>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Setelah modul disimpan, worker latar belakang mengekstrak teks dokumen, memecahnya menjadi potongan paragraf (<em>chunking</em>), dan membuat vektor semantik agar jawaban AI tetap berlandaskan materi guru.
+                            </p>
+                            <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-medium">1. Ekstrak Teks PDF/DOCX</span>
+                                <span aria-hidden="true" class="text-slate-400">→</span>
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-medium">2. Pemecahan Paragraf</span>
+                                <span aria-hidden="true" class="text-slate-400">→</span>
+                                <span class="px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 font-medium">3. Embedding Vektor</span>
+                                <span aria-hidden="true" class="text-slate-400">→</span>
+                                <span class="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-semibold text-[#008546]">4. Siap Ditanya Siswa</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Show, Don't Tell: Standar Dokumen -->
+                <section id="standar-dokumen" class="scroll-mt-6 space-y-4 pt-2 border-t border-slate-200">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Standar Dokumen Agar Jawaban AI Akurat</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Kualitas jawaban chatbot sangat bergantung pada kerapian teks di dalam file PDF atau DOCX yang diunggah.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-xl border border-emerald-200/80 p-5 space-y-2.5">
+                            <div class="flex items-center gap-2 text-xs font-bold text-[#008546]">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span>Disarankan (Terbaca Akurat)</span>
+                            </div>
+                            <ul class="space-y-2 text-xs text-slate-600 leading-relaxed">
+                                <li>• File PDF hasil ekspor langsung dari Word/Docs (teks bisa diblok/disalin) atau file <strong>.docx</strong>.</li>
+                                <li>• Sub-bab bernomor jelas (contoh: <em>1.1 Pengertian VLAN, 1.2 Mode Port Switch</em>).</li>
+                                <li>• Singkatan teknis (DHCP, NAT, OSPF, WPA2) dijelaskan kepanjangan dan fungsinya di awal materi.</li>
+                                <li>• Langkah praktikum ditulis berurutan dari langkah 1 hingga verifikasi hasil.</li>
+                            </ul>
+                        </div>
+
+                        <div class="bg-white rounded-xl border border-rose-200/80 p-5 space-y-2.5">
+                            <div class="flex items-center gap-2 text-xs font-bold text-rose-700">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                                <span>Hindari (Berisiko Gagal Ekstrak)</span>
+                            </div>
+                            <ul class="space-y-2 text-xs text-slate-600 leading-relaxed">
+                                <li>• File PDF hasil foto kamera HP atau pindaian (<em>scan</em>) gambar tanpa lapisan teks OCR.</li>
+                                <li>• Materi praktikum yang seluruh penjelasannya hanya ditaruh dalam gambar tangkapan layar tanpa keterangan teks.</li>
+                                <li>• File terproteksi kata sandi (<em>password-protected PDF</em>) atau rusak saat disimpan.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Status Reference Table -->
+                <section id="status-ai" class="scroll-mt-6 space-y-4 pt-2 border-t border-slate-200">
+                    <div>
+                        <h2 class="text-lg font-bold text-slate-900">Memahami Status Indeks AI</h2>
+                        <p class="text-xs text-slate-500 mt-0.5">Arti label status yang muncul pada tabel Manajemen Modul beserta langkah tindak lanjutnya.</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200/90 overflow-hidden">
+                        <table class="min-w-full divide-y divide-slate-100 text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-semibold text-left">
+                                <tr>
+                                    <th class="px-5 py-3 w-36">Status di Tabel</th>
+                                    <th class="px-5 py-3">Arti Sistem</th>
+                                    <th class="px-5 py-3">Tindakan Guru</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-slate-600">
+                                <tr>
+                                    <td class="px-5 py-3.5 align-top">
+                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-emerald-100 text-emerald-800">Aktif</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top leading-relaxed">
+                                        Ekstraksi dan embedding vektor selesai. Modul tampil di katalog siswa dan siap dipakai Chatbot AI.
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top text-slate-500">Tidak perlu tindakan.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-5 py-3.5 align-top">
+                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-blue-100 text-blue-800">Diproses</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top leading-relaxed">
+                                        Worker sedang membaca isi dokumen dan menyusun indeks vektor (umumnya 10–60 detik).
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top text-slate-500">Tunggu sebentar lalu muat ulang halaman.</td>
+                                </tr>
+                                <tr>
+                                    <td class="px-5 py-3.5 align-top">
+                                        <span class="px-2.5 py-1 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">Gagal</span>
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top leading-relaxed">
+                                        File gagal dibaca (biasanya PDF hasil scan gambar) atau koneksi layanan embedding sempat terputus.
+                                    </td>
+                                    <td class="px-5 py-3.5 align-top">
+                                        Buka detail modul → klik <strong>Coba Index Ulang</strong>, atau ganti dengan PDF teks asli.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- 4. FAQ Accordion & Student Account Access -->
+                <section id="tanya-jawab" class="scroll-mt-6 space-y-4 pt-2 border-t border-slate-200">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900">Tanya Jawab & Pengelolaan Siswa</h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Pertanyaan yang paling sering ditemui saat mengoperasikan sistem di kelas.</p>
+                        </div>
+                        <a href="{{ route('guru.siswa.index') }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-[#008546] hover:underline">
+                            <span>Buka Menu Data Siswa</span>
+                            <span aria-hidden="true">→</span>
+                        </a>
+                    </div>
+
+                    <div class="bg-white rounded-xl border border-slate-200/90 divide-y divide-slate-100">
+                        <!-- FAQ 1 -->
+                        <div>
+                            <button type="button" @click="openFaq = openFaq === 1 ? 0 : 1" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-slate-900 hover:bg-slate-50/70 transition-colors">
+                                <span>Kapan perlu menekan tombol "Coba Index Ulang"?</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform" :class="openFaq === 1 ? 'rotate-180 text-[#008546]' : ''"></i>
+                            </button>
+                            <div x-show="openFaq === 1" class="px-5 pb-4 text-xs text-slate-600 leading-relaxed">
+                                Gunakan tombol <strong>Coba Index Ulang</strong> di halaman detail modul jika status modul menjadi <strong>Gagal</strong> karena gangguan jaringan sementara, atau tertahan di status Pending terlalu lama. Anda tidak perlu menghapus dan mengunggah ulang file yang sama.
+                            </div>
+                        </div>
+
+                        <!-- FAQ 2 -->
+                        <div>
+                            <button type="button" @click="openFaq = openFaq === 2 ? 0 : 2" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-slate-900 hover:bg-slate-50/70 transition-colors">
+                                <span>Jika memperbarui file materi, apakah data kuis dan indeks lama langsung hilang?</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform" :class="openFaq === 2 ? 'rotate-180 text-[#008546]' : ''"></i>
+                            </button>
+                            <div x-show="openFaq === 2" x-cloak class="px-5 pb-4 text-xs text-slate-600 leading-relaxed">
+                                Tidak. Soal kuis tetap tersimpan, dan indeks AI lama tetap melayani siswa selama file baru sedang diproses. Indeks baru baru menggantikan indeks lama setelah proses ekstraksi file baru selesai tanpa error.
+                            </div>
+                        </div>
+
+                        <!-- FAQ 3 -->
+                        <div>
+                            <button type="button" @click="openFaq = openFaq === 3 ? 0 : 3" class="w-full px-5 py-4 text-left flex items-center justify-between gap-4 text-xs sm:text-sm font-bold text-slate-900 hover:bg-slate-50/70 transition-colors">
+                                <span>Bagaimana cara menambah siswa atau mereset password siswa yang lupa?</span>
+                                <i class="fa-solid fa-chevron-down text-xs text-slate-400 transition-transform" :class="openFaq === 3 ? 'rotate-180 text-[#008546]' : ''"></i>
+                            </button>
+                            <div x-show="openFaq === 3" x-cloak class="px-5 pb-4 text-xs text-slate-600 leading-relaxed">
+                                Masuk ke menu <strong>Data & Login Siswa</strong> untuk menambah akun (nama, NIS, kelas, email), memperbarui password siswa secara langsung saat praktikum di lab, atau menonaktifkan akun sementara tanpa menghapus riwayat nilai kuis dan percakapan AI.
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
-
         </div>
-
     </div>
 </x-premium-layout>

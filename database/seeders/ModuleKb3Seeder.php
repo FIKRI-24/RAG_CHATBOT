@@ -28,12 +28,13 @@ class ModuleKb3Seeder extends Seeder
             [
                 'guru_id' => $guru->id,
                 'kb_nomor' => 'KB 3',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
             ],
             [
                 'guru_id' => $guru->id,
                 'judul' => 'Frekuensi Radio, Permasalahan dan Perbaikan Jaringan Nirkabel, serta Perawatan Jaringan Nirkabel',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
+                'topik' => 'Instalasi Jaringan Nirkabel',
                 'kb_nomor' => 'KB 3',
                 'tp' => $tpContent,
                 'file_path' => 'modules/kb3_jaringan_nirkabel.pdf',

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>E-Modul TKJ - SMK N 1 Kinali</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Scripts & Styles (bundled via Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -587,10 +588,10 @@
                 <div class="flex items-center justify-between gap-2.5 flex-wrap sm:flex-nowrap">
                     <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-1">
                         <!-- Subject Selector -->
-                        <div class="inline-flex items-center bg-slate-50 border-2 border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-700 shadow-2xs focus-within:border-[#008546] focus-within:bg-white transition-all shrink-0">
+                        <div class="inline-flex items-center bg-slate-50 border-2 border-slate-200/90 rounded-xl px-3 py-1.5 text-xs text-slate-700 shadow-2xs focus-within:border-[#008546] focus-within:bg-white transition-all max-w-full sm:max-w-[260px]">
                             <i class="fa-solid fa-book-open text-slate-400 text-xs mr-2"></i>
-                            <select id="mapel-select" class="bg-transparent border-0 outline-none text-xs font-bold text-slate-800 cursor-pointer pr-1">
-                                <option value="Semua" {{ $selectedMapel === 'Semua' ? 'selected' : '' }}>Semua Mapel</option>
+                            <select id="mapel-select" class="bg-transparent border-0 outline-none text-xs font-bold text-slate-800 cursor-pointer pr-1 w-full truncate">
+                                <option value="Semua" {{ $selectedMapel === 'Semua' ? 'selected' : '' }}>Semua Elemen / Mapel</option>
                                 @foreach($mapels as $m)
                                     <option value="{{ $m }}" {{ $selectedMapel === $m ? 'selected' : '' }}>{{ $m }}</option>
                                 @endforeach
@@ -602,7 +603,7 @@
                             <i class="fa-solid fa-layer-group {{ $selectedModule ? 'text-[#008546]' : 'text-slate-400' }} text-xs mr-2 shrink-0"></i>
                             <span class="text-slate-400 text-[10px] font-bold uppercase tracking-wider mr-1.5 shrink-0">Cakupan:</span>
                             <select id="module-select" class="bg-transparent border-0 outline-none text-xs font-bold {{ $selectedModule ? 'text-emerald-950' : 'text-slate-800' }} cursor-pointer w-full truncate">
-                                <option value="">Semua Modul (KB 1 - KB 4)</option>
+                                <option value="">Semua Modul (Semua KB)</option>
                                 @foreach($modules->filter(fn ($item) => $selectedMapel === 'Semua' || $item->mapel === $selectedMapel) as $scopeModule)
                                     <option value="{{ $scopeModule->id }}" @selected($selectedModule === $scopeModule->id)>{{ $scopeModule->kb_nomor }}: {{ $scopeModule->judul }}</option>
                                 @endforeach

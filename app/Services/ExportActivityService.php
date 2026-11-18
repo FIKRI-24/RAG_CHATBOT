@@ -101,11 +101,13 @@ class ExportActivityService
         $sheet1->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet1->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new Color('52525B'));
 
+        $subjectSummary = $this->resolveSubjectSummary();
+
         // --- ROW 5 - 8: METADATA RESMI SEKOLAH & GURU ---
         $metadata = [
             ['Nama Sekolah', ': SMK Negeri 1 Kinali', 'Guru Pengampu', ": {$namaGuru} (Akun Login)"],
             ['NPSN / ID Sekolah', ': 10304384', 'NIP / ID Guru', ": {$nipGuru}"],
-            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Mata Pelajaran', ': Administrasi Infrastruktur & Jaringan Nirkabel'],
+            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Elemen / Mata Pelajaran', ": {$subjectSummary}"],
             ['Waktu Cetak Laporan', ": {$waktuCetak}", 'Arsitektur AI', ': '.config('gemini.model')],
         ];
 
@@ -779,10 +781,11 @@ class ExportActivityService
 
         // Metadata Sekolah & Guru (Baris 5 - 8)
         $filterKelasText = $className ? ": {$className}" : ': Semua Kelas';
+        $subjectSummary = $this->resolveSubjectSummary($modules);
         $meta = [
             ['Nama Sekolah', ': SMK Negeri 1 Kinali', 'Guru Pengampu', ": {$namaGuru}"],
             ['NPSN / ID Sekolah', ': 10304384', 'NIP / ID Guru', ": {$nipGuru}"],
-            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Mata Pelajaran', ': Administrasi Infrastruktur & Jaringan Nirkabel'],
+            ['Konsentrasi Keahlian', ': Teknik Komputer dan Jaringan (TKJ)', 'Elemen / Mata Pelajaran', ": {$subjectSummary}"],
             ['Filter Rombel', $filterKelasText, 'Waktu Cetak', ": {$waktuCetak}"],
         ];
 
@@ -1180,5 +1183,22 @@ class ExportActivityService
         $sheet->getColumnDimension('H')->setWidth(14);
         $sheet->getColumnDimension('I')->setWidth(16);
         $sheet->getColumnDimension('J')->setWidth(20);
+    }
+
+    private function resolveSubjectSummary(?iterable $modules = null): string
+    {
+        $mapels = $modules !== null
+            ? collect($modules)->pluck('mapel')->filter(fn ($v) => is_string($v) && trim($v) !== '')->unique()->values()
+            : Module::available()->select('mapel')->distinct()->pluck('mapel')->filter(fn ($v) => is_string($v) && trim($v) !== '')->unique()->values();
+
+        if ($mapels->count() === 1) {
+            return $mapels->first();
+        }
+
+        if ($mapels->count() > 1) {
+            return 'Teknik Komputer dan Jaringan ('.$mapels->count().' Elemen / Mapel)';
+        }
+
+        return 'Teknik Komputer dan Jaringan (Kurikulum Merdeka)';
     }
 }

@@ -23,6 +23,7 @@ class ModuleController extends Controller
     {
         $request->validate([
             'mapel' => 'nullable|string|max:255',
+            'topik' => 'nullable|string|max:255',
             'kb_nomor' => 'nullable|string|max:255',
         ]);
 
@@ -32,21 +33,41 @@ class ModuleController extends Controller
             $query->where('mapel', $request->mapel);
         }
 
+        if ($request->filled('topik')) {
+            $query->where('topik', $request->topik);
+        }
+
         if ($request->filled('kb_nomor')) {
             $query->where('kb_nomor', $request->kb_nomor);
         }
 
         $modules = $query->latest()->paginate(10)->withQueryString();
-        
 
         $ownedModules = Module::where('guru_id', Auth::id());
-        $mapelList = (clone $ownedModules)
-            ->select('mapel')
-            ->distinct()
-            ->pluck('mapel');
-        $kbList = $ownedModules->select('kb_nomor')->distinct()->orderBy('kb_nomor')->pluck('kb_nomor');
+        $mapelList = Module::mergeWithCurriculumElements(
+            (clone $ownedModules)->select('mapel')->distinct()->pluck('mapel')
+        );
 
-        return view('guru.modules.index', compact('modules', 'mapelList', 'kbList'));
+        $defaultTopics = $request->filled('mapel')
+            ? (Module::defaultTopics()[$request->mapel] ?? [])
+            : collect(Module::defaultTopics())->flatten()->all();
+
+        $dbTopics = (clone $ownedModules)
+            ->when($request->filled('mapel'), fn ($q) => $q->where('mapel', $request->mapel))
+            ->whereNotNull('topik')
+            ->where('topik', '!=', '')
+            ->select('topik')
+            ->distinct()
+            ->orderBy('topik')
+            ->pluck('topik');
+
+        $topikList = collect($defaultTopics)->merge($dbTopics)->unique()->values();
+
+        $kbList = Module::mergeWithDefaultKbOptions(
+            (clone $ownedModules)->select('kb_nomor')->distinct()->pluck('kb_nomor')
+        );
+
+        return view('guru.modules.index', compact('modules', 'mapelList', 'topikList', 'kbList'));
     }
 
     public function create()
@@ -62,6 +83,7 @@ class ModuleController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'mapel' => 'required|string|max:255',
+            'topik' => 'nullable|string|max:255',
             'kb_nomor' => 'required|string|max:255',
             'tp' => 'nullable|string|max:20000',
             'video_url' => 'nullable|url:http,https|max:255',
@@ -93,6 +115,7 @@ class ModuleController extends Controller
                     'guru_id' => Auth::id(),
                     'judul' => $request->judul,
                     'mapel' => $request->mapel,
+                    'topik' => $request->filled('topik') ? trim((string) $request->input('topik')) : null,
                     'kb_nomor' => $request->kb_nomor,
                     'tp' => $request->tp,
                     'video_url' => $request->video_url,
@@ -155,6 +178,7 @@ class ModuleController extends Controller
         $request->validate([
             'judul' => 'required|string|max:255',
             'mapel' => 'required|string|max:255',
+            'topik' => 'nullable|string|max:255',
             'kb_nomor' => 'required|string|max:255',
             'tp' => 'nullable|string|max:20000',
             'video_url' => 'nullable|url:http,https|max:255',
@@ -175,6 +199,7 @@ class ModuleController extends Controller
             DB::transaction(function () use ($request, &$module, $newPath, &$oldPath) {
                 $module = Module::whereKey($module->id)->where('guru_id', Auth::id())->lockForUpdate()->firstOrFail();
                 $module->fill($request->only(['judul', 'mapel', 'kb_nomor', 'tp', 'video_url', 'kuis_url', 'berlaku_sampai', 'additional_videos']));
+                $module->topik = $request->filled('topik') ? trim((string) $request->input('topik')) : null;
                 if ($newPath) {
                     $oldPath = $module->file_path;
                     $module->fill(['file_path' => $newPath, 'status_indexing' => 'pending',

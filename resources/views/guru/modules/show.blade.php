@@ -13,6 +13,9 @@
                         {{ $module->kb_nomor ?? 'KB 1' }}
                     </span>
                     <span class="text-xs font-medium text-slate-500">• {{ $module->mapel }}</span>
+                    @if($module->topik)
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-50 text-[#008546] border border-emerald-200">{{ $module->topik }}</span>
+                    @endif
                 </div>
                 <h2 class="font-bold text-xl text-slate-900 tracking-tight">
                     {{ $module->judul }}

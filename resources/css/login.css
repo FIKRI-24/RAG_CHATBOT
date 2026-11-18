@@ -44,10 +44,8 @@
 .login-form-wrap { width: 100%; max-width: 390px; margin: auto; padding: 50px 0 42px; }
 .login-welcome-icon { position: relative; display: grid; place-items: center; width: 47px; height: 47px; border-radius: 15px; background: #edf4e8; color: #008546; font-size: 19px; margin-bottom: 24px; }
 .login-welcome-icon > span { position: absolute; font-size: 17px; right: -9px; top: -8px; color: #9ebb72; }
-.login-kicker { font-size: 9px; font-weight: 600; letter-spacing: 1.8px; color: #6e856e; margin: 0 0 12px; }
-.login-access h2 { font-size: 43px; letter-spacing: -2px; font-weight: 600; line-height: 1.13; margin: 0; color: #173e2e; }
-.login-intro { color: #657267; font-size: 14px; line-height: 1.8; margin: 17px 0 28px; max-width: 330px; }
 .login-field { margin-top: 20px; }
+#login-form .login-field:first-of-type { margin-top: 0; }
 .login-field > label { display: block; font-size: 13px; font-weight: 600; color: #314e3e; margin-bottom: 9px; }
 .login-input-wrap { position: relative; }
 .login-input-wrap .field-icon { position: absolute; left: 17px; top: 50%; transform: translateY(-50%); color: #91a091; font-size: 14px; pointer-events: none; transition: color .2s; }
@@ -78,7 +76,7 @@
 .login-register { font-size: 11px; color: #687762; line-height: 1.8; margin-top: 14px; }
 .login-access-footer { display: flex; justify-content: space-between; gap: 14px; color: #6c7965; font-size: 9px; line-height: 1.7; }
 .login-access-footer i { color: #85a36d; margin-right: 4px; }
-.login-status { display: flex; gap: 10px; padding: 13px; border: 1px solid #c7e5cb; border-radius: 10px; color: #22633c; background: #f0f8eb; font-size: 12px; line-height: 1.6; }
+.login-status { display: flex; gap: 10px; padding: 13px; margin-bottom: 20px; border: 1px solid #c7e5cb; border-radius: 10px; color: #22633c; background: #f0f8eb; font-size: 12px; line-height: 1.6; }
 @media (min-width: 1600px) { .login-story-content { padding-left: 25px; } }
 @media (max-width: 1100px) {
     .login-story { padding: 32px 30px 25px; }
@@ -105,9 +103,6 @@
     .login-access-top > span { font-size: 8px; letter-spacing: 1px; }
     .login-form-wrap { max-width: 430px; padding: 30px 0; }
     .login-welcome-icon { display: none; }
-    .login-access h2 { font-size: 35px; letter-spacing: -1.5px; }
-    .login-access h2 br { display: none; }
-    .login-intro { margin: 12px 0 23px; font-size: 12px; }
     .login-input-wrap input { font-size: 16px; }
     .login-input-wrap input::placeholder { font-size: 13px; }
     .login-access-footer { flex-direction: row; font-size: 8px; }
@@ -115,7 +110,6 @@
 @media (max-width: 370px) {
     .login-story, .login-access { padding-left: 21px; padding-right: 21px; }
     .login-story h1 { font-size: 29px; }
-    .login-access h2 { font-size: 31px; }
     .login-access-footer { flex-direction: column; }
 }
 @media (prefers-reduced-motion: reduce) {

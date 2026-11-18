@@ -16,6 +16,7 @@ class ModuleController extends Controller
         $request->validate([
             'search' => 'nullable|string|max:255',
             'mapel' => 'nullable|string|max:255',
+            'topik' => 'nullable|string|max:255',
             'kb_nomor' => 'nullable|string|max:255',
         ]);
 
@@ -23,6 +24,10 @@ class ModuleController extends Controller
 
         if ($request->filled('mapel') && $request->mapel !== 'Semua') {
             $query->where('mapel', $request->mapel);
+        }
+
+        if ($request->filled('topik') && $request->topik !== 'Semua') {
+            $query->where('topik', $request->topik);
         }
 
         if ($request->filled('kb_nomor') && $request->kb_nomor !== 'Semua') {
@@ -34,19 +39,37 @@ class ModuleController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('judul', 'like', "%{$search}%")
                     ->orWhere('tp', 'like', "%{$search}%")
+                    ->orWhere('topik', 'like', "%{$search}%")
                     ->orWhere('mapel', 'like', "%{$search}%");
             });
         }
 
-        $modules = $query->orderBy('mapel')->orderBy('kb_nomor')->paginate(9)->withQueryString();
+        $modules = $query->orderBy('mapel')->orderBy('topik')->orderBy('kb_nomor')->paginate(9)->withQueryString();
 
-        $mapelList = Module::available()
-            ->select('mapel')
+        $mapelList = Module::mergeWithCurriculumElements(
+            Module::available()->select('mapel')->distinct()->pluck('mapel')
+        );
+
+        $defaultTopics = ($request->filled('mapel') && $request->mapel !== 'Semua')
+            ? (Module::defaultTopics()[$request->mapel] ?? [])
+            : collect(Module::defaultTopics())->flatten()->all();
+
+        $dbTopics = Module::available()
+            ->when($request->filled('mapel') && $request->mapel !== 'Semua', fn ($q) => $q->where('mapel', $request->mapel))
+            ->whereNotNull('topik')
+            ->where('topik', '!=', '')
+            ->select('topik')
             ->distinct()
-            ->pluck('mapel');
-        $kbList = Module::available()->select('kb_nomor')->distinct()->orderBy('kb_nomor')->pluck('kb_nomor');
+            ->orderBy('topik')
+            ->pluck('topik');
 
-        return view('siswa.modules.index', compact('modules', 'mapelList', 'kbList'));
+        $topikList = collect($defaultTopics)->merge($dbTopics)->unique()->values();
+
+        $kbList = Module::mergeWithDefaultKbOptions(
+            Module::available()->select('kb_nomor')->distinct()->pluck('kb_nomor')
+        );
+
+        return view('siswa.modules.index', compact('modules', 'mapelList', 'topikList', 'kbList'));
     }
 
     /**

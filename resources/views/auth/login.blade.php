@@ -1,4 +1,4 @@
-﻿@php
+@php
     /** @var \Illuminate\Support\ViewErrorBag $errors */
 @endphp
 <!DOCTYPE html>
@@ -9,6 +9,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#008546">
     <title>Masuk — E-Modul TKJ | SMK Negeri 1 Kinali</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
     @vite(['resources/css/app.css', 'resources/css/login.css', 'resources/js/app.js'])
 </head>
 <body class="login-page" x-data="{ feature: 'modul', showPassword: false, submitting: false, capsLock: false }" @pageshow.window="submitting = false">
@@ -51,9 +52,7 @@
             <div class="login-access-top"><span>E-MODUL INTERAKTIF</span><a href="#login-help">Butuh bantuan? <i class="fa-regular fa-circle-question" aria-hidden="true"></i></a></div>
             <div class="login-form-wrap">
                 <div class="login-welcome-icon" aria-hidden="true"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>✦</span></div>
-                <p class="login-kicker">SELAMAT DATANG KEMBALI</p>
-                <h2 id="login-title">Siap belajar<br> hal baru?</h2>
-                <p class="login-intro">Masuk ke akunmu dan lanjutkan perjalanan belajarmu.</p>
+                <h2 id="login-title" class="sr-only">Masuk ke akun</h2>
                 @if(session('status'))
                     <div class="login-status" role="status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span>{{ session('status') }}</span></div>
                 @endif
@@ -88,7 +87,7 @@
                     <p class="login-register">Pendaftaran mandiri tersedia. <a href="{{ route('register') }}">Daftar akun siswa <span aria-hidden="true">↗</span></a></p>
                 @endif
             </div>
-            <footer class="login-access-footer"><span>© {{ now()->year }} SMK Negeri 1 Kinali</span><span><i class="fa-solid fa-seedling" aria-hidden="true"></i> Tumbuh bersama pengetahuan.</span></footer>
+            <footer class="login-access-footer"><span>© {{ now()->year }} SMK Negeri 1 Kinali</span></footer>
         </section>
     </main>
 </body>

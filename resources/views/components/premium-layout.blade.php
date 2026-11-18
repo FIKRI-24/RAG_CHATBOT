@@ -7,6 +7,7 @@
     <meta name="google" content="notranslate">
 
     <title>{{ config('app.name', 'TKJ AI') }} - Panel Guru</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo.png') }}">
 
     <!-- Scripts & Styles (bundled via Vite) -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -79,14 +80,14 @@
                 <span class="notranslate" translate="no">Dashboard</span>
             </a>
 
-            <a href="{{ route('guru.chat-activities.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.chat-activities.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
-                <i class="fa-solid fa-comments text-xs w-4 text-center"></i>
-                <span>Aktivitas Tanya Jawab</span>
-            </a>
-
             <a href="{{ route('guru.modules.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.modules.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
                 <i class="fa-solid fa-book-bookmark text-xs w-4 text-center"></i>
                 <span>Kelola Modul RAG</span>
+            </a>
+
+            <a href="{{ route('guru.chat-activities.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.chat-activities.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">
+                <i class="fa-solid fa-comments text-xs w-4 text-center"></i>
+                <span>Aktivitas Tanya Jawab</span>
             </a>
 
             <a href="{{ route('guru.quiz-reviews.index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-semibold transition-colors {{ request()->routeIs('guru.quiz-reviews.*') ? 'bg-[#008546] text-white' : 'text-slate-300 hover:bg-slate-800/80 hover:text-white' }}">

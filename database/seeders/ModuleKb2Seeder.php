@@ -28,12 +28,13 @@ class ModuleKb2Seeder extends Seeder
             [
                 'guru_id' => $guru->id,
                 'kb_nomor' => 'KB 2',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
             ],
             [
                 'guru_id' => $guru->id,
                 'judul' => 'Jenis-Jenis Jaringan Nirkabel, Perangkat Jaringan Nirkabel, dan Standar Wi-Fi (IEEE 802.11)',
-                'mapel' => 'Teknik Komputer dan Jaringan',
+                'mapel' => 'Elemen 2: Teknologi Jaringan Kabel dan Nirkabel',
+                'topik' => 'Instalasi Jaringan Nirkabel',
                 'kb_nomor' => 'KB 2',
                 'tp' => $tpContent,
                 'file_path' => 'modules/kb2_jaringan_nirkabel.pdf',

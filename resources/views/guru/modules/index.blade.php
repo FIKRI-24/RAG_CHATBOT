@@ -35,9 +35,9 @@
             <div class="flex flex-col h-full">
                 
                 <form method="GET" action="{{ route('guru.modules.index') }}" class="mb-6 flex flex-wrap gap-3">
-                    <div class="w-full sm:w-64 relative">
+                    <div class="w-full sm:w-80 relative">
                         <select name="mapel" id="mapel" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="this.form.submit()">
-                            <option value="">Semua Mata Pelajaran</option>
+                            <option value="">Semua Mata Pelajaran (Elemen)</option>
                             @foreach($mapelList as $mapel)
                                 <option value="{{ $mapel }}" {{ request('mapel') == $mapel ? 'selected' : '' }}>{{ $mapel }}</option>
                             @endforeach
@@ -47,7 +47,21 @@
                         </div>
                     </div>
 
-                    <div class="w-full sm:w-48 relative">
+                    @if($topikList->isNotEmpty())
+                    <div class="w-full sm:w-64 relative">
+                        <select name="topik" id="topik" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="this.form.submit()">
+                            <option value="">Semua Topik Materi</option>
+                            @foreach($topikList as $topik)
+                                <option value="{{ $topik }}" {{ request('topik') == $topik ? 'selected' : '' }}>{{ $topik }}</option>
+                            @endforeach
+                        </select>
+                        <div class="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none text-gray-500">
+                            <i class="fa-solid fa-chevron-down text-xs"></i>
+                        </div>
+                    </div>
+                    @endif
+
+                    <div class="w-full sm:w-56 relative">
                         <select name="kb_nomor" id="kb_nomor" class="appearance-none bg-gray-50 border border-gray-200 text-gray-700 py-2.5 px-4 pr-10 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#008546] focus:border-transparent w-full text-sm font-medium" onchange="this.form.submit()">
                             <option value="">Semua Kegiatan Belajar</option>
                             @foreach($kbList as $kb)
@@ -59,7 +73,7 @@
                         </div>
                     </div>
 
-                    @if(request('mapel') || request('kb_nomor'))
+                    @if(request('mapel') || request('topik') || request('kb_nomor'))
                         <a href="{{ route('guru.modules.index') }}" class="inline-flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-semibold">
                             Reset Filter
                         </a>
@@ -72,7 +86,7 @@
                             <tr>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">No</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Kegiatan Belajar</th>
-                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Judul & Mapel</th>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Judul, Elemen & Topik</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Media & TP</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status AI</th>
                                 <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
@@ -91,7 +105,12 @@
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="font-bold text-slate-900 text-sm">{{ $module->judul }}</div>
-                                    <div class="text-xs text-slate-500 mt-0.5">{{ $module->mapel }}</div>
+                                    <div class="text-xs text-slate-500 mt-0.5 flex flex-wrap items-center gap-1.5">
+                                        <span>{{ $module->mapel }}</span>
+                                        @if($module->topik)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium text-[11px]">{{ $module->topik }}</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center gap-2">

@@ -160,27 +160,30 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Mata Pelajaran -->
+                    <!-- Mata Pelajaran / Elemen -->
                     <div>
                         <label for="mapel" class="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-900 mb-1">
                             <i class="fa-solid fa-graduation-cap text-emerald-700 text-base"></i>
-                            <span>Mata Pelajaran / Konsentrasi Keahlian <span class="text-rose-600">*</span></span>
+                            <span>Mata Pelajaran / Elemen TKJ <span class="text-rose-600">*</span></span>
                         </label>
                         <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
-                            Pilih rekomendasi yang tersedia atau ketik nama mata pelajaran.
+                            Pilih salah satu dari 5 Elemen Kurikulum Merdeka TKJ atau ketik manual.
                         </p>
                         <input type="text" id="mapel" name="mapel" list="mapel-suggestions" value="{{ old('mapel') }}" required 
-                               placeholder="Pilih atau ketik nama mata pelajaran..."
+                               placeholder="Pilih atau ketik Elemen mata pelajaran..."
                                class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all placeholder:text-slate-400 placeholder:font-normal">
                         <datalist id="mapel-suggestions">
-                            <option value="Administrasi Infrastruktur Jaringan">
-                            <option value="Administrasi Sistem Jaringan">
-                            <option value="Teknologi Jaringan Berbasis Luas (WAN)">
-                            <option value="Teknologi Layanan Jaringan">
-                            <option value="Dasar-Dasar Teknik Komputer & Jaringan">
-                            <option value="Keamanan Jaringan">
-                            <option value="Subnetting & Routing">
+                            @foreach(\App\Models\Module::curriculumElements() as $element)
+                                <option value="{{ $element }}">
+                            @endforeach
                         </datalist>
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            @foreach(\App\Models\Module::curriculumElements() as $element)
+                                <button type="button" onclick="document.getElementById('mapel').value = @js($element)" class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-colors text-left">
+                                    {{ $element }}
+                                </button>
+                            @endforeach
+                        </div>
                         <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('mapel')" />
                     </div>
 
@@ -191,13 +194,52 @@
                             <span>Nama atau Nomor Kegiatan Belajar (KB) <span class="text-rose-600">*</span></span>
                         </label>
                         <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
-                            Tentukan urutan belajar siswa (contoh: <strong>KB 1</strong>, <strong>KB 2</strong>, atau <strong>Topik 1</strong>).
+                            Tentukan urutan belajar siswa (contoh: <strong>KB 1</strong>, <strong>KB 2</strong>, atau <strong>KB 3</strong>).
                         </p>
-                        <input id="kb_nomor" name="kb_nomor" type="text" required maxlength="255" value="{{ old('kb_nomor') }}" 
-                               placeholder="Contoh: KB 1, KB 2, atau Unit 1"
+                        <input id="kb_nomor" name="kb_nomor" type="text" list="kb-suggestions" required maxlength="255" value="{{ old('kb_nomor') }}" 
+                               placeholder="Contoh: KB 1, KB 2, atau KB 3"
                                class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all placeholder:text-slate-400 placeholder:font-normal">
+                        <datalist id="kb-suggestions">
+                            @foreach(\App\Models\Module::defaultKbOptions() as $kbOption)
+                                <option value="{{ $kbOption }}">
+                            @endforeach
+                        </datalist>
+                        <div class="flex flex-wrap gap-1.5 mt-2">
+                            @foreach(\App\Models\Module::defaultKbOptions() as $kbOption)
+                                <button type="button" onclick="document.getElementById('kb_nomor').value = @js($kbOption)" class="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-300 hover:border-emerald-300 transition-colors">
+                                    {{ $kbOption }}
+                                </button>
+                            @endforeach
+                        </div>
                         <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('kb_nomor')" />
                     </div>
+                </div>
+
+                <!-- Topik / Materi Pokok (Opsional) -->
+                <div>
+                    <label for="topik" class="flex items-center gap-2 text-sm sm:text-base font-bold text-slate-900 mb-1">
+                        <i class="fa-solid fa-folder-tree text-emerald-700 text-base"></i>
+                        <span>Topik / Materi Pokok <span class="text-xs font-semibold text-slate-500">(Opsional)</span></span>
+                    </label>
+                    <p class="text-xs sm:text-sm font-medium text-slate-700 mb-2">
+                        Kelompokkan beberapa KB dalam satu topik materi (contoh: <strong>Instalasi Jaringan Nirkabel</strong>).
+                    </p>
+                    <input id="topik" name="topik" type="text" list="topik-suggestions" maxlength="255" value="{{ old('topik') }}"
+                           placeholder="Contoh: Instalasi Jaringan Nirkabel"
+                           class="w-full bg-white border-2 border-slate-400 text-slate-900 text-sm sm:text-base font-bold rounded-2xl py-3.5 px-4 outline-none focus:border-emerald-700 focus:ring-4 focus:ring-emerald-700/20 transition-all placeholder:text-slate-400 placeholder:font-normal">
+                    <datalist id="topik-suggestions">
+                        @foreach(collect(\App\Models\Module::defaultTopics())->flatten()->unique() as $topicOption)
+                            <option value="{{ $topicOption }}">
+                        @endforeach
+                    </datalist>
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                        @foreach(collect(\App\Models\Module::defaultTopics())->flatten()->unique() as $topicOption)
+                            <button type="button" onclick="document.getElementById('topik').value = @js($topicOption)" class="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-emerald-50 text-slate-700 hover:text-emerald-800 border border-slate-300 hover:border-emerald-300 transition-colors">
+                                {{ $topicOption }}
+                            </button>
+                        @endforeach
+                    </div>
+                    <x-input-error class="mt-1.5 text-sm font-bold text-rose-700" :messages="$errors->get('topik')" />
                 </div>
             </div>
 
