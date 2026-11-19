@@ -72,7 +72,8 @@ class ModuleQuizController extends Controller
             $keys = array_keys($quiz->questions);
             $rules = ['answers' => ['required', 'array:'.implode(',', $keys), 'size:'.count($keys)]];
             foreach ($keys as $key) {
-                $rules['answers.'.$key] = ['required', Rule::in(['A', 'B', 'C', 'D'])];
+                $allowedOptions = array_keys($quiz->questions[$key]['options'] ?? ['A' => '', 'B' => '', 'C' => '', 'D' => '']);
+                $rules['answers.'.$key] = ['required', Rule::in($allowedOptions)];
             }
             $answers = $request->validate($rules)['answers'];
             $correct = 0;

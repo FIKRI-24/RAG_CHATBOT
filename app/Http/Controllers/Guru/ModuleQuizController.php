@@ -43,6 +43,10 @@ class ModuleQuizController extends Controller
                                 $question['options'][$key] = str_replace(["\r\n", "\r"], "\n", $opt);
                             }
                         }
+                        if (array_key_exists('E', $question['options'])
+                            && ($question['options']['E'] === null || (is_string($question['options']['E']) && trim($question['options']['E']) === ''))) {
+                            unset($question['options']['E']);
+                        }
                     }
 
                     return $question;
@@ -56,12 +60,26 @@ class ModuleQuizController extends Controller
             'questions' => 'required|array|min:1|max:50',
             'questions.*' => 'required|array:text,options,correct_answer',
             'questions.*.text' => 'required|string|max:2000',
-            'questions.*.options' => 'required|array:A,B,C,D|size:4',
+            'questions.*.options' => 'required|array:A,B,C,D,E|min:4|max:5',
             'questions.*.options.A' => 'required|string|max:500',
             'questions.*.options.B' => 'required|string|max:500',
             'questions.*.options.C' => 'required|string|max:500',
             'questions.*.options.D' => 'required|string|max:500',
-            'questions.*.correct_answer' => 'required|in:A,B,C,D',
+            'questions.*.options.E' => 'sometimes|nullable|string|max:500',
+            'questions.*.correct_answer' => [
+                'required',
+                'in:A,B,C,D,E',
+                function (string $attribute, mixed $value, \Closure $fail) use ($request): void {
+                    if ($value !== 'E') {
+                        return;
+                    }
+                    $index = explode('.', $attribute)[1] ?? null;
+                    $optionE = $index !== null ? $request->input("questions.{$index}.options.E") : null;
+                    if (! is_string($optionE) || trim($optionE) === '') {
+                        $fail('Kunci jawaban E memerlukan teks pilihan E yang terisi.');
+                    }
+                },
+            ],
         ], [
             'title.required' => 'Judul kuis wajib diisi.',
             'title.max' => 'Judul kuis maksimal 255 karakter.',
@@ -70,10 +88,10 @@ class ModuleQuizController extends Controller
             'questions.max' => 'Jumlah soal maksimal 50 butir per kuis.',
             'questions.*.text.required' => 'Teks pertanyaan pada salah satu soal wajib diisi.',
             'questions.*.text.max' => 'Teks pertanyaan maksimal 2000 karakter.',
-            'questions.*.options.*.required' => 'Semua pilihan jawaban (A, B, C, D) wajib diisi.',
+            'questions.*.options.*.required' => 'Semua pilihan jawaban utama (A, B, C, D) wajib diisi.',
             'questions.*.options.*.max' => 'Setiap pilihan jawaban maksimal 500 karakter.',
             'questions.*.correct_answer.required' => 'Kunci jawaban pada setiap soal wajib dipilih.',
-            'questions.*.correct_answer.in' => 'Kunci jawaban harus salah satu dari A, B, C, atau D.',
+            'questions.*.correct_answer.in' => 'Kunci jawaban harus salah satu dari A, B, C, D, atau E.',
         ]);
         $data['questions'] = array_values($data['questions']);
         $data['is_published'] = $request->boolean('is_published');

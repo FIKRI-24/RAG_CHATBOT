@@ -162,4 +162,68 @@ class ModuleQuizTest extends TestCase
         $this->assertNull($attempt->fresh()->module_id);
         $this->actingAs($siswa)->get(route('siswa.quiz-attempts.show', $attempt))->assertOk();
     }
+
+    public function test_teacher_and_student_support_five_option_a_to_e_questions_with_key_e(): void
+    {
+        $guru = User::factory()->create(['role' => 'guru']);
+        $siswa = User::factory()->create(['role' => 'siswa']);
+        $module = $this->module($guru, ['kb_nomor' => 'KB 2']);
+
+        $payload = [
+            'title' => 'Kuis 5 Opsi SMK',
+            'is_published' => true,
+            'questions' => [
+                [
+                    'text' => 'Standar Wi-Fi 7 dikenal dengan kode?',
+                    'options' => [
+                        'A' => '802.11a',
+                        'B' => '802.11g',
+                        'C' => '802.11n',
+                        'D' => '802.11ax',
+                        'E' => '802.11be',
+                    ],
+                    'correct_answer' => 'E',
+                ],
+                [
+                    'text' => 'Soal 4 opsi dengan E kosong?',
+                    'options' => [
+                        'A' => 'Benar',
+                        'B' => 'Salah 1',
+                        'C' => 'Salah 2',
+                        'D' => 'Salah 3',
+                        'E' => '   ',
+                    ],
+                    'correct_answer' => 'A',
+                ],
+            ],
+        ];
+
+        $this->actingAs($guru)->put(route('guru.modules.quiz.update', $module), $payload)->assertSessionHasNoErrors();
+        $quiz = $module->quiz()->firstOrFail();
+        $this->assertArrayHasKey('E', $quiz->questions[0]['options']);
+        $this->assertArrayNotHasKey('E', $quiz->questions[1]['options']);
+
+        // Student sees E on question 1, answers E + A -> 100/100
+        $this->actingAs($siswa)->get(route('siswa.modules.quiz.show', $module))
+            ->assertOk()
+            ->assertSee('802.11be');
+
+        // Submitting E on 4-option question #2 is rejected
+        $this->actingAs($siswa)->post(route('siswa.modules.quiz.submit', $module), [
+            'quiz_id' => $quiz->id,
+            'quiz_version' => $quiz->version,
+            'answers' => [0 => 'E', 1 => 'E'],
+        ])->assertSessionHasErrors('answers.1');
+
+        // Valid submission with E on question #1 and A on question #2 succeeds with score 100
+        $this->actingAs($siswa)->post(route('siswa.modules.quiz.submit', $module), [
+            'quiz_id' => $quiz->id,
+            'quiz_version' => $quiz->version,
+            'answers' => [0 => 'E', 1 => 'A'],
+        ])->assertRedirect();
+
+        $attempt = ModuleQuizAttempt::firstOrFail();
+        $this->assertSame(100, (int) $attempt->score);
+        $this->assertSame('E', $attempt->answers[0]);
+    }
 }

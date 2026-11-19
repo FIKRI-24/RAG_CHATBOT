@@ -5,7 +5,7 @@
 @endphp
 <x-premium-layout>
     @php
-        $blankQuestion = ['text' => '', 'options' => ['A' => '', 'B' => '', 'C' => '', 'D' => ''], 'correct_answer' => 'A'];
+        $blankQuestion = ['text' => '', 'options' => ['A' => '', 'B' => '', 'C' => '', 'D' => '', 'E' => ''], 'correct_answer' => 'A'];
         $rawQuestions = old('questions', $quiz?->questions ?? [$blankQuestion]);
         $rawQuestions = is_array($rawQuestions) && count($rawQuestions) > 0 ? array_values($rawQuestions) : [$blankQuestion];
         $initialQuestions = array_map(function ($q, $i) {
@@ -20,8 +20,9 @@
                     'B' => (string) ($opts['B'] ?? ''),
                     'C' => (string) ($opts['C'] ?? ''),
                     'D' => (string) ($opts['D'] ?? ''),
+                    'E' => (string) ($opts['E'] ?? ''),
                 ],
-                'correct_answer' => in_array($q['correct_answer'] ?? 'A', ['A', 'B', 'C', 'D'], true) ? $q['correct_answer'] : 'A',
+                'correct_answer' => in_array($q['correct_answer'] ?? 'A', ['A', 'B', 'C', 'D', 'E'], true) ? $q['correct_answer'] : 'A',
             ];
         }, $rawQuestions, array_keys($rawQuestions));
     @endphp
@@ -110,8 +111,8 @@
                       this.questions = this.pendingDraft.questions.map((q, i) => ({
                           _uid: 'q-restored-' + (++this.nextUid) + '-' + i,
                           text: q.text || '',
-                          options: Object.assign({ A: '', B: '', C: '', D: '' }, q.options || {}),
-                          correct_answer: ['A', 'B', 'C', 'D'].includes(q.correct_answer) ? q.correct_answer : 'A'
+                          options: Object.assign({ A: '', B: '', C: '', D: '', E: '' }, q.options || {}),
+                          correct_answer: ['A', 'B', 'C', 'D', 'E'].includes(q.correct_answer) ? q.correct_answer : 'A'
                       }));
                       this.draftBanner = false;
                       this.pendingDraft = null;
@@ -122,7 +123,7 @@
                       this.draftBanner = false;
                       this.pendingDraft = null;
                   },
-                  addQuestion() { this.questions.push({ _uid: 'q-new-' + (++this.nextUid), text: '', options: { A: '', B: '', C: '', D: '' }, correct_answer: 'A' }); },
+                  addQuestion() { this.questions.push({ _uid: 'q-new-' + (++this.nextUid), text: '', options: { A: '', B: '', C: '', D: '', E: '' }, correct_answer: 'A' }); },
                   moveQuestion(index, delta) {
                       const target = index + delta;
                       if (target < 0 || target >= this.questions.length) return;
@@ -150,7 +151,7 @@
                     <span x-show="draftSavedText" x-text="draftSavedText" class="text-[11px] font-medium text-emerald-700"></span>
                 </div>
                 <input id="quiz-title" name="title" x-model="title" required maxlength="255" value="{{ $initialTitle }}" class="w-full rounded-xl border-slate-300">
-                <p class="text-sm text-slate-500">Pilihan ganda A–D, satu jawaban benar per soal, maksimal 50 soal. Semua soal berbobot sama. Secara default siswa mengerjakan 1 kali; guru dapat menyetujui remedial dari menu Rekap Nilai Kuis.</p>
+                <p class="text-sm text-slate-500">Pilihan ganda A–D (opsi E opsional untuk format 5 pilihan SMK), satu jawaban benar per soal, maksimal 50 soal. Semua soal berbobot sama. Secara default siswa mengerjakan 1 kali; guru dapat menyetujui remedial dari menu Rekap Nilai Kuis.</p>
                 <label class="flex gap-3 items-center text-sm font-semibold">
                     <input type="hidden" name="is_published" value="0">
                     <input type="checkbox" name="is_published" value="1" x-model="isPublished" @checked($initialPublished) class="rounded border-slate-300 text-emerald-600">
@@ -162,16 +163,20 @@
                     <legend class="font-bold px-2" x-text="'Soal ' + (index + 1)"></legend>
                     <label class="block text-sm font-semibold" :for="'question-' + index">Pertanyaan</label>
                     <textarea :id="'question-' + index" :name="'questions[' + index + '][text]'" x-model="question.text" required maxlength="2000" rows="3" class="w-full rounded-xl border-slate-300"></textarea>
-                    <template x-for="letter in ['A', 'B', 'C', 'D']" :key="letter">
+                    <template x-for="letter in ['A', 'B', 'C', 'D', 'E']" :key="letter">
                         <div class="flex items-center gap-3">
                             <label :for="'option-' + index + '-' + letter" class="font-bold w-5" x-text="letter"></label>
-                            <input :id="'option-' + index + '-' + letter" :name="'questions[' + index + '][options][' + letter + ']'" x-model="question.options[letter]" required maxlength="500" class="flex-1 min-w-0 rounded-xl border-slate-300">
+                            <input :id="'option-' + index + '-' + letter" :name="'questions[' + index + '][options][' + letter + ']'" x-model="question.options[letter]" :required="letter !== 'E'" :placeholder="letter === 'E' ? 'Opsional — isi jika soal memakai 5 pilihan (A–E)' : ''" maxlength="500" class="flex-1 min-w-0 rounded-xl border-slate-300">
                         </div>
                     </template>
                     <div class="flex flex-wrap items-center justify-between gap-3">
                         <label class="text-sm font-semibold flex items-center gap-3">Jawaban benar
                             <select :name="'questions[' + index + '][correct_answer]'" x-model="question.correct_answer" class="rounded-xl border-slate-300">
-                                <option>A</option><option>B</option><option>C</option><option>D</option>
+                                <option value="A">A</option>
+                                <option value="B">B</option>
+                                <option value="C">C</option>
+                                <option value="D">D</option>
+                                <option value="E" :disabled="!(question.options.E || '').trim()">E</option>
                             </select>
                         </label>
                         <div class="flex items-center gap-3">
