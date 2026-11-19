@@ -68,6 +68,11 @@ LISTEN_PORT="${PORT:-8000}"
 
 if command -v apache2-foreground >/dev/null 2>&1; then
     echo "Menjalankan Apache Production Server pada port ${LISTEN_PORT}..."
+    # Remove any conflicting MPM symlinks at runtime (prevents AH00534 under Podman/overlayfs whiteouts)
+    rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf \
+          /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
+    ln -sf /etc/apache2/mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load
+    ln -sf /etc/apache2/mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf
     sed -ri "s/Listen [0-9]+/Listen ${LISTEN_PORT}/g" /etc/apache2/ports.conf
     sed -ri "s/<VirtualHost \*:[0-9]+>/<VirtualHost *:${LISTEN_PORT}>/g" /etc/apache2/sites-available/000-default.conf
     exec apache2-foreground
