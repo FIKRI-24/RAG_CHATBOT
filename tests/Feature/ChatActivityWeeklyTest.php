@@ -118,4 +118,80 @@ class ChatActivityWeeklyTest extends TestCase
         $response->assertSee('Buka Rekap');
         $response->assertSee('Aktivitas Tanya Jawab');
     }
+
+    public function test_weekly_metrics_and_excel_export_include_early_morning_wib_questions_at_boundary(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 11, 19, 10, 0, 0, 'Asia/Jakarta'));
+
+        try {
+            // 03:30 WIB on the 7-day start date (2026-11-12 03:30 WIB = 2026-11-11 20:30 UTC) -> MUST be included
+            $earlyMorningChat = new ChatHistory([
+                'siswa_id' => $this->siswa->id,
+                'pertanyaan' => 'Pertanyaan subuh WIB pada batas 7 hari',
+                'jawaban' => 'Jawaban pertanyaan subuh',
+                'mapel' => 'Teknik Komputer dan Jaringan',
+                'kind' => 'answer',
+            ]);
+            $earlyMorningChat->created_at = Carbon::create(2026, 11, 12, 3, 30, 0, 'Asia/Jakarta')->utc();
+            $earlyMorningChat->updated_at = $earlyMorningChat->created_at;
+            $earlyMorningChat->save();
+
+            // 23:30 WIB one day before the 7-day window (2026-11-11 23:30 WIB = 2026-11-11 16:30 UTC) -> MUST be excluded
+            $beforeWindowChat = new ChatHistory([
+                'siswa_id' => $this->siswa->id,
+                'pertanyaan' => 'Pertanyaan sebelum batas 7 hari WIB',
+                'jawaban' => 'Jawaban di luar batas',
+                'mapel' => 'Teknik Komputer dan Jaringan',
+                'kind' => 'answer',
+            ]);
+            $beforeWindowChat->created_at = Carbon::create(2026, 11, 11, 23, 30, 0, 'Asia/Jakarta')->utc();
+            $beforeWindowChat->updated_at = $beforeWindowChat->created_at;
+            $beforeWindowChat->save();
+
+            // Regular recent question -> MUST be included
+            $recentChat = new ChatHistory([
+                'siswa_id' => $this->siswa->id,
+                'pertanyaan' => 'Pertanyaan hari ini di jam sekolah',
+                'jawaban' => 'Jawaban hari ini',
+                'mapel' => 'Teknik Komputer dan Jaringan',
+                'kind' => 'answer',
+            ]);
+            $recentChat->created_at = Carbon::create(2026, 11, 19, 8, 0, 0, 'Asia/Jakarta')->utc();
+            $recentChat->updated_at = $recentChat->created_at;
+            $recentChat->save();
+
+            $indexResponse = $this->actingAs($this->guru)->get(route('guru.chat-activities.index'));
+            $indexResponse->assertOk();
+            $indexResponse->assertViewHas('metrics', function (array $metrics) {
+                return $metrics['weekly_questions'] === 2
+                    && $metrics['weekly_students'] === 1
+                    && $metrics['total_all_time'] === 3;
+            });
+
+            $exportResponse = $this->actingAs($this->guru)->get(route('guru.chat-activities.export-weekly'));
+            $exportResponse->assertOk();
+
+            $binary = $exportResponse->streamedContent();
+            $tmpFile = tempnam(sys_get_temp_dir(), 'weekly_xlsx_');
+            $this->assertNotFalse($tmpFile);
+
+            try {
+                file_put_contents($tmpFile, $binary);
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($tmpFile);
+                $sheet = $spreadsheet->getActiveSheet();
+                $allText = collect($sheet->toArray())
+                    ->flatten()
+                    ->filter(fn ($v) => is_string($v))
+                    ->implode("\n");
+
+                $this->assertStringContainsString('Pertanyaan subuh WIB pada batas 7 hari', $allText);
+                $this->assertStringContainsString('Pertanyaan hari ini di jam sekolah', $allText);
+                $this->assertStringNotContainsString('Pertanyaan sebelum batas 7 hari WIB', $allText);
+            } finally {
+                @unlink($tmpFile);
+            }
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
 }

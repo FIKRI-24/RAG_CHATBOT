@@ -29,7 +29,7 @@ class ExportActivityService
         Carbon::setLocale('id');
 
         $maxRows = max(1, (int) config('reports.max_export_rows', 20000));
-        if (ChatHistory::count() + User::where('role', 'siswa')->count() > $maxRows) {
+        if (ChatHistory::count() + User::where('role', 'siswa')->count() + ModuleQuizAttempt::count() > $maxRows) {
             throw ValidationException::withMessages(['export' => 'Laporan terlalu besar untuk satu berkas. Hubungi pengelola untuk ekspor bertahap atau penyesuaian batas laporan.']);
         }
         $spreadsheet = new Spreadsheet;
@@ -462,6 +462,7 @@ class ExportActivityService
 
         $endDate = Carbon::now(config('app.display_timezone'));
         $startDate = (clone $endDate)->subDays(7)->startOfDay();
+        $startDateUtc = $startDate->copy()->utc();
 
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->setTitle('Rekap Pertanyaan Mingguan');
@@ -501,9 +502,9 @@ class ExportActivityService
         $sheet->getStyle('A3')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         $sheet->getStyle('A3')->getBorders()->getBottom()->setBorderStyle(Border::BORDER_DOUBLE)->setColor(new Color('52525B'));
 
-        // Query data pertanyaan 7 hari terakhir
+        // Query data pertanyaan 7 hari terakhir (konversi batas WIB ke UTC agar cocok dengan kolom created_at UTC)
         $query = ChatHistory::with(['siswa:id,name,email,student_number,class_name', 'referensiChunk:id,module_id', 'referensiChunk.module:id,judul,mapel,kb_nomor'])
-            ->where('created_at', '>=', $startDate)
+            ->where('created_at', '>=', $startDateUtc)
             ->questions()
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc');
@@ -527,9 +528,12 @@ class ExportActivityService
             });
         }
 
-        $chats = $query->get();
-        $totalPertanyaan = $chats->count();
-        $totalSiswaBertanya = $chats->pluck('siswa_id')->filter()->unique()->count();
+        $totalPertanyaan = (clone $query)->count();
+        $maxRows = max(1, (int) config('reports.max_export_rows', 20000));
+        if ($totalPertanyaan > $maxRows) {
+            throw ValidationException::withMessages(['export' => 'Laporan terlalu besar untuk satu berkas. Hubungi pengelola untuk ekspor bertahap atau penyesuaian batas laporan.']);
+        }
+        $totalSiswaBertanya = (clone $query)->distinct('siswa_id')->count('siswa_id');
 
         // --- ROW 5 - 8: METADATA RESMI LAPORAN ---
         $periodeText = $startDate->translatedFormat('d F Y').' s/d '.$endDate->translatedFormat('d F Y');
@@ -587,7 +591,7 @@ class ExportActivityService
         $currentRow = $tableStartRow + 1;
         $no = 1;
 
-        if ($chats->isEmpty()) {
+        if ($totalPertanyaan === 0) {
             $sheet->mergeCells("A{$currentRow}:H{$currentRow}");
             $sheet->setCellValue("A{$currentRow}", 'Tidak ada aktivitas pertanyaan siswa yang tercatat dalam 7 hari terakhir.');
             $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
@@ -595,7 +599,7 @@ class ExportActivityService
             $sheet->getStyle("A{$currentRow}:H{$currentRow}")->applyFromArray($thinBorder);
             $currentRow++;
         } else {
-            foreach ($chats as $chat) {
+            foreach ($query->lazy(100) as $chat) {
                 $waktu = $chat->created_at
                     ? $chat->created_at->timezone(config('app.display_timezone'))->translatedFormat('d/m/Y H:i')
                     : '-';
@@ -1137,7 +1141,9 @@ class ExportActivityService
         if ($scopedGuruId !== null) {
             $query->where(function ($mq) use ($scopedGuruId) {
                 $mq->whereHas('module', fn ($m) => $m->where('guru_id', $scopedGuruId))
-                    ->orWhereNull('module_id');
+                    ->orWhere(function ($orphan) use ($scopedGuruId) {
+                        $orphan->whereNull('module_id')->where('module_guru_id', $scopedGuruId);
+                    });
             });
         }
 

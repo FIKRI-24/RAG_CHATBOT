@@ -345,14 +345,23 @@ class ModuleController extends Controller
         /** @var FilesystemAdapter $disk */
         $disk = Storage::disk('local');
 
-        if (! $disk->exists($module->file_path)) {
+        // Saat re-indexing berjalan atau gagal, siswa tetap mengunduh versi file yang cocok dengan indeks AI aktif.
+        $targetPath = $module->file_path;
+        if ($user->isSiswa()
+            && $module->reindexing_status !== null
+            && $module->indexed_file_path
+            && $disk->exists($module->indexed_file_path)) {
+            $targetPath = $module->indexed_file_path;
+        }
+
+        if (! $disk->exists($targetPath)) {
             return redirect()->back()->with('error', 'File materi tidak ditemukan di penyimpanan server.');
         }
 
-        $extension = pathinfo($module->file_path, PATHINFO_EXTENSION);
+        $extension = pathinfo($targetPath, PATHINFO_EXTENSION);
         $cleanName = Str::slug($module->mapel.'-'.$module->kb_nomor.'-'.$module->judul).'.'.$extension;
 
-        return $disk->download($module->file_path, $cleanName);
+        return $disk->download($targetPath, $cleanName);
     }
 
     /**
@@ -367,6 +376,10 @@ class ModuleController extends Controller
             'indexing_version' => (string) Str::uuid(),
             'indexing_error' => null,
         ];
+
+        if ($keepLiveIndex && ! $module->indexed_file_path && $module->reindexing_status === null && $module->file_path) {
+            $attributes['indexed_file_path'] = $module->file_path;
+        }
 
         if ($newPath !== null) {
             $attributes['file_path'] = $newPath;

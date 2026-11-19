@@ -52,5 +52,7 @@ class AppServiceProvider extends ServiceProvider
             app(AuditService::class)->record('account.password_reset', $event->user);
         });
         RateLimiter::for('account-entry', fn ($request) => Limit::perMinute(6)->by($request->ip()));
+        RateLimiter::for('login-ip', fn ($request) => Limit::perMinute(30)->by($request->ip()));
+        RateLimiter::for('sensitive-account', fn ($request) => Limit::perMinute(10)->by(($request->user()?->id ?: 'guest').'|'.$request->ip()));
     }
 }

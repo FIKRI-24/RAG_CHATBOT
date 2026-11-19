@@ -8,11 +8,20 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ModuleQuizAttempt extends Model
 {
     protected $fillable = [
-        'module_quiz_id', 'module_id', 'user_id', 'module_title', 'quiz_title',
+        'module_quiz_id', 'module_id', 'module_guru_id', 'user_id', 'module_title', 'quiz_title',
         'quiz_version', 'answers', 'questions_snapshot', 'correct_count', 'question_count', 'score',
         'attempt_number', 'previous_attempts', 'remedial_approved_at', 'remedial_approved_by',
         'remedial_note', 'adjusted_score_by', 'adjusted_at',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (ModuleQuizAttempt $attempt) {
+            if ($attempt->module_guru_id === null && $attempt->module_id !== null) {
+                $attempt->module_guru_id = Module::whereKey($attempt->module_id)->value('guru_id');
+            }
+        });
+    }
 
     protected $hidden = ['questions_snapshot', 'previous_attempts'];
 

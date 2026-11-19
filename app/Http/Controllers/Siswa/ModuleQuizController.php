@@ -50,9 +50,11 @@ class ModuleQuizController extends Controller
 
         $identity = $request->validate(['quiz_id' => 'required|integer|min:1', 'quiz_version' => 'required|integer|min:1']);
         $attempt = DB::transaction(function () use ($request, $module, $identity) {
-            $current = Module::whereKey($module->id)->lockForUpdate()->firstOrFail();
+            // Use sharedLock on shared curriculum rows so concurrent student submissions do not serialize against each other,
+            // while still blocking concurrent teacher quiz edits/deletions (which acquire lockForUpdate).
+            $current = Module::whereKey($module->id)->sharedLock()->firstOrFail();
             abort_unless(Module::available()->whereKey($current->id)->exists(), 403, 'Modul belum tersedia atau sudah kedaluwarsa.');
-            $quiz = $current->quiz()->lockForUpdate()->first();
+            $quiz = $current->quiz()->sharedLock()->first();
             abort_unless($quiz && $quiz->is_published, 404, 'Kuis belum diterbitkan.');
 
             $doubleCheck = ModuleQuizAttempt::where('module_id', $current->id)
@@ -109,7 +111,7 @@ class ModuleQuizController extends Controller
             }
 
             $attempt = ModuleQuizAttempt::create([
-                'module_quiz_id' => $quiz->id, 'module_id' => $current->id, 'user_id' => auth()->id(),
+                'module_quiz_id' => $quiz->id, 'module_id' => $current->id, 'module_guru_id' => $current->guru_id, 'user_id' => auth()->id(),
                 'module_title' => $current->judul, 'quiz_title' => $quiz->title, 'quiz_version' => $quiz->version,
                 'answers' => $answers, 'questions_snapshot' => $quiz->questions, 'correct_count' => $correct,
                 'question_count' => count($keys), 'score' => $newScore, 'attempt_number' => 1,

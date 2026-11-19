@@ -232,7 +232,8 @@ class QuizRecapController extends Controller
 
     private function authorizeAttempt(ModuleQuizAttempt $attempt): void
     {
-        if ($attempt->module && (int) $attempt->module->guru_id !== (int) auth()->id()) {
+        $ownerGuruId = $attempt->module?->guru_id ?? $attempt->module_guru_id;
+        if ($ownerGuruId === null || (int) $ownerGuruId !== (int) auth()->id()) {
             abort(403, 'Akses ditolak.');
         }
     }

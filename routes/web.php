@@ -33,7 +33,7 @@ Route::get('/dashboard', function () {
 Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:guru'])->prefix('guru')->name('guru.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/aktivitas-tanya-jawab', [ChatActivityController::class, 'index'])->name('chat-activities.index');
-    Route::get('/aktivitas-tanya-jawab/export-mingguan', [ChatActivityController::class, 'exportWeekly'])->name('chat-activities.export-weekly');
+    Route::get('/aktivitas-tanya-jawab/export-mingguan', [ChatActivityController::class, 'exportWeekly'])->middleware('throttle:15,1')->name('chat-activities.export-weekly');
 
     Route::get('/petunjuk', function () {
         return view('guru.petunjuk');
@@ -45,12 +45,12 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:gu
     Route::delete('/modules/{module}/quiz', [ModuleQuizController::class, 'destroy'])->name('modules.quiz.destroy');
     Route::get('/modules/{module}/quiz/results', [ModuleQuizController::class, 'results'])->name('modules.quiz.results');
     Route::resource('modules', ModuleController::class);
-    Route::get('/siswa/export-activity', [SiswaController::class, 'exportActivity'])->name('siswa.export');
+    Route::get('/siswa/export-activity', [SiswaController::class, 'exportActivity'])->middleware('throttle:15,1')->name('siswa.export');
     Route::patch('/siswa/{siswa}/status', [SiswaController::class, 'status'])->name('siswa.status');
     Route::get('/quiz-reviews', [QuizReviewController::class, 'index'])->name('quiz-reviews.index');
     Route::patch('/quiz-reviews/{chat}', [QuizReviewController::class, 'update'])->name('quiz-reviews.update');
     Route::get('/rekap-kuis', [QuizRecapController::class, 'index'])->name('quiz-recap.index');
-    Route::get('/rekap-kuis/export', [QuizRecapController::class, 'export'])->name('quiz-recap.export');
+    Route::get('/rekap-kuis/export', [QuizRecapController::class, 'export'])->middleware('throttle:15,1')->name('quiz-recap.export');
     Route::get('/rekap-kuis/attempt/{attempt}', [QuizRecapController::class, 'showAttempt'])->name('quiz-recap.show-attempt');
     Route::post('/rekap-kuis/attempt/{attempt}/approve-remedial', [QuizRecapController::class, 'approveRemedial'])->name('quiz-recap.approve-remedial');
     Route::delete('/rekap-kuis/attempt/{attempt}/approve-remedial', [QuizRecapController::class, 'revokeRemedial'])->name('quiz-recap.revoke-remedial');
@@ -82,7 +82,7 @@ Route::middleware(['auth', 'active', 'auth.session', 'school.verified', 'role:si
 Route::middleware(['auth', 'active', 'auth.session'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->middleware('role:guru')->name('profile.destroy');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->middleware(['role:guru', 'throttle:sensitive-account'])->name('profile.destroy');
 });
 
 // Halaman Profil Pengembang (Khusus Role Guru)

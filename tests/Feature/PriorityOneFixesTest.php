@@ -129,6 +129,13 @@ class PriorityOneFixesTest extends TestCase
         config(['gemini.api_key' => 'test-key']);
 
         Http::fake([
+            '*:batchEmbedContents' => function ($request) {
+                $count = count($request['requests'] ?? []);
+
+                return Http::response([
+                    'embeddings' => array_fill(0, $count, ['values' => [0.1, 0.2, 0.3]]),
+                ], 200);
+            },
             '*' => Http::response(['embedding' => ['values' => [0.1, 0.2, 0.3]]], 200),
         ]);
 

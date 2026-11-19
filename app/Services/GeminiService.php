@@ -15,9 +15,16 @@ class GeminiService
 
     private ?float $deadline = null;
 
+    private string $usageScope = 'chat';
+
     public function startBudget(?int $seconds = null): void
     {
         $this->deadline = microtime(true) + max(1, $seconds ?? (int) config('rag.request_budget_seconds', 55));
+    }
+
+    public function setUsageScope(string $scope): void
+    {
+        $this->usageScope = $scope;
     }
 
     public function structuredQuiz(string $context): array
@@ -56,7 +63,7 @@ class GeminiService
     public function embedText(string $text): array
     {
         if (trim($text) === '') {
-            throw new RagException('Teks embedding tidak boleh kosong.');
+            throw RagException::permanent('Teks embedding tidak boleh kosong.');
         }
         $data = $this->request(self::EMBEDDING_MODEL, 'embedContent', [
             'model' => 'models/'.self::EMBEDDING_MODEL,
@@ -68,6 +75,54 @@ class GeminiService
         }
 
         return $vector;
+    }
+
+    /**
+     * Embed multiple text chunks in a single Gemini batchEmbedContents call to minimize API requests and quota usage.
+     *
+     * @param  array<int, string>  $texts
+     * @return array<int, array<int, int|float>>
+     */
+    public function embedBatch(array $texts): array
+    {
+        $texts = array_values($texts);
+        if ($texts === []) {
+            return [];
+        }
+        if (count($texts) === 1) {
+            return [$this->embedText($texts[0])];
+        }
+
+        $requests = [];
+        foreach ($texts as $text) {
+            if (trim($text) === '') {
+                throw RagException::permanent('Teks embedding tidak boleh kosong.');
+            }
+            $requests[] = [
+                'model' => 'models/'.self::EMBEDDING_MODEL,
+                'content' => ['parts' => [['text' => $text]]],
+            ];
+        }
+
+        $data = $this->request(self::EMBEDDING_MODEL, 'batchEmbedContents', [
+            'requests' => $requests,
+        ]);
+
+        $embeddings = $data['embeddings'] ?? null;
+        if (! is_array($embeddings) || count($embeddings) !== count($texts)) {
+            throw new RagException('Layanan embedding batch mengembalikan jumlah vektor tidak valid.');
+        }
+
+        $vectors = [];
+        foreach ($embeddings as $item) {
+            $vector = $item['values'] ?? null;
+            if (! VectorService::valid($vector)) {
+                throw new RagException('Layanan embedding mengembalikan vektor tidak valid.');
+            }
+            $vectors[] = $vector;
+        }
+
+        return $vectors;
     }
 
     public function generateAnswer(string $question, string $context): string
@@ -169,13 +224,13 @@ class GeminiService
     private function request(string $model, string $operation, array $body): array
     {
         if ($this->apiKey === '') {
-            throw new RagException('Layanan AI belum dikonfigurasi. Hubungi guru atau pengelola.');
+            throw RagException::permanent('Layanan AI belum dikonfigurasi. Hubungi guru atau pengelola.');
         }
         $initialRemaining = $this->deadline === null ? (int) config('rag.http_timeout', 25) : $this->deadline - microtime(true);
         if ($initialRemaining < 1) {
             throw new RagException('Waktu pemrosesan AI habis. Silakan coba kembali.');
         }
-        app(AiUsageService::class)->reserve();
+        app(AiUsageService::class)->reserve($this->usageScope);
         for ($attempt = 1; $attempt <= 3; $attempt++) {
             $remaining = $this->deadline === null ? (int) config('rag.http_timeout', 25) : $this->deadline - microtime(true);
             if ($remaining < 1) {
@@ -197,7 +252,7 @@ class GeminiService
                 $status = $response->status();
                 Log::warning('RAG API request failed', ['operation' => $operation, 'status' => $status, 'attempt' => $attempt]);
                 if ($status !== 429 && $status < 500) {
-                    throw new RagException('Layanan AI belum dapat memproses permintaan. Hubungi pengelola jika berulang.');
+                    throw RagException::permanent('Layanan AI belum dapat memproses permintaan. Hubungi pengelola jika berulang.');
                 }
                 $retryAfter = $response->header('Retry-After');
                 if (is_numeric($retryAfter)) {

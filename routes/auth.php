@@ -20,7 +20,7 @@ Route::middleware('guest')->group(function () {
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
         ->name('login');
 
-    Route::post('login', [AuthenticatedSessionController::class, 'store']);
+    Route::post('login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:login-ip');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
@@ -52,7 +52,7 @@ Route::middleware(['auth', 'active', 'auth.session'])->group(function () {
 
     Route::post('confirm-password', [ConfirmablePasswordController::class, 'store'])->middleware('throttle:account-entry');
 
-    Route::put('password', [PasswordController::class, 'update'])->name('password.update');
+    Route::put('password', [PasswordController::class, 'update'])->middleware('throttle:sensitive-account')->name('password.update');
 
     Route::post('logout', [AuthenticatedSessionController::class, 'destroy'])
         ->name('logout');

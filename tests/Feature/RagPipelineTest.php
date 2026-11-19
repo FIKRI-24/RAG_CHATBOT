@@ -191,8 +191,10 @@ class RagPipelineTest extends TestCase
             'pertanyaan' => 'Materi lama?', 'jawaban' => 'old', 'referensi_chunk_id' => $old->id]);
         $extractor = Mockery::mock(DocumentExtractorService::class);
         $extractor->shouldReceive('extract')->andReturn(str_repeat('materi ', 150));
+        config(['rag.embedding_batch_size' => 1]);
         $gemini = Mockery::mock(GeminiService::class);
         $gemini->shouldReceive('startBudget')->andReturnNull();
+        $gemini->shouldReceive('setUsageScope')->with('indexing')->andReturnNull();
         $gemini->shouldReceive('embedText')->once()->andReturn([1, 0]);
         $gemini->shouldReceive('embedText')->once()->andThrow(new RuntimeException('API unavailable'));
         $job = new ProcessModuleJob($module);
@@ -205,6 +207,7 @@ class RagPipelineTest extends TestCase
         }
         $healthy = Mockery::mock(GeminiService::class);
         $healthy->shouldReceive('startBudget')->andReturnNull();
+        $healthy->shouldReceive('setUsageScope')->with('indexing')->andReturnNull();
         $healthy->shouldReceive('embedText')->andReturn([1, 0]);
         $job->handle($extractor, new ChunkingService, $healthy);
         $ids = $module->chunks()->pluck('id')->all();
@@ -239,6 +242,7 @@ class RagPipelineTest extends TestCase
         $extractor->shouldReceive('extract')->andReturn('new content');
         $gemini = Mockery::mock(GeminiService::class);
         $gemini->shouldReceive('startBudget')->andReturnNull();
+        $gemini->shouldReceive('setUsageScope')->with('indexing')->andReturnNull();
         $gemini->shouldReceive('embedText')->once()->andReturnUsing(function () use ($module) {
             $module->refresh()->update(['indexing_version' => (string) Str::uuid(), 'status_indexing' => 'pending']);
 
@@ -293,5 +297,265 @@ class RagPipelineTest extends TestCase
         $response->assertStatus(503)->assertJsonPath('success', false)->assertDontSee('provider-secret');
         $this->assertSame(0, ChatHistory::count());
         Http::assertSentCount(3);
+    }
+
+    public function test_quiz_selection_avoids_full_vector_hydration_and_prioritizes_valid_rich_chunks(): void
+    {
+        $student = $this->student();
+        $module = $this->module();
+
+        // 15 short chunks (tier 3)
+        for ($i = 0; $i < 15; $i++) {
+            $module->chunks()->create([
+                'chunk_text' => "Teks pendek {$i}",
+                'embedding_vector' => [1, 0],
+                'embedding_model' => GeminiService::EMBEDDING_MODEL,
+                'embedding_dimensions' => 2,
+                'chunk_index' => 0,
+            ]);
+        }
+
+        // 10 rich valid chunks (tier 1: len >= 120 and chunk_index > 0)
+        $validTier1Ids = [];
+        for ($i = 1; $i <= 10; $i++) {
+            $chunk = $module->chunks()->create([
+                'chunk_text' => str_repeat("Konfigurasi VLAN dan trunking switch jaringan komputer bagian {$i}. ", 3),
+                'embedding_vector' => [1, 0],
+                'embedding_model' => GeminiService::EMBEDDING_MODEL,
+                'embedding_dimensions' => 2,
+                'chunk_index' => $i,
+            ]);
+            $validTier1Ids[] = $chunk->id;
+        }
+
+        // 1 tier 1 chunk with invalid zero vector (must be skipped)
+        $invalidChunk = $module->chunks()->create([
+            'chunk_text' => str_repeat('Materi dengan vektor nol yang tidak valid untuk kuis. ', 4),
+            'embedding_vector' => [0, 0],
+            'embedding_model' => GeminiService::EMBEDDING_MODEL,
+            'embedding_dimensions' => 2,
+            'chunk_index' => 11,
+        ]);
+
+        $mock = Mockery::mock(GeminiService::class);
+        $mock->shouldReceive('startBudget')->andReturnNull();
+        $mock->shouldReceive('structuredQuiz')->once()->andReturn([
+            'question' => 'Jelaskan fungsi VLAN trunking?',
+            'answer_key' => 'Membawa beberapa VLAN dalam satu tautan.',
+            'rubric' => ['Menjelaskan multi-VLAN pada satu link'],
+        ]);
+        $this->app->instance(GeminiService::class, $mock);
+
+        $queries = [];
+        \Illuminate\Support\Facades\DB::listen(function ($query) use (&$queries) {
+            $queries[] = ['sql' => $query->sql, 'bindings' => $query->bindings];
+        });
+
+        $response = $this->postJson(route('siswa.chat.ask'), ['action' => 'quiz', 'mapel' => 'Jaringan'])
+            ->assertOk();
+
+        $chat = ChatHistory::where('siswa_id', $student->id)->where('kind', 'quiz')->firstOrFail();
+        $this->assertContains($chat->referensi_chunk_id, $validTier1Ids);
+        $this->assertNotSame($invalidChunk->id, $chat->referensi_chunk_id);
+
+        // Ensure no query used ORDER BY RANDOM()/RAND() and full module_chunks selects only load bounded ID batches (<= 5)
+        $sawMetadataQuery = false;
+        $sawBoundedFullSelect = false;
+        foreach ($queries as $q) {
+            $sqlLower = strtolower($q['sql']);
+            $this->assertStringNotContainsString('random()', $sqlLower);
+            $this->assertStringNotContainsString('rand()', $sqlLower);
+            if (str_contains($sqlLower, 'from "module_chunks"')) {
+                if (str_contains($sqlLower, 'length(trim(chunk_text))')) {
+                    $sawMetadataQuery = true;
+                    $this->assertStringNotContainsString('embedding_vector', explode(' from ', $sqlLower)[0]);
+                } elseif (str_contains($sqlLower, 'select *')) {
+                    $this->assertTrue(
+                        str_contains($sqlLower, '"id" in (') || str_contains($sqlLower, '"id" = ?'),
+                        'Full module_chunks select must be scoped by specific ID(s): '.$q['sql']
+                    );
+                    if (preg_match('/"id"\s+in\s*\(([^)]+)\)/', $sqlLower, $m)) {
+                        $sawBoundedFullSelect = true;
+                        $this->assertLessThanOrEqual(5, substr_count($m[1], '?'));
+                    }
+                }
+            }
+        }
+        $this->assertTrue($sawMetadataQuery, 'Expected lightweight metadata query for quiz candidate selection.');
+        $this->assertTrue($sawBoundedFullSelect, 'Expected bounded batch lookup for quiz chunk hydration.');
+    }
+
+    public function test_quiz_selection_falls_back_to_tier2_when_tier1_vectors_are_invalid(): void
+    {
+        $student = $this->student();
+        $module = $this->module();
+
+        // Invalid tier 1 chunk
+        $module->chunks()->create([
+            'chunk_text' => str_repeat('Teks panjang tier satu dengan vektor rusak tidak valid. ', 4),
+            'embedding_vector' => [0, 0],
+            'embedding_model' => GeminiService::EMBEDDING_MODEL,
+            'embedding_dimensions' => 2,
+            'chunk_index' => 1,
+        ]);
+
+        // Valid tier 2 chunk (len >= 80, chunk_index = 0)
+        $tier2 = $module->chunks()->create([
+            'chunk_text' => str_repeat('Pengenalan dasar VLAN pada switch manageable TKJ. ', 2),
+            'embedding_vector' => [1, 0],
+            'embedding_model' => GeminiService::EMBEDDING_MODEL,
+            'embedding_dimensions' => 2,
+            'chunk_index' => 0,
+        ]);
+
+        // Valid tier 3 chunk (short)
+        $module->chunks()->create([
+            'chunk_text' => 'Teks pendek.',
+            'embedding_vector' => [1, 0],
+            'embedding_model' => GeminiService::EMBEDDING_MODEL,
+            'embedding_dimensions' => 2,
+            'chunk_index' => 0,
+        ]);
+
+        $mock = Mockery::mock(GeminiService::class);
+        $mock->shouldReceive('startBudget')->andReturnNull();
+        $mock->shouldReceive('structuredQuiz')->once()->andReturn([
+            'question' => 'Apa itu VLAN?',
+            'answer_key' => 'Virtual LAN.',
+            'rubric' => ['Menyebutkan Virtual LAN'],
+        ]);
+        $this->app->instance(GeminiService::class, $mock);
+
+        $this->postJson(route('siswa.chat.ask'), ['action' => 'quiz', 'mapel' => 'Jaringan'])
+            ->assertOk();
+
+        $chat = ChatHistory::where('siswa_id', $student->id)->where('kind', 'quiz')->firstOrFail();
+        $this->assertSame($tier2->id, $chat->referensi_chunk_id);
+    }
+
+    public function test_worker_uses_batch_embedding_isolated_indexing_quota_and_resumes_from_checkpoint_on_retry(): void
+    {
+        config([
+            'gemini.api_key' => 'test-key',
+            'rag.embedding_batch_size' => 2,
+            'rag.daily_global_limit' => 5,
+            'rag.daily_indexing_limit' => 10,
+            'rag.retry_delay_ms' => 0,
+        ]);
+
+        $module = $this->module(['status_indexing' => 'pending']);
+        // 5 chunks with batch_size=2 => 3 batches (2 + 2 + 1)
+        $longText = str_repeat('Konfigurasi router MikroTik firewall filtering dan VLAN trunking jaringan komputer TKJ. ', 28);
+        $expectedChunks = (new ChunkingService)->chunk($longText, config('rag.chunk_size'), config('rag.chunk_overlap'));
+        $this->assertGreaterThanOrEqual(4, count($expectedChunks));
+
+        $extractor = Mockery::mock(DocumentExtractorService::class);
+        $extractor->shouldReceive('extract')->andReturn($longText);
+
+        // Attempt 1: Batch 1 succeeds (2 chunks), Batch 2 fails with 503 (3 retries inside GeminiService)
+        $batchCalls = 0;
+        Http::fake([
+            '*:batchEmbedContents' => function ($request) use (&$batchCalls) {
+                $batchCalls++;
+                $count = count($request['requests'] ?? []);
+                if ($batchCalls === 1) {
+                    return Http::response([
+                        'embeddings' => array_fill(0, $count, ['values' => [0.5, 0.5]]),
+                    ], 200);
+                }
+
+                return Http::response(['error' => 'temporarily unavailable'], 503);
+            },
+            '*:embedContent' => Http::response(['embedding' => ['values' => [0.5, 0.5]]], 200),
+        ]);
+
+        $queueJobAttempt1 = Mockery::mock(\Illuminate\Contracts\Queue\Job::class);
+        $queueJobAttempt1->shouldReceive('attempts')->andReturn(1);
+
+        $job1 = new ProcessModuleJob($module);
+        $job1->setJob($queueJobAttempt1);
+
+        try {
+            $job1->handle($extractor, new ChunkingService, new GeminiService);
+            $this->fail('Expected transient failure on batch 2');
+        } catch (\App\Exceptions\RagException $e) {
+            $this->assertTrue($e->retryable);
+        }
+
+        // Transient attempt 1/3 must NOT flash status to 'failed' prematurely, and student 'global' quota must remain 0
+        $this->assertSame('processing', $module->fresh()->status_indexing);
+        $this->assertNull(\Illuminate\Support\Facades\DB::table('ai_usage')->where('bucket', 'global')->value('requests'));
+        $this->assertSame(2, (int) \Illuminate\Support\Facades\DB::table('ai_usage')->where('bucket', 'indexing')->value('requests'));
+
+        // Attempt 2: Healthy API -> must resume from chunk index 2 (skipping batch 1 already staged!)
+        $attempt2BatchChunks = 0;
+        $attempt2SingleChunks = 0;
+        Http::swap(new \Illuminate\Http\Client\Factory);
+        Http::preventStrayRequests();
+        Http::fake([
+            '*:batchEmbedContents' => function ($request) use (&$attempt2BatchChunks) {
+                $count = count($request['requests'] ?? []);
+                $attempt2BatchChunks += $count;
+
+                return Http::response([
+                    'embeddings' => array_fill(0, $count, ['values' => [0.5, 0.5]]),
+                ], 200);
+            },
+            '*:embedContent' => function () use (&$attempt2SingleChunks) {
+                $attempt2SingleChunks++;
+
+                return Http::response(['embedding' => ['values' => [0.5, 0.5]]], 200);
+            },
+        ]);
+
+        $queueJobAttempt2 = Mockery::mock(\Illuminate\Contracts\Queue\Job::class);
+        $queueJobAttempt2->shouldReceive('attempts')->andReturn(2);
+
+        $job2 = new ProcessModuleJob($module->fresh());
+        $job2->setJob($queueJobAttempt2);
+        $job2->handle($extractor, new ChunkingService, new GeminiService);
+
+        $this->assertSame('completed', $module->fresh()->status_indexing);
+        $this->assertSame(count($expectedChunks), $module->chunks()->count());
+        // Resumed from checkpoint: only the remaining (total - 2) chunks were embedded on attempt 2!
+        $this->assertSame(count($expectedChunks) - 2, $attempt2BatchChunks + $attempt2SingleChunks);
+        // Student chatbot global quota was NEVER touched by indexing!
+        $this->assertNull(\Illuminate\Support\Facades\DB::table('ai_usage')->where('bucket', 'global')->value('requests'));
+        // SystemStatusService exposes indexing_attempts_today separately from api_attempts_today
+        $status = app(\App\Services\SystemStatusService::class)->snapshot();
+        $this->assertSame(0, (int) $status['api_attempts_today']);
+        $this->assertGreaterThanOrEqual(3, (int) $status['indexing_attempts_today']);
+    }
+
+    public function test_worker_fails_fast_without_retrying_on_permanent_document_error(): void
+    {
+        $module = $this->module(['status_indexing' => 'pending']);
+        $extractor = Mockery::mock(DocumentExtractorService::class);
+        $extractor->shouldReceive('extract')->once()->andReturn('   ');
+
+        $queueJob = Mockery::mock(\Illuminate\Contracts\Queue\Job::class);
+        $queueJob->shouldReceive('attempts')->andReturn(1);
+        $queueJob->shouldReceive('fail')->once()->with(Mockery::type(\App\Exceptions\RagException::class));
+
+        $job = new ProcessModuleJob($module);
+        $job->setJob($queueJob);
+        $job->handle($extractor, new ChunkingService, new GeminiService);
+
+        // Simulate Laravel queue calling failed() after $this->fail($e)
+        $job->failed(\App\Exceptions\RagException::permanent('Dokumen tidak memiliki teks terbaca.'));
+        $this->assertSame('failed', $module->fresh()->status_indexing);
+        Http::assertNothingSent();
+    }
+
+    public function test_system_status_counts_failed_live_reindexing_in_failed_modules(): void
+    {
+        $this->module([
+            'status_indexing' => 'completed',
+            'reindexing_status' => 'failed',
+            'indexing_error' => 'Re-index timeout',
+        ]);
+
+        $status = app(\App\Services\SystemStatusService::class)->snapshot();
+        $this->assertSame(1, $status['failed_modules']);
     }
 }

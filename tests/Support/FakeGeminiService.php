@@ -12,6 +12,11 @@ class FakeGeminiService extends GeminiService
         return [1, 0];
     }
 
+    public function embedBatch(array $texts): array
+    {
+        return array_map(fn (string $text) => $this->embedText($text), array_values($texts));
+    }
+
     public function rewriteQuestion(string $question, array $history): string
     {
         return $question;

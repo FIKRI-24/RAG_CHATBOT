@@ -350,7 +350,16 @@ class PriorityTwoFixesTest extends TestCase
 
         $module->refresh();
         config(['gemini.api_key' => 'test-key']);
-        Http::fake(['*' => Http::response(['embedding' => ['values' => [0.2, 0.3, 0.4]]], 200)]);
+        Http::fake([
+            '*:batchEmbedContents' => function ($request) {
+                $count = count($request['requests'] ?? []);
+
+                return Http::response([
+                    'embeddings' => array_fill(0, $count, ['values' => [0.2, 0.3, 0.4]]),
+                ], 200);
+            },
+            '*' => Http::response(['embedding' => ['values' => [0.2, 0.3, 0.4]]], 200),
+        ]);
 
         (new ProcessModuleJob($module))->handle(
             app(\App\Services\DocumentExtractorService::class),

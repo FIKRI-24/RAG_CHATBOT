@@ -23,11 +23,13 @@ class ChatActivityController extends Controller
 
         $search = $request->input('search');
         $moduleId = $request->input('module_id');
-        $oneWeekAgo = Carbon::now(config('app.display_timezone'))->subDays(7)->startOfDay();
+        $displayTimezone = config('app.display_timezone', 'Asia/Jakarta');
+        $oneWeekAgo = Carbon::now($displayTimezone)->subDays(7)->startOfDay();
+        $oneWeekAgoUtc = $oneWeekAgo->copy()->utc();
 
         // Metrik 7 Hari Terakhir (Mingguan)
-        $weeklyQuestionsCount = ChatHistory::where('created_at', '>=', $oneWeekAgo)->questions()->count();
-        $weeklyActiveStudentsCount = ChatHistory::where('created_at', '>=', $oneWeekAgo)->questions()->distinct('siswa_id')->count('siswa_id');
+        $weeklyQuestionsCount = ChatHistory::where('created_at', '>=', $oneWeekAgoUtc)->questions()->count();
+        $weeklyActiveStudentsCount = ChatHistory::where('created_at', '>=', $oneWeekAgoUtc)->questions()->distinct('siswa_id')->count('siswa_id');
         $totalQuestionsAllTime = ChatHistory::questions()->count();
 
         // Query Log Pertanyaan Siswa

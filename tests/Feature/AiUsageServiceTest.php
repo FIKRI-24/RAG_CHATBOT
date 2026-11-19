@@ -143,4 +143,44 @@ class AiUsageServiceTest extends TestCase
         $this->assertSame(10, (int) DB::table('ai_usage')->where('bucket', 'global')->value('requests'));
         $this->assertSame(10, (int) DB::table('ai_usage')->where('bucket', 'user:'.$user->id)->value('requests'));
     }
+
+    /**
+     * (e) Bucket indexing terpisah dari kuota global dan kuota siswa.
+     */
+    public function test_indexing_scope_uses_isolated_bucket_and_does_not_drain_student_global_quota(): void
+    {
+        $student = User::factory()->create(['role' => 'siswa']);
+        $this->actingAs($student);
+
+        config([
+            'rag.daily_user_limit' => 2,
+            'rag.daily_global_limit' => 2,
+            'rag.daily_indexing_limit' => 3,
+        ]);
+
+        $service = app(AiUsageService::class);
+
+        // 3 kali indexing menghabiskan bucket 'indexing', tetapi bucket 'global' dan 'user' tetap 0
+        $service->reserve('indexing');
+        $service->reserve('indexing');
+        $service->reserve('indexing');
+
+        $this->assertSame(3, (int) DB::table('ai_usage')->where('bucket', 'indexing')->value('requests'));
+        $this->assertNull(DB::table('ai_usage')->where('bucket', 'global')->value('requests'));
+        $this->assertNull(DB::table('ai_usage')->where('bucket', 'user:'.$student->id)->value('requests'));
+
+        // Siswa masih tetap dapat memakai chatbot secara normal
+        $service->reserve('chat');
+        $this->assertSame(1, (int) DB::table('ai_usage')->where('bucket', 'global')->value('requests'));
+        $this->assertSame(1, (int) DB::table('ai_usage')->where('bucket', 'user:'.$student->id)->value('requests'));
+
+        // Request indexing ke-4 ditolak secara permanen (retryable = false)
+        try {
+            $service->reserve('indexing');
+            $this->fail('Harusnya melempar RagException karena batas indexing tercapai');
+        } catch (RagException $e) {
+            $this->assertFalse($e->retryable);
+            $this->assertStringContainsString('indexing', $e->getMessage());
+        }
+    }
 }

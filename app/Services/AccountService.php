@@ -45,6 +45,7 @@ class AccountService
                     throw ValidationException::withMessages(['transfer_to' => 'Pilih guru aktif penerima modul sebelum menghapus akun guru.']);
                 }
                 Module::where('guru_id', $current->id)->update(['guru_id' => $replacement->id]);
+                \App\Models\ModuleQuizAttempt::where('module_guru_id', $current->id)->update(['module_guru_id' => $replacement->id]);
             }
             app(AuditService::class)->record('account.deleted', $current, ['role' => $current->role, 'transfer_to' => $transferTo]);
             $avatar = $current->avatar;

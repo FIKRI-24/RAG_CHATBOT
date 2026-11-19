@@ -29,24 +29,35 @@ class RetrievalService
 
     public function search(array $vector, string $mapel = 'Semua', string $queryText = ''): array
     {
+        $queryNorm = VectorService::norm($vector);
+        if ($queryNorm === null) {
+            return [];
+        }
+
+        $queryDimensions = count($vector);
         $best = [];
         $seen = [];
         $limit = max(1, (int) config('rag.top_k', 3));
         $threshold = (float) config('rag.similarity_threshold', 0.65);
+        $lexicalFloor = max(0.35, $threshold - 0.15);
         $keywords = $this->extractKeywords($queryText);
+
         foreach ($this->eligible($mapel)->with('module')->lazyById(100) as $chunk) {
-            $candidate = $chunk->embedding_vector;
-            if (! is_array($candidate) || ($chunk->embedding_dimensions !== null && (int) $chunk->embedding_dimensions !== count($candidate))) {
+            if ($chunk->embedding_dimensions !== null && (int) $chunk->embedding_dimensions !== $queryDimensions) {
                 continue;
             }
-            $score = VectorService::cosine($vector, $candidate);
+            $candidate = $chunk->embedding_vector;
+            $score = VectorService::cosineWithQueryNorm($vector, $queryNorm, $candidate);
             if ($score === null) {
                 continue;
             }
-            if ($keywords !== [] && $score >= max(0.35, $threshold - 0.15)) {
+            if ($keywords !== [] && $score >= $lexicalFloor) {
                 $score = min(1.0, $score + $this->lexicalBoost($chunk->chunk_text, $keywords));
             }
             if ($score < $threshold) {
+                continue;
+            }
+            if (count($best) === $limit && $score < $best[$limit - 1]['similarity']) {
                 continue;
             }
             $hash = hash('sha256', preg_replace('/\s+/u', ' ', trim($chunk->chunk_text)));
@@ -59,7 +70,9 @@ class RetrievalService
             }
             $best[] = ['chunk' => $chunk, 'similarity' => $score, 'hash' => $hash];
             usort($best, fn ($a, $b) => $b['similarity'] <=> $a['similarity'] ?: $a['chunk']->id <=> $b['chunk']->id);
-            $best = array_slice($best, 0, $limit);
+            if (count($best) > $limit) {
+                $best = array_slice($best, 0, $limit);
+            }
             $seen = array_fill_keys(array_column($best, 'hash'), true);
         }
 
@@ -72,6 +85,28 @@ class RetrievalService
      */
     public function sources(array $matches, string $mapel = 'Semua'): array
     {
+        if ($matches === []) {
+            return [];
+        }
+
+        // Batch-fetch all anchor chunks and their immediate neighbors in a single DB query (eliminating N+1 queries).
+        $pool = $this->eligible($mapel)
+            ->where(function ($query) use ($matches) {
+                foreach ($matches as $match) {
+                    $chunk = $match['chunk'];
+                    if ($chunk->chunk_index === null) {
+                        $query->orWhere('id', $chunk->id);
+                    } else {
+                        $query->orWhere(function ($sub) use ($chunk) {
+                            $sub->where('module_id', $chunk->module_id)
+                                ->whereBetween('chunk_index', [max(0, $chunk->chunk_index - 1), $chunk->chunk_index + 1]);
+                        });
+                    }
+                }
+            })
+            ->orderBy('chunk_index')
+            ->get();
+
         $sources = [];
         $used = [];
         foreach ($matches as $match) {
@@ -80,12 +115,27 @@ class RetrievalService
                 continue;
             }
             $source = $this->source($chunk, $match['similarity']);
-            $neighbors = $chunk->chunk_index === null ? $this->eligible($mapel)->whereKey($chunk->id)->get() : $this->eligible($mapel)
-                ->where('module_id', $chunk->module_id)
-                ->whereBetween('chunk_index', [max(0, $chunk->chunk_index - 1), $chunk->chunk_index + 1])
-                ->orderBy('chunk_index')->get()->reject(fn ($item) => isset($used[$item->id]))
-                ->filter(fn ($item) => VectorService::valid($item->embedding_vector)
-                    && count($item->embedding_vector) === count($chunk->embedding_vector));
+            $anchorDimensions = is_array($chunk->embedding_vector) ? count($chunk->embedding_vector) : 0;
+
+            $neighbors = $pool
+                ->filter(function ($item) use ($chunk, $used, $anchorDimensions) {
+                    if (isset($used[$item->id])) {
+                        return false;
+                    }
+                    if ($chunk->chunk_index === null) {
+                        return $item->id === $chunk->id;
+                    }
+
+                    return $item->module_id === $chunk->module_id
+                        && $item->chunk_index !== null
+                        && $item->chunk_index >= max(0, $chunk->chunk_index - 1)
+                        && $item->chunk_index <= $chunk->chunk_index + 1
+                        && VectorService::valid($item->embedding_vector)
+                        && count($item->embedding_vector) === $anchorDimensions;
+                })
+                ->sortBy('chunk_index')
+                ->values();
+
             if (! $neighbors->contains('id', $chunk->id)) {
                 continue; // Index was replaced or module was withdrawn during retrieval.
             }

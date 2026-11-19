@@ -73,11 +73,7 @@ class ChatController extends Controller
                 return response()->json(['success' => true, 'data' => ['quiz_id' => null]]);
             }
             if ($action === 'quiz') {
-                $candidates = $retrieval->eligible($mapel)->with('module')->inRandomOrder()->get()
-                    ->filter(fn ($chunk) => VectorService::valid($chunk->embedding_vector));
-                $chunk = $candidates->first(fn ($c) => mb_strlen(trim($c->chunk_text)) >= 120 && $c->chunk_index > 0)
-                    ?? $candidates->first(fn ($c) => mb_strlen(trim($c->chunk_text)) >= 80)
-                    ?? $candidates->first();
+                $chunk = $this->selectQuizChunk($retrieval, $mapel);
                 if (! $chunk) {
                     return $this->error('Belum ada materi yang siap untuk dijadikan soal.', 422);
                 }
@@ -250,6 +246,90 @@ class ChatController extends Controller
         });
 
         return $chat ? $this->reply($chat) : $this->error('Kuis atau sumbernya berubah saat diproses. Silakan mulai kuis baru.', 409);
+    }
+
+    private function selectQuizChunk(RetrievalService $retrieval, string $mapel): ?ModuleChunk
+    {
+        // Select lightweight metadata first so we never hydrate every chunk's embedding_vector into PHP memory.
+        $candidates = $retrieval->eligible($mapel)
+            ->select(['id', 'chunk_index'])
+            ->selectRaw('LENGTH(TRIM(chunk_text)) as text_len')
+            ->get();
+
+        if ($candidates->isEmpty()) {
+            return null;
+        }
+
+        $tier1Ids = [];
+        $tier2Ids = [];
+        $tier3Ids = [];
+
+        foreach ($candidates as $candidate) {
+            $len = (int) $candidate->text_len;
+            $chunkIndex = $candidate->chunk_index !== null ? (int) $candidate->chunk_index : 0;
+
+            if ($len >= 120 && $chunkIndex > 0) {
+                $tier1Ids[] = (int) $candidate->id;
+            } elseif ($len >= 80) {
+                $tier2Ids[] = (int) $candidate->id;
+            } else {
+                $tier3Ids[] = (int) $candidate->id;
+            }
+        }
+
+        shuffle($tier1Ids);
+        shuffle($tier2Ids);
+        shuffle($tier3Ids);
+
+        $fallbackTier2 = null;
+        $fallbackTier3 = null;
+
+        foreach ([[1, $tier1Ids], [2, $tier2Ids], [3, $tier3Ids]] as [$tier, $ids]) {
+            if ($tier === 2 && $fallbackTier2 !== null) {
+                return $fallbackTier2;
+            }
+            if ($tier === 3 && $fallbackTier3 !== null) {
+                return $fallbackTier3;
+            }
+
+            foreach (array_chunk($ids, 5) as $batchIds) {
+                $loaded = $retrieval->eligible($mapel)
+                    ->whereIn('id', $batchIds)
+                    ->with('module')
+                    ->get()
+                    ->keyBy('id');
+
+                foreach ($batchIds as $id) {
+                    $chunk = $loaded->get($id);
+                    if (! $chunk || ! VectorService::valid($chunk->embedding_vector)) {
+                        continue;
+                    }
+
+                    $charLen = mb_strlen(trim((string) $chunk->chunk_text));
+                    $chunkIndex = $chunk->chunk_index !== null ? (int) $chunk->chunk_index : 0;
+
+                    if ($tier === 1) {
+                        if ($charLen >= 120 && $chunkIndex > 0) {
+                            return $chunk;
+                        }
+                        if ($charLen >= 80) {
+                            $fallbackTier2 ??= $chunk;
+                        } else {
+                            $fallbackTier3 ??= $chunk;
+                        }
+                    } elseif ($tier === 2) {
+                        if ($charLen >= 80) {
+                            return $chunk;
+                        }
+                        $fallbackTier3 ??= $chunk;
+                    } else {
+                        return $chunk;
+                    }
+                }
+            }
+        }
+
+        return $fallbackTier2 ?? $fallbackTier3;
     }
 
     private function lockSource(ModuleChunk $chunk, string $mapel, RetrievalService $retrieval): ?ModuleChunk
